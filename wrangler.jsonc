@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mc-next",
+  "main": "src/worker/index.ts",
+  "compatibility_date": "2024-11-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "assets": {
+    "directory": "./out",
+    "not_found_handling": "404-page",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "mc-next",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "RCON",
+        "class_name": "RconDO"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["RconDO"]
+    }
+  ],
+  "vars": {
+    "APP_NAME": "Westworld西域之光",
+    "TOKEN_TTL_HOURS": "168",
+    "TURNSTILE_ENABLED": "false",
+    "MICROSOFT_OAUTH_ENABLED": "false",
+    "AI_ENABLED": "false",
+    "RCON_ENABLED": "false",
+    "MONITOR_ENABLED": "false"
+  }
+}

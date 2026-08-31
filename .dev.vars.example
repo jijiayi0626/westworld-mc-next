@@ -1,0 +1,29 @@
+# 复制为 .dev.vars 并填入真实值（仅本地 wrangler dev 使用；生产用 wrangler secret put）
+# 未配置时对应功能保持关闭（见 wrangler.jsonc 的 vars 开关）
+
+# —— 认证 ——
+APP_SECRET=please-generate-a-random-secret
+
+# —— 微软 OAuth 绑定（MICROSOFT_OAUTH_ENABLED=true 时生效）——
+# MICROSOFT_CLIENT_ID=
+# MICROSOFT_CLIENT_SECRET=
+# MS_TENANT_ID=consumers
+
+# —— AI（AI_ENABLED=true 时生效）——
+# AI_API_KEY=
+# AI_BASE_URL=https://api.openai.com/v1
+# AI_MODEL=gpt-4o-mini
+
+# —— 邮件（找回密码）——
+# SMTP_HOST=
+# SMTP_PORT=465
+# SMTP_USER=
+# SMTP_PASS=
+# SMTP_FROM=
+
+# —— 支付（Creem）——
+# CREEM_API_KEY=
+# CREEM_PRODUCT_ID=
+
+# —— 站点 ——
+# SITE_URL=https://example.com
