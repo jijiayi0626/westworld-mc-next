@@ -1,30 +1,32 @@
+"use client";
+
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function FeaturesSection() {
-  const { features } = defaultContent;
+  const { features } = useSiteContent();
 
   return (
     <section
       id="features"
       className="features-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
-      style={{ backgroundImage: "url('/png/7649e2dbc7044ee71743022dd2d51701.jpg')" }}
+      style={{ backgroundImage: `url('${features.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-bg-dark/60 backdrop-blur-[5px]" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
             <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-              游戏特色
+              {features.title}
            </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
-              探索我们精心打造的独特玩法与系统
+              {features.subtitle}
            </p>
          </div>
        </ScrollFadeUp>
 
         <div className="features-grid grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
-          {features.map((feat, i) => (
+          {features.items.map((feat, i) => (
             <ScrollFadeUp key={i} delay={((i + 1) * 100) as 100 | 200 | 300}>
               <div className="feature-card bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-[30px] transition-all duration-300 flex flex-col items-center text-center relative overflow-hidden hover:-translate-y-2.5 hover:bg-white/10 hover:border-white/30 hover:shadow-[0_15px_30px_rgba(0,0,0,0.3)]">
                 <div className="feature-icon-wrapper w-[120px] h-[120px] flex items-center justify-center mb-6 transition-all duration-300 hover:rotate-[5deg] hover:scale-110">

@@ -1,10 +1,10 @@
 "use client";
 
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function HelpSteps() {
-  const { help, site } = defaultContent;
+  const { help, site } = useSiteContent();
 
   const handleCopy = async () => {
     try {
@@ -18,7 +18,7 @@ export default function HelpSteps() {
     <section
       id="help-docs"
       className="help-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
-      style={{ backgroundImage: "url('/png/9cca3afcca8c0a79eac6a39aad5d65ec.jpg')" }}
+      style={{ backgroundImage: `url('${help.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-bg-dark/85 backdrop-blur-[5px]" />
       <div className="container-mc relative z-[2] text-center">

@@ -2,29 +2,30 @@
 
 import { useState } from "react";
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent, galleryLocations } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
+import { galleryLocations } from "@/lib/content";
 
 export default function GalleryCarousel() {
-  const { gallery } = defaultContent;
+  const { gallery } = useSiteContent();
   const [index, setIndex] = useState(0);
   const [fading, setFading] = useState(false);
   const [level, setLevel] = useState<"全部" | "6.0" | "7.0">("全部");
   const [location, setLocation] = useState<string | null>(null);
 
-  const versionOf = (src: string) => (src.startsWith("/gallery/6.0/") ? "6.0" : "7.0");
+  const versionOf = (src: string) => (src.includes("/gallery/6.0/") ? "6.0" : "7.0");
   const locations = Array.from(
-    new Set(gallery.map((g) => galleryLocations[g.src]).filter(Boolean) as string[])
+    new Set(gallery.items.map((g) => galleryLocations[g.src]).filter(Boolean) as string[])
   );
   const mainTabs = ["全部", "6.0", "7.0"] as const;
 
   const filtered =
     level === "全部"
-      ? gallery
+      ? gallery.items
       : level === "6.0"
-        ? gallery.filter((g) => versionOf(g.src) === "6.0")
+        ? gallery.items.filter((g) => versionOf(g.src) === "6.0")
         : location
-          ? gallery.filter((g) => galleryLocations[g.src] === location)
-          : gallery.filter((g) => versionOf(g.src) === "7.0");
+          ? gallery.items.filter((g) => galleryLocations[g.src] === location)
+          : gallery.items.filter((g) => versionOf(g.src) === "7.0");
 
   const go = (dir: 1 | -1) => {
     if (fading || filtered.length === 0) return;
@@ -63,17 +64,17 @@ export default function GalleryCarousel() {
     <section
       id="gallery"
       className="gallery-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
-      style={{ backgroundImage: "url('/png/f5ea0ca06bf5ac36704b7277536ab53d.jpg')" }}
+      style={{ backgroundImage: `url('${gallery.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-bg-dark/60 backdrop-blur-[5px]" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
             <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-              游戏截图
+              {gallery.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
-              每一帧都是壁纸，记录我们在服务器的点点滴滴
+              {gallery.subtitle}
             </p>
           </div>
         </ScrollFadeUp>

@@ -8,3 +8,4 @@ out
 .vercel
 .turbo
 .wrangler
+*.tsbuildinfo

@@ -10,6 +10,7 @@ export interface UserSession {
 export interface AppEnv {
   Bindings: {
     DB: D1Database;
+    ASSETS?: R2Bucket;
     APP_SECRET?: string;
     TOKEN_TTL_HOURS?: string;
     RCON?: DurableObjectNamespace;

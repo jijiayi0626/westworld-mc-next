@@ -3,12 +3,13 @@ import "./globals.css";
 import Navbar from "@/components/Navbar";
 import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
+import { SiteContentProvider } from "@/components/SiteContentProvider";
 import { defaultContent } from "@/lib/content";
 
 const { site } = defaultContent;
 
 export const metadata: Metadata = {
-  title: "我的世界小狐狸生存服 - 首页",
+  title: "我的世界Westworld西域之光",
   description: site.description,
   keywords: site.keywords,
   authors: [{ name: "小狐狸生存服团队" }],
@@ -34,9 +35,11 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
-          <Navbar />
-          <main>{children}</main>
-          <Footer />
+          <SiteContentProvider>
+            <Navbar />
+            <main>{children}</main>
+            <Footer />
+          </SiteContentProvider>
         </AuthProvider>
       </body>
     </html>

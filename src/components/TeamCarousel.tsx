@@ -2,16 +2,17 @@
 
 import { useEffect, useRef, useState } from "react";
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
 
 const CARD_W = 280;
 const GAP = 32;
 const SPEED = 52;
 
 export default function TeamCarousel() {
-  const { team } = defaultContent;
-  const items = [...team, ...team];
-  const loopWidth = team.length * (CARD_W + GAP);
+  const { team } = useSiteContent();
+  const members = team.members;
+  const items = [...members, ...members];
+  const loopWidth = members.length * (CARD_W + GAP);
   const [dragging, setDragging] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -91,17 +92,17 @@ export default function TeamCarousel() {
     <section
       id="team"
       className="team-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
-      style={{ backgroundImage: "url('/png/achXdg.jpg')" }}
+      style={{ backgroundImage: `url('${team.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-bg-dark/70 backdrop-blur-[5px]" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
             <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-              管理团队
+              {team.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
-              专业的运营团队，致力于为您提供最好的游戏体验
+              {team.subtitle}
             </p>
           </div>
         </ScrollFadeUp>

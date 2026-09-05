@@ -17,6 +17,7 @@ import payRoutes from "./routes/pay";
 import microsoftRoutes from "./routes/microsoft";
 import monitorRoutes from "./routes/monitor";
 import rconRoutes from "./routes/rcon";
+import assetsRoutes from "./routes/assets";
 import { RconDO } from "./do/rcon-do";
 
 const app = new Hono<AppEnv>();
@@ -50,6 +51,7 @@ app.route("/api/pay", payRoutes);
 app.route("/api/microsoft", microsoftRoutes);
 app.route("/api/monitor", monitorRoutes);
 app.route("/api/rcon", rconRoutes);
+app.route("/static", assetsRoutes);
 
 // 健康检查
 app.get("/api/health", (c) => c.json({ code: 0, message: "ok", data: { app: "mc-next", ts: Date.now() } }));

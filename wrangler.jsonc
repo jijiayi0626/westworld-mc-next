@@ -7,13 +7,19 @@
   "assets": {
     "directory": "./out",
     "not_found_handling": "404-page",
-    "run_worker_first": ["/api/*"]
+    "run_worker_first": ["/api/*", "/static/*"]
   },
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "mc-next",
-      "database_id": "REPLACE_WITH_D1_DATABASE_ID"
+      "database_id": "14b029a2-cd97-4337-a0a7-3dc319f9c35d"
+    }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "ASSETS",
+      "bucket_name": "mc-next-assets"
     }
   ],
   "durable_objects": {

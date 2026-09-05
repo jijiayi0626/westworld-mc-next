@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { defaultContent } from "@/lib/content";
-
-const { site } = defaultContent;
+import { useSiteContent } from "./SiteContentProvider";
 
 const navItems = [
   { label: "首页", href: "/" },
@@ -24,6 +22,7 @@ export default function Navbar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { site } = useSiteContent();
   useEffect(() => {
     setOpen(false);
   }, [pathname]);

@@ -1,8 +1,10 @@
+"use client";
+
 import Link from "next/link";
-import { defaultContent } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function Footer() {
-  const { site } = defaultContent;
+  const { site } = useSiteContent();
 
   return (
     <footer className="footer bg-bg-dark text-slate-400 pt-20 border-t border-white/10">

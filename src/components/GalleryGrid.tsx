@@ -1,8 +1,11 @@
+"use client";
+
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent, galleryLocations } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
+import { galleryLocations } from "@/lib/content";
 
 export default function GalleryGrid() {
-  const { gallery } = defaultContent;
+  const { gallery } = useSiteContent();
 
   return (
     <section id="gallery" className="gallery-grid-section bg-bg-dark py-[100px]">
@@ -10,16 +13,16 @@ export default function GalleryGrid() {
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
             <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-              游戏截图
+              {gallery.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
-              全部截图一览，记录我们在服务器的点点滴滴
+              {gallery.subtitle}
             </p>
           </div>
         </ScrollFadeUp>
 
         <div className="columns-2 md:columns-3 lg:columns-4 gap-4 [column-fill:balance]">
-          {gallery.map((img, i) => {
+          {gallery.items.map((img, i) => {
             const loc = galleryLocations[img.src];
             return (
               <figure

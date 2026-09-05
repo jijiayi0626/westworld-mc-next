@@ -1,15 +1,17 @@
+"use client";
+
 import CopyIP from "./CopyIP";
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function Hero() {
-  const { site } = defaultContent;
+  const { site, hero } = useSiteContent();
 
   return (
     <header
       id="home"
       className="hero relative h-screen w-full bg-cover bg-center flex items-center overflow-hidden"
-      style={{ backgroundImage: "url('/png/c6d2dd6a664242e2e5faa640d28c340b.jpg')" }}
+      style={{ backgroundImage: `url('${hero.bg_image}')` }}
     >
       <div className="absolute inset-0 bg-gradient-to-b from-black/30 via-transparent to-black/40" />
       <div className="container-mc w-full flex pt-20 relative z-[2]">

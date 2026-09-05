@@ -1,15 +1,17 @@
+"use client";
+
 import ScrollFadeUp from "./ScrollFadeUp";
-import { defaultContent } from "@/lib/content";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function CommunitySection() {
-  const { community } = defaultContent;
+  const { community } = useSiteContent();
   const single = community.groups.length === 1;
 
   return (
     <section
       id="community"
       className="community-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px] z-[1]"
-      style={{ backgroundImage: "url('/png/wj_Narcissa_3.png')" }}
+      style={{ backgroundImage: `url('${community.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-black/60" />
       <div className="container-mc relative z-[2]">

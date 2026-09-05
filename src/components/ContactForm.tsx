@@ -2,8 +2,10 @@
 
 import { useState, type FormEvent } from "react";
 import ScrollFadeUp from "./ScrollFadeUp";
+import { useSiteContent } from "./SiteContentProvider";
 
 export default function ContactForm() {
+  const { contact } = useSiteContent();
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
 
@@ -22,17 +24,17 @@ export default function ContactForm() {
     <section
       id="contact"
       className="contact-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
-      style={{ backgroundImage: "url('/png/5e1e1be033cbd911e62327519886379f.jpg')" }}
+      style={{ backgroundImage: `url('${contact.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-black/60" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
             <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
-              联系我们
+              {contact.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
-              有任何问题或建议？通过邮件直接联系服主
+              {contact.subtitle}
             </p>
           </div>
         </ScrollFadeUp>

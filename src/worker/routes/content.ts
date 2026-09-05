@@ -8,6 +8,19 @@ import { logOp } from "../lib/log";
 
 const app = new Hono<AppEnv>();
 
+// 获取整站内容 JSON（公开；无自定义时返回 null，前端用默认值）
+app.get("/site", async (c) => {
+  const row = await c.env.DB.prepare(
+    "SELECT value FROM site_settings WHERE key = 'site_content'",
+  ).first<{ value: string }>();
+  if (!row) return ok(null);
+  try {
+    return ok(JSON.parse(row.value));
+  } catch {
+    return fail("站点内容格式损坏", 500);
+  }
+});
+
 // 获取全部站点内容（公开）
 app.get("/", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT page, field, value FROM site_content").all();
@@ -26,6 +39,26 @@ app.get("/:page", async (c) => {
 // —— 以下为管理接口 ——
 
 app.use("/admin/*", requireAuth, requireAdmin);
+
+// 保存整站内容 JSON（覆盖式）
+app.post("/admin/site", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const content = body.content;
+  if (!content || typeof content !== "object") {
+    return fail("content 必须为对象");
+  }
+  const raw = JSON.stringify(content);
+  if (raw.length > 200000) return fail("内容过大");
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at)
+     VALUES ('site_content', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(raw)
+    .run();
+  await logOp(c.env.DB, c, c.get("user")!.id, "content_update", "site_content");
+  return ok({ updated: true });
+});
 
 // 新增/更新内容
 app.post("/admin/set", async (c) => {
