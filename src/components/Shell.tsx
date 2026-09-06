@@ -33,60 +33,46 @@ function Shell({
   const isActive = (href: string) =>
     href === base ? pathname === base : pathname.startsWith(href);
 
+  const isUser = base === "/user";
+
   return (
-    <div className="container-mc pt-28 pb-16 min-h-[70vh]">
-      <div className="grid grid-cols-1 md:grid-cols-[220px_1fr] gap-6 items-start">
-        {/* 移动端：顶部按钮 */}
-        <div className="md:hidden">
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="w-full px-4 py-3 rounded-[10px] bg-white/5 border border-white/10 text-white text-[0.95rem] font-semibold flex items-center justify-between"
-          >
-            <span>{homeTitle}</span>
-            <svg viewBox="0 0 24 24" width="18" height="18" className={`transition-transform ${open ? "rotate-180" : ""}`}>
-              <path fill="currentColor" d="M7 10l5 5 5-5H7z" />
-            </svg>
-          </button>
-          {open && (
-            <nav className="mt-2 flex flex-col gap-1 glass-card p-3 animate-popup-in">
-              {items.map((it) => (
-                <Link
-                  key={it.href}
-                  href={it.href}
-                  className={`px-3 py-2.5 rounded-[8px] text-[0.9rem] font-medium transition-colors ${
-                    isActive(it.href) ? "bg-accent-emerald/20 text-accent-emerald" : "text-slate-300 hover:bg-white/10"
-                  }`}
-                >
-                  {it.label}
-                </Link>
-              ))}
-              {extra}
-            </nav>
-          )}
+    <div className={isUser ? "user-container" : "admin-shell"}>
+      {/* 移动端顶栏按钮 */}
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        className="mobile-menu-btn"
+        style={{ display: open ? "none" : "inline-flex" }}
+        aria-label="打开菜单"
+      >
+        ☰
+      </button>
+
+      {/* 侧边栏 */}
+      <aside className={isUser ? "user-sidebar" : "sidebar"} id="sidebar">
+        <div className={isUser ? "sidebar-header" : "sidebar-header"}>
+          <div className="sidebar-logo">
+            <span className="sidebar-title">{homeTitle}</span>
+          </div>
         </div>
+        <nav className="sidebar-nav">
+          {items.map((it) => (
+            <Link
+              key={it.href}
+              href={it.href}
+              className={`nav-item ${isActive(it.href) ? "active" : ""}`}
+            >
+              {it.icon && <span className="nav-item-icon">{it.icon}</span>}
+              <span>{it.label}</span>
+            </Link>
+          ))}
+          {extra}
+        </nav>
+      </aside>
 
-        {/* 桌面端：侧边栏 */}
-        <aside className="hidden md:block">
-          <nav className="glass-card p-3 flex flex-col gap-1 sticky top-24">
-            {items.map((it) => (
-              <Link
-                key={it.href}
-                href={it.href}
-                className={`px-3 py-2.5 rounded-[8px] text-[0.9rem] font-medium transition-colors ${
-                  isActive(it.href)
-                    ? "bg-accent-emerald/20 text-accent-emerald"
-                    : "text-slate-300 hover:bg-white/10"
-                }`}
-              >
-                {it.label}
-              </Link>
-            ))}
-            {extra}
-          </nav>
-        </aside>
-
-        <div className="min-w-0">{children}</div>
+      {/* 主内容区 */}
+      <div className={isUser ? "user-main" : "main-content"}>
+        {children}
       </div>
     </div>
   );
@@ -101,7 +87,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
 
-  if (loading) return <div className="container-mc pt-32 min-h-[60vh]"><Spinner text="加载登录状态..." /></div>;
+  if (loading) return <div className="user-page" style={{ padding: 40, textAlign: "center" }}><Spinner text="加载登录状态..." /></div>;
   if (!user) return null;
 
   const items: ShellItem[] = [
@@ -130,7 +116,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     else if (!loading && user && user.role !== "admin") router.replace("/user");
   }, [loading, user, router]);
 
-  if (loading) return <div className="container-mc pt-32 min-h-[60vh]"><Spinner text="加载登录状态..." /></div>;
+  if (loading) return <div style={{ padding: 40, textAlign: "center" }}><Spinner text="加载登录状态..." /></div>;
   if (!user || user.role !== "admin") return null;
 
   const items: ShellItem[] = [

@@ -1,0 +1,591 @@
+/* ============================================================
+   AI 管理 / AI 配置 —— 重构版 UI  v2
+   作用域：#tab-ai_settings / #tab-ai_playground
+   依赖：variables.css
+   ============================================================ */
+
+/* ---- 局部色板 ---- */
+#tab-ai_settings,
+#tab-ai_playground {
+    --ai-green: var(--green);
+    --ai-green-dark: var(--green-dark);
+    --ai-green-soft: #ecfdf5;
+    --ai-green-softer: #f0fdf4;
+    --ai-green-border: #a7f3d0;
+    --ai-green-text: #047857;
+    --ai-amber: #f59e0b;
+    --ai-amber-soft: #fffbeb;
+    --ai-amber-border: #fde68a;
+    --ai-amber-text: #92400e;
+    --ai-red-soft: #fef2f2;
+    --ai-red-border: #fecaca;
+}
+
+/* ---- 外层卡片 ---- */
+#tab-ai_settings .form-section,
+#tab-ai_playground .form-section {
+    padding: 0;
+    overflow: hidden;
+    border-color: var(--ai-green-border);
+    box-shadow: 0 1px 4px rgba(16, 185, 129, 0.10);
+}
+
+/* ---- 顶部标题条（绿白渐变） ---- */
+.ai-hero {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 22px 28px;
+    background: linear-gradient(135deg, var(--ai-green-soft) 0%, #ffffff 100%);
+    border-bottom: 1px solid var(--ai-green-border);
+}
+.ai-hero-icon {
+    flex-shrink: 0;
+    width: 44px;
+    height: 44px;
+    display: grid;
+    place-items: center;
+    border-radius: 12px;
+    background: var(--ai-green);
+    color: #fff;
+    box-shadow: 0 4px 10px -2px rgba(16, 185, 129, 0.5);
+}
+.ai-hero-icon svg { width: 24px; height: 24px; }
+.ai-hero-text h3 {
+    font-size: 1.12rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0 0 2px;
+    border: none;
+    padding: 0;
+}
+.ai-hero-text p {
+    font-size: 0.85rem;
+    color: var(--text-secondary);
+    margin: 0;
+}
+
+/* ---- 接入说明（绿色提示卡） ---- */
+.ai-tip {
+    margin: 20px 28px 4px;
+    background: var(--ai-green-softer);
+    border: 1px solid var(--ai-green-border);
+    border-radius: 12px;
+    padding: 14px 16px;
+    color: var(--ai-green-text);
+    font-size: 0.86rem;
+    line-height: 1.75;
+}
+/* 表单内的提示卡（如 Cron 说明）无需再加外边距 */
+.ai-form > .ai-tip { margin: 16px 0 4px; }
+.ai-tip .ai-tip-title { font-weight: 700; margin-bottom: 4px; }
+.ai-tip a { color: var(--ai-green-dark); font-weight: 600; text-decoration: underline; }
+.ai-tip code {
+    background: #fff;
+    border: 1px solid var(--ai-green-border);
+    border-radius: 5px;
+    padding: 1px 6px;
+    font-size: 0.85em;
+    color: var(--ai-green-dark);
+}
+
+/* ---- 表单内边距 ---- */
+.ai-form { padding: 12px 28px 28px; }
+
+/* ---- 折叠组内容：统一竖向节奏 ---- */
+/* 组内所有直接子块（字段 / 网格 / 开关）之间保持一致的 16px 间距 */
+.ai-group-body > * { margin-bottom: 0; }
+.ai-group-body > * + * { margin-top: 16px; }
+
+/* AI 分组内的字段网格：默认两列，充分利用横向空间 */
+.ai-group-body .compact-field-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px 18px;
+    align-items: stretch;
+}
+/* 网格内的字段自身不再叠加底边距，改由网格 gap 控制 */
+.ai-group-body .compact-field-grid > .form-group { margin-bottom: 0; }
+
+/* 每个网格单元格纵向排布：标题（标签 / 开关）贴顶，输入控件贴底，
+   使同一行左右两列的标题对齐到顶、输入框对齐到同一基线 */
+.ai-group-body .compact-field-grid > .form-group {
+    display: flex;
+    flex-direction: column;
+}
+/* 作为「标题」的开关：贴顶，并与下方输入框保持稳定的 10px 间距 */
+.ai-group-body .compact-field-grid > .form-group > .ai-toggle { margin-bottom: 10px; }
+/* 单元格内的输入控件贴底，实现整行输入框基线对齐 */
+.ai-group-body .compact-field-grid > .form-group > .form-input,
+.ai-group-body .compact-field-grid > .form-group > .compact-subgrid { margin-top: auto; }
+/* 纯开关单元格（无输入框）：贴底，与相邻单元格的输入框对齐 */
+.ai-group-body .compact-field-grid > .form-group > .ai-toggle:only-child { margin-top: auto; margin-bottom: 0; }
+
+/* 单元格内并排的双输入（如召回数量 / 最低相似度） */
+.compact-subgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+/* ============ 功能卡片（开关 + 从属设置打包） ============ */
+/* 一行摆放多张功能卡片：默认两列，窄屏自动单列 */
+.ai-feature-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 14px;
+    align-items: start;
+}
+/* 单张卡片：顶部开关，下方从属字段 */
+.ai-feature-card {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 14px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--bg-input);
+    transition: border-color var(--tr-fast), box-shadow var(--tr-fast);
+}
+.ai-feature-card:hover { border-color: var(--ai-green-border); }
+/* 已启用（含 checked 开关）的卡片：绿色描边高亮 */
+.ai-feature-card:has(.ai-toggle input:checked) {
+    border-color: var(--ai-green-border);
+    background: linear-gradient(135deg, var(--ai-green-softer) 0%, var(--bg-input) 80%);
+}
+/* 卡片内的开关去掉自身边框/背景，融入卡片 */
+.ai-feature-card > .ai-toggle {
+    padding: 0;
+    border: none;
+    background: transparent;
+    margin: 0;
+}
+.ai-feature-card > .ai-toggle:hover { border: none; }
+/* 卡片内的从属字段：标签 + 输入 */
+.ai-feature-card .ai-sub {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.ai-feature-card .ai-sub > label {
+    font-size: 0.82rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+.ai-feature-card .ai-sub .form-input { margin: 0; }
+/* 从属字段随开关联动淡出（未开启时弱化） */
+.ai-feature-card:not(:has(.ai-toggle input:checked)) .ai-sub { opacity: 0.55; }
+.ai-feature-card[aria-disabled="true"] {
+    border-color: var(--border);
+    background: var(--bg-muted);
+    box-shadow: none;
+    opacity: 0.65;
+}
+.ai-feature-card[aria-disabled="true"]:hover { border-color: var(--border); }
+.ai-feature-card[aria-disabled="true"] .ai-sub { opacity: 0.45; }
+
+/* 卡片内横排：toggle 占左侧弹性空间，右侧控件固定宽度 */
+.ai-feature-card-row {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+.ai-feature-card-row > .ai-toggle {
+    flex: 1;
+    min-width: 0;
+}
+.ai-feature-card-row > .ai-sub {
+    flex-shrink: 0;
+    width: 230px;
+}
+/* 全宽堆叠容器（替代 ai-feature-row 用于内容量不均的场景） */
+.ai-feature-stack {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* ============ 用量统计卡片 ============ */
+.ai-stats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin: 4px 0 4px;
+}
+.ai-stat {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 14px 16px;
+    border: 1px solid var(--ai-green-border);
+    border-radius: 12px;
+    background: linear-gradient(135deg, var(--ai-green-softer) 0%, #fff 70%);
+    transition: box-shadow var(--tr-soft), transform var(--tr-soft);
+}
+.ai-stat:hover {
+    box-shadow: 0 4px 12px -4px rgba(16, 185, 129, 0.28);
+    transform: translateY(-1px);
+}
+.ai-stat-label {
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.02em;
+}
+.ai-stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--ai-green-dark);
+    line-height: 1.1;
+    font-variant-numeric: tabular-nums;
+}
+.ai-stat-value em { font-size: 0.82rem; font-weight: 600; color: var(--text-muted); font-style: normal; }
+.ai-stat-value.ai-stat-split { font-size: 1.15rem; }
+.ai-stat-value.ai-stat-split i { color: var(--text-muted); font-style: normal; font-weight: 400; margin: 0 1px; }
+
+/* ============ 折叠分组（<details class="ai-group">） ============ */
+.ai-group {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-top: 16px;
+    background: #fff;
+    overflow: hidden;
+    transition: border-color var(--tr-soft), box-shadow var(--tr-soft);
+}
+.ai-group[open] {
+    border-color: var(--ai-green-border);
+    box-shadow: 0 2px 8px -2px rgba(16, 185, 129, 0.18);
+}
+
+.ai-group > summary {
+    list-style: none;
+    cursor: pointer;
+    user-select: none;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 15px 18px;
+    font-weight: 600;
+    font-size: 0.98rem;
+    color: var(--text-primary);
+    transition: background var(--tr-fast);
+}
+.ai-group > summary::-webkit-details-marker { display: none; }
+.ai-group > summary:hover { background: var(--ai-green-softer); }
+.ai-group[open] > summary {
+    background: var(--ai-green-soft);
+    border-bottom: 1px solid var(--ai-green-border);
+}
+
+/* summary 左侧小图标 */
+.ai-group-ico {
+    flex-shrink: 0;
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 8px;
+    background: var(--ai-green-soft);
+    color: var(--ai-green-dark);
+}
+.ai-group[open] .ai-group-ico { background: var(--ai-green); color: #fff; }
+.ai-group-ico svg { width: 17px; height: 17px; }
+
+.ai-group-titles { flex: 1; min-width: 0; }
+.ai-group-titles .t { display: block; }
+.ai-group-titles .d {
+    display: block;
+    font-weight: 400;
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 1px;
+}
+
+/* 右侧展开箭头 */
+.ai-group-arrow {
+    flex-shrink: 0;
+    color: var(--text-muted);
+    transition: transform var(--tr-soft), color var(--tr-soft);
+}
+.ai-group[open] .ai-group-arrow { transform: rotate(90deg); color: var(--ai-green-dark); }
+.ai-group-arrow svg { width: 18px; height: 18px; display: block; }
+
+/* 折叠内容区 */
+.ai-group-body { padding: 18px; }
+.ai-group-body .form-group:last-child { margin-bottom: 0; }
+
+/* 已启用徽标 */
+.ai-badge {
+    flex-shrink: 0;
+    font-size: 0.7rem;
+    font-weight: 600;
+    padding: 2px 9px;
+    border-radius: 999px;
+    background: var(--ai-green-soft);
+    color: var(--ai-green-dark);
+    border: 1px solid var(--ai-green-border);
+}
+
+/* ============ 开关行（绿色滑块） ============ */
+.ai-toggle {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    padding: 12px 14px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--bg-input);
+    transition: border-color var(--tr-fast), background var(--tr-fast);
+}
+.ai-toggle:hover { border-color: var(--ai-green-border); }
+.ai-toggle input[type="checkbox"] {
+    appearance: none;
+    -webkit-appearance: none;
+    flex-shrink: 0;
+    width: 40px;
+    height: 22px;
+    border-radius: 999px;
+    background: #cbd5e1;
+    position: relative;
+    cursor: pointer;
+    transition: background var(--tr-fast);
+}
+.ai-toggle input[type="checkbox"]::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.25);
+    transition: transform var(--tr-fast);
+}
+.ai-toggle input[type="checkbox"]:checked { background: var(--ai-green); }
+.ai-toggle input[type="checkbox"]:checked::after { transform: translateX(18px); }
+.ai-toggle .ai-toggle-text { flex: 1; font-size: 0.92rem; color: var(--text-primary); line-height: 1.5; }
+.ai-toggle .ai-toggle-text small { display: block; color: var(--text-muted); font-weight: 400; font-size: 0.8rem; margin-top: 2px; }
+
+/* 主开关：更醒目 */
+.ai-master {
+    background: linear-gradient(135deg, var(--ai-green-soft), #fff);
+    border-color: var(--ai-green-border);
+    padding: 16px 18px;
+    margin-bottom: 4px;
+}
+.ai-master .ai-toggle-text { font-size: 1rem; font-weight: 600; }
+
+/* 危险/谨慎开关高亮 */
+.ai-toggle.is-caution:hover { border-color: #fecaca; }
+.ai-toggle.is-caution input[type="checkbox"]:checked { background: var(--amber); }
+
+/* 保存按钮区 */
+.ai-form .form-actions {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ============ AI 测试台 ============ */
+.ai-play-output {
+    min-height: 180px;
+    background: var(--ai-green-softer);
+    border: 1px solid var(--ai-green-border);
+    border-radius: 12px;
+    padding: 18px;
+    white-space: pre-wrap;
+    line-height: 1.75;
+    color: var(--text-primary);
+    font-size: 0.95rem;
+    box-shadow: inset 0 1px 3px rgba(16, 185, 129, 0.06);
+}
+.ai-play-output:empty::before,
+.ai-play-output.is-placeholder { color: var(--text-muted); }
+.ai-play-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+}
+.ai-play-input { flex: 1; min-width: 220px; }
+#tab-ai_playground .form-input:focus {
+    border-color: var(--ai-green) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+}
+
+/* ============ 折叠内子分区标题 ============ */
+/* 用于将一个 ai-group-body 分成多个语义区块 */
+.ai-section {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px dashed var(--ai-green-border);
+}
+.ai-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
+.ai-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 14px;
+}
+.ai-section-header .ai-section-dot {
+    flex-shrink: 0;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--ai-green);
+}
+.ai-section-header .ai-section-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ai-green-text);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.ai-section-header .ai-section-desc {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-left: 4px;
+}
+
+/* ============ 字段脚注 ============ */
+.ai-field-note {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    margin-top: 5px;
+    line-height: 1.5;
+}
+.ai-field-note code {
+    background: var(--ai-green-softer);
+    border: 1px solid var(--ai-green-border);
+    border-radius: 4px;
+    padding: 0 5px;
+    font-size: 0.85em;
+    color: var(--ai-green-dark);
+}
+
+/* ============ prompt 输入卡（带左色条） ============ */
+.ai-prompt-card {
+    background: var(--ai-green-softer);
+    border: 1px solid var(--ai-green-border);
+    border-left: 3px solid var(--ai-green);
+    border-radius: 10px;
+    padding: 14px 16px;
+}
+.ai-prompt-card > label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--ai-green-text);
+    margin-bottom: 8px;
+}
+.ai-prompt-card .form-input {
+    background: #fff;
+    border-color: var(--ai-green-border);
+    margin: 0;
+}
+.ai-prompt-card .form-input:focus {
+    border-color: var(--ai-green) !important;
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.12) !important;
+}
+.ai-prompt-card .ai-field-note { margin-top: 6px; }
+
+/* ============ 危险操作警告条 ============ */
+.ai-warn-bar {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    border-left: 3px solid #f59e0b;
+    border-radius: 10px;
+    padding: 12px 14px;
+    font-size: 0.83rem;
+    color: #78350f;
+    line-height: 1.6;
+}
+.ai-warn-bar svg {
+    flex-shrink: 0;
+    width: 16px;
+    height: 16px;
+    margin-top: 1px;
+    color: #f59e0b;
+}
+
+/* ============ 统计数字行（横排，比卡片更轻量） ============ */
+.ai-stats-row {
+    display: flex;
+    gap: 0;
+    background: var(--ai-green-softer);
+    border: 1px solid var(--ai-green-border);
+    border-radius: 12px;
+    overflow: hidden;
+}
+.ai-stats-row .ai-stat-cell {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 14px 18px;
+    border-right: 1px solid var(--ai-green-border);
+    transition: background var(--tr-fast);
+}
+.ai-stats-row .ai-stat-cell:last-child { border-right: none; }
+.ai-stats-row .ai-stat-cell:hover { background: #e6faf2; }
+.ai-stats-row .ai-stat-cell .lbl {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.03em;
+}
+.ai-stats-row .ai-stat-cell .val {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--ai-green-dark);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+}
+.ai-stats-row .ai-stat-cell .val em {
+    font-size: 0.78rem;
+    font-style: normal;
+    font-weight: 500;
+    color: var(--text-muted);
+}
+.ai-stats-row .ai-stat-cell .val i {
+    font-style: normal;
+    font-weight: 400;
+    color: var(--text-muted);
+    margin: 0 2px;
+}
+
+/* ============ 双列紧凑数字网格（用于审核参数） ============ */
+.ai-params-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+}
+.ai-params-grid .form-group { margin-bottom: 0; }
+.ai-params-grid .form-group > label {
+    font-size: 0.81rem;
+    color: var(--text-secondary);
+    margin-bottom: 5px;
+    display: block;
+}
+
+/* ---- 响应式 ---- */
+@media (max-width: 900px) {
+    .ai-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .ai-stats-row { flex-wrap: wrap; }
+    .ai-stats-row .ai-stat-cell { min-width: 50%; border-bottom: 1px solid var(--ai-green-border); }
+    .ai-stats-row .ai-stat-cell:nth-last-child(-n+2) { border-bottom: none; }
+    .ai-params-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 640px) {
+    .ai-hero { padding: 18px; }
+    .ai-tip { margin: 16px 18px 0; }
+    .ai-form { padding: 10px 16px 20px; }
+    .ai-stats { grid-template-columns: 1fr 1fr; gap: 10px; }
+    .ai-stat { padding: 12px 14px; }
+    .ai-stat-value { font-size: 1.25rem; }
+    .ai-group-body .compact-field-grid { grid-template-columns: 1fr; }
+    .ai-form .form-actions { justify-content: stretch; }
+    .ai-form .form-actions .btn-save { width: 100%; }
+}

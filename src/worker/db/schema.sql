@@ -124,6 +124,8 @@ CREATE TABLE IF NOT EXISTS whitelist_applications (
   ua TEXT DEFAULT '',
   status TEXT NOT NULL DEFAULT 'pending',      -- pending / approved / rejected
   review_note TEXT DEFAULT '',
+  sync_status TEXT DEFAULT '',                 -- off / synced / failed / skipped
+  sync_log TEXT DEFAULT '',
   reviewed_by INTEGER,
   reviewed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))

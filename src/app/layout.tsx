@@ -1,18 +1,10 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
-import Navbar from "@/components/Navbar";
-import Footer from "@/components/Footer";
 import { AuthProvider } from "@/components/AuthProvider";
 import { SiteContentProvider } from "@/components/SiteContentProvider";
-import { defaultContent } from "@/lib/content";
-
-const { site } = defaultContent;
 
 export const metadata: Metadata = {
   title: "我的世界Westworld西域之光",
-  description: site.description,
-  keywords: site.keywords,
-  authors: [{ name: "小狐狸生存服团队" }],
 };
 
 export const viewport: Viewport = {
@@ -27,6 +19,7 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
+        <link rel="stylesheet" href="/css/front.css" />
         <link
           rel="icon"
           type="image/svg+xml"
@@ -35,11 +28,7 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
-          <SiteContentProvider>
-            <Navbar />
-            <main>{children}</main>
-            <Footer />
-          </SiteContentProvider>
+          <SiteContentProvider>{children}</SiteContentProvider>
         </AuthProvider>
       </body>
     </html>

@@ -1,0 +1,314 @@
+/* ==================== 用户详情弹窗（响应式） ==================== */
+.user-detail-modal {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.6);
+    z-index: 10000;
+    overflow-y: auto;
+    backdrop-filter: blur(4px);
+    padding: 24px;
+    animation: fadeIn 140ms var(--ease-out);
+}
+.user-detail-modal-inner {
+    width: 100%;
+    max-width: 980px;
+    margin: 0 auto;
+    background: var(--bg-primary, #fff);
+    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(15,23,42,.28);
+    animation: slideUp 180ms var(--ease-out);
+}
+.user-detail-modal-head {
+    padding: 16px 20px;
+    border-bottom: 1px solid #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary, #fff);
+    z-index: 2;
+}
+.user-detail-modal-head h3 { margin: 0; font-size: 1.05em; }
+.user-detail-modal-close {
+    background: none;
+    border: none;
+    font-size: 1.6em;
+    line-height: 1;
+    cursor: pointer;
+    color: var(--text-muted, #94a3b8);
+    padding: 0 6px;
+    border-radius: 8px;
+    transition: background-color var(--tr-fast), color var(--tr-fast);
+}
+.user-detail-modal-close:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+}
+.user-detail-modal-body {
+    padding: 18px;
+    max-height: calc(100vh - 130px);
+    overflow: auto;
+}
+
+/* 双栏布局 */
+.user-detail-grid {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 18px;
+    align-items: start;
+}
+.user-detail-aside {
+    position: sticky;
+    top: 0;
+    padding: 16px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+}
+.user-detail-aside-grid {
+    display: grid;
+    grid-template-columns: 78px 1fr;
+    gap: 8px 10px;
+    font-size: .88em;
+    margin-bottom: 16px;
+}
+.user-detail-section { min-width: 0; }
+.user-detail-tabs {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin-bottom: 14px;
+    position: sticky;
+    top: 0;
+    background: var(--bg-primary, #fff);
+    padding: 4px 0;
+    z-index: 1;
+}
+.user-detail-tab-btn {
+    font-size: .88em;
+    padding: 8px 14px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    background: #f1f5f9;
+    color: #475569;
+    cursor: pointer;
+    transition: background .15s, color .15s, border-color .15s;
+}
+.user-detail-tab-btn:hover { background: #e2e8f0; color: #0f172a; }
+.user-detail-tab-btn.active {
+    background: #3b82f6;
+    color: #fff;
+    border-color: #2563eb;
+    box-shadow: 0 2px 6px rgba(59,130,246,.3);
+}
+.user-detail-tab-btn-danger { color: #b91c1c; }
+.user-detail-tab-btn-danger:hover { background: #fee2e2; color: #991b1b; }
+.user-detail-tab-btn-danger.active {
+    background: #dc2626;
+    color: #fff;
+    border-color: #b91c1c;
+    box-shadow: 0 2px 6px rgba(220,38,38,.3);
+}
+
+/* 资料完善度卡片 */
+.user-detail-pc {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 12px;
+}
+.user-detail-pc-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+    color: #475569;
+    font-size: .9em;
+}
+.user-detail-pc-bar {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+}
+.user-detail-pc-bar > span {
+    display: block;
+    height: 100%;
+    transition: width .25s;
+}
+.user-detail-pc-tip {
+    font-size: .82em;
+    color: #64748b;
+    margin-top: 8px;
+    line-height: 1.5;
+}
+
+/* 账号设置 pane */
+.user-detail-setting-block {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 14px 16px;
+    margin-bottom: 12px;
+}
+.user-detail-setting-block:last-child { margin-bottom: 0; }
+.user-detail-setting-block h4 {
+    margin: 0 0 6px;
+    font-size: .95em;
+    color: #0f172a;
+}
+.user-detail-setting-desc {
+    margin: 0 0 10px;
+    font-size: .82em;
+    color: #64748b;
+    line-height: 1.55;
+}
+.user-detail-btn-row { display: flex; flex-wrap: wrap; gap: 8px; }
+.user-detail-btn-row > button {
+    padding: 6px 14px;
+    border: none;
+    border-radius: 8px;
+    font-size: .88em;
+    cursor: pointer;
+    transition: opacity .15s;
+}
+.user-detail-btn-row > button:hover { opacity: .88; }
+.user-detail-danger {
+    border-color: #fecaca;
+    background: #fef2f2;
+}
+.user-detail-danger h4 { color: #b91c1c; }
+.user-detail-danger-btn {
+    padding: 8px 18px;
+    border: none;
+    border-radius: 8px;
+    background: #dc2626;
+    color: #fff;
+    font-weight: 600;
+    font-size: .88em;
+    cursor: pointer;
+    transition: background .15s;
+}
+.user-detail-danger-btn:hover { background: #b91c1c; }
+
+.user-detail-account-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+/*  平板（900px）：折叠为单列  */
+@media (max-width: 900px) {
+    .user-detail-modal { padding: 12px; }
+    .user-detail-modal-inner { border-radius: 14px; }
+    .user-detail-modal-body { padding: 14px; max-height: calc(100vh - 110px); }
+    .user-detail-grid {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+    .user-detail-aside { position: static; padding: 14px; }
+    .user-detail-account-grid { grid-template-columns: 1fr; }
+}
+
+/*  手机（640px）：去掉外边距，全屏化  */
+@media (max-width: 640px) {
+    .user-detail-modal { padding: 0; }
+    .user-detail-modal-inner {
+        border-radius: 0;
+        border: none;
+        min-height: 100vh;
+    }
+    .user-detail-modal-head { padding: 12px 14px; }
+    .user-detail-modal-body { padding: 12px; max-height: calc(100vh - 60px); }
+    .user-detail-aside-grid { grid-template-columns: 70px 1fr; font-size: .82em; }
+    .user-detail-tabs { gap: 4px; }
+    .user-detail-tab-btn { padding: 6px 10px; font-size: .82em; }
+}
+
+/* ============================================================
+ * 通用 .modal-overlay / .modal-content 响应式优化
+ * 覆盖 components.css 里的旧定义：
+ *   - 桌面：限高 + 内部滚动 + sticky 底部按钮
+ *   - 移动端 ≤ 640px：转为底部抽屉，按钮全宽，双列折单列
+ * 适用于商品编辑器、订单详情、分类管理、库存调整等所有 .modal-overlay 弹窗
+ * ============================================================ */
+.modal-overlay {
+    padding: 24px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+.modal-content {
+    max-height: calc(100vh - 48px);
+    padding: 24px 26px 20px;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.modal-content > form,
+.modal-content > .modal-body {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    margin: 0 -26px;
+    padding: 4px 26px 0;
+    flex: 1 1 auto;
+    min-height: 0;
+}
+.modal-content .form-grid-2 {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+.modal-header {
+    margin-bottom: 14px;
+    flex: 0 0 auto;
+}
+.modal-header h3 { font-size: 1.12rem; }
+.modal-content > form > .form-actions {
+    position: sticky;
+    bottom: 0;
+    background: #fff;
+    margin: 14px -26px -20px;
+    padding: 12px 26px 16px;
+    border-top: 1px solid #f1f5f9;
+    z-index: 1;
+    box-shadow: 0 -4px 12px rgba(15,23,42,.04);
+}
+@media (max-width: 640px) {
+    .modal-overlay {
+        padding: 0;
+        align-items: flex-end;
+    }
+    .modal-content {
+        max-width: 100% !important;
+        max-height: 92vh;
+        padding: 16px 16px 12px;
+        border-radius: 18px 18px 0 0;
+        animation: modalSheetUp 220ms var(--ease-out);
+    }
+    .modal-content > form,
+    .modal-content > .modal-body {
+        margin: 0 -16px;
+        padding: 4px 16px 0;
+    }
+    .modal-content > form > .form-actions {
+        margin: 12px -16px -12px;
+        padding: 10px 16px 12px;
+        flex-direction: column-reverse;
+    }
+    .modal-content > form > .form-actions > button { width: 100%; }
+    .modal-content .form-grid-2 { grid-template-columns: 1fr; }
+    .modal-header { margin-bottom: 10px; }
+    .modal-header h3 { font-size: 1rem; }
+    .modal-content input.form-input,
+    .modal-content textarea.form-input,
+    .modal-content select.form-input { font-size: 16px; }
+}
+@keyframes modalSheetUp {
+    from { transform: translateY(100%); opacity: .5; }
+    to   { transform: translateY(0); opacity: 1; }
+}
