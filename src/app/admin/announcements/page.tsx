@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
-import { Btn, Card, Empty, ErrorNote, Field, Input, PageHeader, Select, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
+import { Btn, Card, Empty, ErrorNote, Field, Input, Select, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
 
 interface Announcement {
   id: number;
@@ -95,10 +95,14 @@ export default function AdminAnnouncementsPage() {
 
   return (
     <AdminShell>
-      <PageHeader title="公告管理" desc="发布 / 编辑 / 下线站点公告" />
+      <div className="px-6 py-6">
+        <div className="flex items-center justify-between mb-5">
+          <h1 className="text-[1.35rem] font-bold text-slate-900">公告管理</h1>
+          <Btn variant="ghost" onClick={startCreate}>{editingId ? "取消编辑" : "发布 / 编辑公告"}</Btn>
+        </div>
 
-      <Card className="mb-5">
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑公告 #${editingId}` : "新建公告"}</h3>
+        <Card className="mb-5">
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑公告 #${editingId}` : "新建公告"}</h3>
         <form onSubmit={save} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-4">
             <Field label="标题">
@@ -124,12 +128,14 @@ export default function AdminAnnouncementsPage() {
         </form>
       </Card>
 
-      <Card>
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">公告列表</h3>
-        {list === null ? (
-          <Empty text="加载中..." />
-        ) : list.length === 0 ? (
-          <Empty text="还没有公告" />
+        <Card>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">公告列表
+            <span className="ml-2 text-[0.82rem] font-normal text-slate-400">{list === null ? "" : `共 ${list.length} 条`}</span>
+          </h3>
+          {list === null ? (
+            <Empty text="加载中..." />
+          ) : list.length === 0 ? (
+            <Empty text="暂无公告，点击右上角发布" />
         ) : (
           <div className="flex flex-col divide-y divide-white/10">
             {list.map((a) => (
@@ -151,6 +157,7 @@ export default function AdminAnnouncementsPage() {
           </div>
         )}
       </Card>
+      </div>
     </AdminShell>
   );
 }

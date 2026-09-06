@@ -55,9 +55,44 @@ app.get("/stats", async (c) => {
 
 app.get("/users", async (c) => {
   const { results } = await c.env.DB.prepare(
-    "SELECT id, username, email, role, status, created_at, last_login_at FROM users ORDER BY id DESC LIMIT 100",
+    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio,
+            u.created_at, u.last_login_at,
+            (SELECT w.mc_name FROM whitelist_applications w
+              WHERE w.user_id = u.id AND w.status = 'approved' ORDER BY w.id DESC LIMIT 1) AS mc_name,
+            (SELECT w.status FROM whitelist_applications w
+              WHERE w.user_id = u.id ORDER BY w.id DESC LIMIT 1) AS app_status
+     FROM users u ORDER BY u.id DESC LIMIT 200`,
   ).all();
-  return ok(results);
+  const rows = (results as Record<string, unknown>[]).map((r) => {
+    const completeness = [
+      r.email ? 1 : 0,
+      r.mc_name ? 1 : 0,
+      r.avatar ? 1 : 0,
+      r.bio ? 1 : 0,
+    ].reduce((a, b) => a + b, 0);
+    return { ...r, profile_pct: Math.round((completeness / 4) * 100) };
+  });
+  return ok(rows);
+});
+
+// 用户统计（总/本周新增/封禁/待审申请）
+app.get("/users/stats", async (c) => {
+  const total = await c.env.DB.prepare("SELECT COUNT(*) AS c FROM users").first<{ c: number }>();
+  const week = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS c FROM users WHERE created_at >= datetime('now', '-7 days')",
+  ).first<{ c: number }>();
+  const banned = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS c FROM users WHERE status = 'banned'",
+  ).first<{ c: number }>();
+  const pendingApps = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS c FROM whitelist_applications WHERE status = 'pending'",
+  ).first<{ c: number }>();
+  return ok({
+    total: Number(total?.c ?? 0),
+    week_new: Number(week?.c ?? 0),
+    banned: Number(banned?.c ?? 0),
+    pending_applications: Number(pendingApps?.c ?? 0),
+  });
 });
 
 // 封禁 / 解封 / 改角色
