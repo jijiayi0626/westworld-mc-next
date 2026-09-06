@@ -14,8 +14,26 @@ export default function UserHomePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   if (!user) return <UserShell><></></UserShell>;
+
+  const uploadAvatar = async (file: File) => {
+    setError("");
+    setSuccess("");
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const data = await api<{ url: string }>("/upload/avatar", { method: "POST", body: fd });
+      setAvatar(data.url);
+      setSuccess("头像已上传，点击「保存资料」生效");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "上传失败");
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const saveProfile = async () => {
     setError("");
@@ -91,8 +109,26 @@ export default function UserHomePage() {
           <Card>
             <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">编辑资料</h3>
             <div className="flex flex-col gap-4">
-              <Field label="头像 URL" hint="留空使用首字母头像">
-                <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://..." />
+              <Field label="头像" hint="支持 PNG/JPG/WEBP，小于 2MB；上传后自动填入 URL">
+                <div className="flex items-center gap-3">
+                  <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://... 或点击右侧上传" />
+                  <label className="flex-shrink-0 cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/png,image/jpeg,image/webp,image/gif"
+                      className="hidden"
+                      disabled={uploading}
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) void uploadAvatar(f);
+                        e.target.value = "";
+                      }}
+                    />
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors">
+                      {uploading ? "上传中..." : "上传头像"}
+                    </span>
+                  </label>
+                </div>
               </Field>
               <Field label="个性签名">
                 <TextArea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="介绍一下自己吧~（200 字内）" maxLength={200} />

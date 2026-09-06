@@ -10,6 +10,7 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
   return (
     <>
       <link rel="stylesheet" href="/css/admin.css" />
+      <link rel="stylesheet" href="/css/mobile.css" />
       <BodyClass cls="admin-page" />
       {children}
     </>

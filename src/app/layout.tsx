@@ -20,6 +20,7 @@ export default function RootLayout({
     <html lang="zh-CN">
       <head>
         <link rel="stylesheet" href="/css/front.css" />
+        <link rel="stylesheet" href="/css/mobile.css" />
         <link
           rel="icon"
           type="image/svg+xml"

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { AdminShell } from "@/components/Shell";
+import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
 import { Badge, Btn, Empty, ErrorNote, StatusBadge, fmtTime } from "@/components/ui";
 
@@ -27,9 +28,12 @@ interface UserStats {
 
 export default function AdminUsersPage() {
   const [list, setList] = useState<AdminUser[] | null>(null);
+  const { user: me } = useAuth();
   const [stats, setStats] = useState<UserStats | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(0);
+  const [resetTarget, setResetTarget] = useState<AdminUser | null>(null);
+  const [resetPwd, setResetPwd] = useState("");
   const [keyword, setKeyword] = useState("");
   const [statusFilter, setStatusFilter] = useState("");
 
@@ -58,6 +62,26 @@ export default function AdminUsersPage() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "操作失败");
+    } finally {
+      setBusyId(0);
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!resetTarget) return;
+    if (resetPwd.length < 6) {
+      setError("新密码至少 6 位");
+      return;
+    }
+    setError("");
+    setBusyId(resetTarget.id);
+    try {
+      await api(`/admin/users/${resetTarget.id}/reset-password`, { method: "POST", body: JSON.stringify({ new_password: resetPwd }) });
+      setResetTarget(null);
+      setResetPwd("");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "重置失败");
     } finally {
       setBusyId(0);
     }
@@ -172,6 +196,9 @@ export default function AdminUsersPage() {
                           ) : (
                             <Btn size="sm" variant="ghost" disabled={busyId === u.id} onClick={() => change(u.id, { role: "admin" })}>设为管理员</Btn>
                           )}
+                          {u.id !== me?.id && u.role !== "admin" && (
+                            <Btn size="sm" variant="ghost" disabled={busyId === u.id} onClick={() => { setResetTarget(u); setResetPwd(""); }}>重置密码</Btn>
+                          )}
                         </div>
                       </td>
                     </tr>
@@ -181,6 +208,27 @@ export default function AdminUsersPage() {
             </div>
           )}
         </div>
+
+        {/* 重置密码弹窗 */}
+        {resetTarget && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setResetTarget(null)}>
+            <div className="bg-white rounded-[16px] p-6 w-full max-w-sm shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">重置密码：{resetTarget.username}</h3>
+              <input
+                type="text"
+                value={resetPwd}
+                onChange={(e) => setResetPwd(e.target.value)}
+                placeholder="输入新密码（至少 6 位）"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-5">
+                <button type="button" onClick={() => setResetTarget(null)} className="px-4 py-2 rounded-[10px] bg-slate-100 text-slate-700 text-[0.88rem] font-semibold hover:bg-slate-200 cursor-pointer">取消</button>
+                <button type="button" onClick={() => void resetPassword()} disabled={busyId === resetTarget.id} className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.88rem] font-semibold hover:bg-[#059669] cursor-pointer disabled:opacity-50">{busyId === resetTarget.id ? "重置中..." : "确认重置"}</button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </AdminShell>
   );

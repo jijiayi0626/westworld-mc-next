@@ -30,6 +30,15 @@ function Shell({
 
   useEffect(() => setOpen(false), [pathname]);
 
+  useEffect(() => {
+    if (open) {
+      document.body.classList.add("sidebar-open");
+    } else {
+      document.body.classList.remove("sidebar-open");
+    }
+    return () => document.body.classList.remove("sidebar-open");
+  }, [open]);
+
   const isActive = (href: string) =>
     href === base ? pathname === base : pathname.startsWith(href);
 
@@ -37,20 +46,27 @@ function Shell({
 
   return (
     <div className={isUser ? "user-container" : "admin-shell"}>
-      {/* 移动端顶栏按钮 */}
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        className="mobile-menu-btn"
-        style={{ display: open ? "none" : "inline-flex" }}
-        aria-label="打开菜单"
-      >
-        ☰
-      </button>
+      {/* 移动端：顶栏 + 汉堡按钮 */}
+      <div className="mobile-topbar">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="mobile-menu-btn"
+          aria-label="打开菜单"
+        >
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+            <path d="M4 6h16M4 12h16M4 18h16" />
+          </svg>
+        </button>
+        <span className="mobile-topbar-title">{homeTitle}</span>
+      </div>
+
+      {/* 移动端遮罩 */}
+      {open && <div className={isUser ? "sidebar-overlay show" : "admin-sidebar-overlay show"} onClick={() => setOpen(false)} />}
 
       {/* 侧边栏 */}
-      <aside className={isUser ? "user-sidebar" : "sidebar"} id="sidebar">
-        <div className={isUser ? "sidebar-header" : "sidebar-header"}>
+      <aside className={`${isUser ? "user-sidebar" : "sidebar"} ${open ? (isUser ? "open" : "active") : ""}`} id="sidebar">
+        <div className="sidebar-header">
           <div className="sidebar-logo">
             <span className="sidebar-title">{homeTitle}</span>
           </div>
@@ -120,19 +136,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
   if (!user || user.role !== "admin") return null;
 
   const items: ShellItem[] = [
-    { href: "/admin", label: "概览统计" },
-    { href: "/admin/users", label: "用户管理" },
-    { href: "/admin/applications", label: "入服审核" },
-    { href: "/admin/tickets", label: "工单管理" },
+    { href: "/admin", label: "后台首页" },
+    { href: "/admin/messages", label: "消息通知" },
     { href: "/admin/announcements", label: "公告管理" },
-    { href: "/admin/messages", label: "留言管理" },
-    { href: "/admin/content", label: "内容管理" },
+    { href: "/admin/tickets", label: "工单管理" },
+    { href: "/admin/oplogs", label: "行为日志" },
+    { href: "/admin/blacklist", label: "风控分析" },
+    { href: "/admin/users", label: "用户管理" },
+    { href: "/admin/applications", label: "入服申请" },
     { href: "/admin/shop", label: "商城管理" },
-    { href: "/admin/ai", label: "AI 用量" },
+    { href: "/admin/ai", label: "AI 管理" },
+    { href: "/admin/library", label: "图片管理" },
     { href: "/admin/monitor", label: "服务器监控" },
-    { href: "/admin/blacklist", label: "IP 黑名单" },
-    { href: "/admin/oplogs", label: "操作日志" },
-    { href: "/admin/settings", label: "站点设置" },
+    { href: "/admin/content", label: "内容管理" },
+    { href: "/admin/settings", label: "网站设置" },
   ];
 
   return <Shell items={items} base="/admin" homeTitle="管理后台" children={children} />;

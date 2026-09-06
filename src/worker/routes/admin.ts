@@ -95,7 +95,7 @@ app.get("/users/stats", async (c) => {
   });
 });
 
-// 封禁 / 解封 / 改角色
+// 封禁 / 解封 / 改角色（保护：不能对自己操作；不能改其他管理员）
 app.post("/users/:id/status", async (c) => {
   const admin = c.get("user")!;
   const id = Number(c.req.param("id"));
@@ -103,6 +103,18 @@ app.post("/users/:id/status", async (c) => {
   const status = ["active", "banned"].includes(body.status) ? body.status : null;
   const role = ["user", "admin"].includes(body.role) ? body.role : null;
   if (!status && !role) return fail("无效的操作");
+
+  if (id === admin.id) return fail("不能修改当前登录的账号", 403);
+
+  const target = await c.env.DB.prepare("SELECT id, role FROM users WHERE id = ?")
+    .bind(id)
+    .first<{ id: number; role: string }>();
+  if (!target) return fail("用户不存在", 404);
+
+  // 目标原本是管理员且要改状态/降级 -> 禁止（防止互相禁用）
+  if (target.role === "admin" && (status === "banned" || role === "user")) {
+    return fail("不能禁用或降级其他管理员", 403);
+  }
 
   if (status) {
     await c.env.DB.prepare("UPDATE users SET status = ? WHERE id = ?").bind(status, id).run();
@@ -113,6 +125,32 @@ app.post("/users/:id/status", async (c) => {
   await logOp(c.env.DB, c, admin.id, "user_update", String(id), `${status || ""} ${role || ""}`.trim());
   return ok({ updated: true });
 });
+
+// 重置密码（保护：不能重置其他管理员；不能重置自己）
+app.post("/users/:id/reset-password", async (c) => {
+  const admin = c.get("user")!;
+  const id = Number(c.req.param("id"));
+  const body = await c.req.json().catch(() => ({}));
+  const newPassword = str(body.new_password, 64);
+  if (newPassword.length < 6) return fail("新密码至少 6 位");
+  if (id === admin.id) return fail("不能重置当前登录账号的密码，请用「安全中心」修改", 403);
+
+  const target = await c.env.DB.prepare("SELECT id, role FROM users WHERE id = ?")
+    .bind(id)
+    .first<{ id: number; role: string }>();
+  if (!target) return fail("用户不存在", 404);
+  if (target.role === "admin") return fail("不能重置其他管理员的密码", 403);
+
+  const { hashPassword } = await import("../lib/password");
+  const passwordHash = await hashPassword(newPassword);
+  await c.env.DB.prepare("UPDATE users SET password_hash = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(passwordHash, id)
+    .run();
+  await logOp(c.env.DB, c, admin.id, "user_reset_password", String(id));
+  return ok({ updated: true });
+});
+
+
 
 // —— 站点设置 ——
 

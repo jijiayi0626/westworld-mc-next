@@ -17,6 +17,7 @@ import payRoutes from "./routes/pay";
 import microsoftRoutes from "./routes/microsoft";
 import monitorRoutes from "./routes/monitor";
 import rconRoutes from "./routes/rcon";
+import uploadRoutes from "./routes/upload";
 import assetsRoutes from "./routes/assets";
 import { RconDO } from "./do/rcon-do";
 
@@ -51,6 +52,7 @@ app.route("/api/pay", payRoutes);
 app.route("/api/microsoft", microsoftRoutes);
 app.route("/api/monitor", monitorRoutes);
 app.route("/api/rcon", rconRoutes);
+app.route("/api/upload", uploadRoutes);
 app.route("/static", assetsRoutes);
 
 // 健康检查
