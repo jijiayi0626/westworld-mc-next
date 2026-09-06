@@ -173,6 +173,8 @@ export default function AdminShopPage() {
     }
   };
 
+  const [productKeyword, setProductKeyword] = useState("");
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "products", label: "商品管理" },
     { key: "orders", label: "订单管理" },
@@ -196,6 +198,37 @@ export default function AdminShopPage() {
           </button>
         ))}
       </div>
+
+      {/* 统计卡（图13/14/15） */}
+      {tab === "products" ? (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+          {[
+            { label: "商品总数", value: products?.length ?? 0, bg: "#f0fdf4", color: "#15803d" },
+            { label: "已上架", value: (products ?? []).filter((p) => p.active === 1).length, bg: "#eff6ff", color: "#1d4ed8" },
+            { label: "已下架", value: (products ?? []).filter((p) => p.active === 0).length, bg: "#f1f5f9", color: "#475569" },
+            { label: "总订单", value: orders?.length ?? 0, bg: "#fef9c3", color: "#a16207" },
+          ].map((c) => (
+            <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
+              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
+              <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value}</div>
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+          {[
+            { label: "全部订单", value: orders?.length ?? 0, bg: "#f0fdf4", color: "#15803d" },
+            { label: "待支付", value: (orders ?? []).filter((o) => o.status === "pending").length, bg: "#fef9c3", color: "#a16207" },
+            { label: "已完成", value: (orders ?? []).filter((o) => o.status === "completed").length, bg: "#eff6ff", color: "#1d4ed8" },
+            { label: "待发货", value: (orders ?? []).filter((o) => o.status === "paid").length, bg: "#fdf2f8", color: "#be185d" },
+          ].map((c) => (
+            <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
+              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
+              <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <ErrorNote message={error} />
       <SuccessNote message={success} />
@@ -247,7 +280,15 @@ export default function AdminShopPage() {
           </Card>
 
           <Card>
-            <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">商品列表</h3>
+            <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+              <h3 className="text-[1.05rem] font-bold text-slate-800">商品列表</h3>
+              <input
+                value={productKeyword}
+                onChange={(e) => setProductKeyword(e.target.value)}
+                placeholder="搜索商品名称 / 分类..."
+                className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+              />
+            </div>
             {products === null ? (
               <Empty text="加载中..." />
             ) : products.length === 0 ? (
@@ -267,7 +308,7 @@ export default function AdminShopPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {products.map((p) => (
+                    {(products ?? []).filter((p) => !productKeyword || `${p.name} ${p.category ?? ""}`.toLowerCase().includes(productKeyword.toLowerCase())).map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50">
                         <td className="py-3 pr-3 font-mono text-slate-500">{p.id}</td>
                         <td className="py-3 pr-3 font-medium text-slate-800">{p.name}</td>
