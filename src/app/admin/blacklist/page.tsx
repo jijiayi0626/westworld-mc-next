@@ -63,35 +63,49 @@ export default function AdminBlacklistPage() {
 
   return (
     <AdminShell>
-      <PageHeader title="IP 黑名单" desc="封禁恶意访问的 IP 地址" />
+      <div className="px-6 py-6">
+        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">风控分析</h1>
 
-      <Card className="mb-5">
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新增拉黑</h3>
+        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4 p-4">
+          <span className="inline-block px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 text-[0.82rem] font-semibold border border-emerald-200">低风险 0 分</span>
+          <span className="ml-3 text-[0.8rem] text-slate-400">IP 黑名单 {list === null ? "-" : list.length} 条 · 封禁后该 IP 将无法访问本站</span>
+        </div>
+
+        <Card className="mb-5">
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">IP 黑名单</h3>
         <form onSubmit={add} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="IP 地址">
               <Input value={ip} onChange={(e) => setIp(e.target.value)} placeholder="如 1.2.3.4" maxLength={45} required />
             </Field>
             <Field label="原因">
-              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="选填" maxLength={200} />
+              <Input value={reason} onChange={(e) => setReason(e.target.value)} placeholder="封禁原因 (可选)" maxLength={200} />
+            </Field>
+            <Field label="时长">
+              <select className="w-full bg-white border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-700 focus:outline-none focus:border-[#3b82f6]">
+                <option>永久</option>
+                <option>24 小时</option>
+                <option>7 天</option>
+                <option>30 天</option>
+              </select>
             </Field>
           </div>
           <ErrorNote message={error} />
           <SuccessNote message={success} />
           <div>
-            <Btn type="submit" disabled={busy}>{busy ? "提交中..." : "加入黑名单"}</Btn>
+            <button type="submit" disabled={busy} className="px-5 py-2 rounded-[10px] bg-[#ef4444] text-white text-[0.9rem] font-semibold hover:bg-[#dc2626] transition-colors disabled:opacity-50">{busy ? "封禁中..." : "封禁"}</button>
           </div>
         </form>
       </Card>
 
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">黑名单列表</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">已封禁 IP</h3>
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
           <Empty text="黑名单为空" />
         ) : (
-          <div className="flex flex-col divide-y divide-white/10">
+          <div className="flex flex-col divide-y divide-slate-100">
             {list.map((b) => (
               <div key={b.id} className="py-3.5 flex items-center justify-between gap-3">
                 <div className="min-w-0">
@@ -104,6 +118,7 @@ export default function AdminBlacklistPage() {
           </div>
         )}
       </Card>
+      </div>
     </AdminShell>
   );
 }

@@ -454,6 +454,23 @@ export default function AdminApplicationsPage() {
         ))}
       </div>
 
+      {/* 申请统计卡（图12） */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+        {[
+          { label: "全部", value: list?.length ?? 0, bg: "#f8fafc", color: "#334155" },
+          { label: "待审核", value: (list ?? []).filter((a) => a.status === "pending").length, bg: "#fef9c3", color: "#a16207" },
+          { label: "需补充", value: (list ?? []).filter((a) => a.status === "pending" && a.review_note).length, bg: "#e0f2fe", color: "#1d4ed8" },
+          { label: "已通过", value: (list ?? []).filter((a) => a.status === "approved").length, bg: "#f0fdf4", color: "#15803d" },
+          { label: "已拒绝", value: (list ?? []).filter((a) => a.status === "rejected").length, bg: "#fdf2f8", color: "#be185d" },
+          { label: "未同步", value: (list ?? []).filter((a) => a.status === "approved" && (!a.sync_status || a.sync_status === "failed")).length, bg: "#fefce8", color: "#a16207" },
+        ].map((c) => (
+          <div key={c.label} className="rounded-[12px] border border-slate-100 p-3 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
+            <div className="text-[1.4rem] font-extrabold" style={{ color: c.color }}>{c.value}</div>
+            <div className="text-[0.78rem] font-medium mt-0.5" style={{ color: c.color }}>{c.label}</div>
+          </div>
+        ))}
+      </div>
+
       <RconWizard />
       <ErrorNote message={error} />
 
