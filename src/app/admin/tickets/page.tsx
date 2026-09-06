@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
-import { Badge, Btn, Card, Empty, ErrorNote, PageHeader, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
+import { Badge, Btn, Card, Empty, ErrorNote, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
 
 interface TicketRow {
   id: number;
@@ -28,6 +28,7 @@ export default function AdminTicketsPage() {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -91,9 +92,13 @@ export default function AdminTicketsPage() {
 
   const catLabel: Record<string, string> = { general: "综合", apply: "入服", bug: "Bug", payment: "支付" };
 
+  const filtered = (list ?? []).filter((t) => !statusFilter || t.status === statusFilter);
+
   return (
     <AdminShell>
-      <PageHeader title="工单管理" desc="查看、回复与处理玩家工单" />
+      <div className="px-6 py-6">
+        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-1">工单管理</h1>
+        <div className="text-[0.82rem] text-slate-400 mb-4">工单频率限制 0 表示不限制</div>
 
       {detail ? (
         <Card>
@@ -148,7 +153,19 @@ export default function AdminTicketsPage() {
           )}
         </Card>
       ) : (
-        <Card>
+        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+          <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-slate-100">
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              className="bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
+            >
+              <option value="">全部工单</option>
+              <option value="open">待回复</option>
+              <option value="closed">已关闭</option>
+            </select>
+            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.88rem] font-semibold hover:bg-[#059669] transition-colors">刷新</button>
+          </div>
           <ErrorNote message={error} />
           {list === null ? (
             <Empty text="加载中..." />
@@ -161,7 +178,7 @@ export default function AdminTicketsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="font-mono text-slate-500 text-[0.82rem]">#{t.id}</span>
-                      <span className="text-slate-800 font-medium truncate group-hover:text-accent-emerald transition-colors">{t.subject}</span>
+                      <span className="text-slate-800 font-medium truncate group-hover:text-emerald-600 transition-colors">{t.subject}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <StatusBadge status={t.status} />
@@ -177,8 +194,9 @@ export default function AdminTicketsPage() {
               ))}
             </div>
           )}
-        </Card>
+        </div>
       )}
+      </div>
     </AdminShell>
   );
 }
