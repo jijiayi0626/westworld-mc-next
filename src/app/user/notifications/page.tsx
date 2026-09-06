@@ -63,7 +63,7 @@ export default function NotificationsPage() {
         ) : list.length === 0 ? (
           <Empty text="暂无通知" />
         ) : (
-          <div className="flex flex-col divide-y divide-white/10">
+          <div className="flex flex-col divide-y divide-slate-100">
             {list.map((n) => (
               <div key={n.id} className={`py-4 ${!n.is_read ? "bg-accent-emerald/[0.04] -mx-4 px-4 rounded-[8px]" : ""}`}>
                 <div className="flex items-center justify-between gap-3">

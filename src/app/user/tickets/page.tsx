@@ -190,8 +190,8 @@ export default function TicketsPage() {
                 key={r.id}
                 className={`px-4 py-3 rounded-[10px] text-[0.9rem] leading-relaxed ${
                   r.is_staff
-                    ? "bg-emerald-500/10 border border-emerald-500/25 text-emerald-100 ml-6"
-                    : "bg-slate-50 border border-slate-200 text-slate-200 mr-6"
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700 ml-6"
+                    : "bg-slate-50 border border-slate-200 text-slate-600 mr-6"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5 text-[0.75rem] text-slate-500">
@@ -225,7 +225,7 @@ export default function TicketsPage() {
           ) : list.length === 0 ? (
             <Empty text="还没有工单，点击右上角新建" />
           ) : (
-            <div className="flex flex-col divide-y divide-white/10">
+            <div className="flex flex-col divide-y divide-slate-100">
               {list.map((t) => (
                 <button key={t.id} type="button" onClick={() => openDetail(t.id)} className="py-4 text-left cursor-pointer group">
                   <div className="flex items-center justify-between gap-3">

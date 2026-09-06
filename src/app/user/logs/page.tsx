@@ -62,7 +62,7 @@ export default function LogsPage() {
                   <th className="py-2.5 font-medium">IP</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-white/5">
+              <tbody className="divide-y divide-slate-100">
                 {list.map((l) => (
                   <tr key={l.id} className="text-slate-600">
                     <td className="py-3 pr-3 whitespace-nowrap text-slate-500">{fmtTime(l.created_at)}</td>

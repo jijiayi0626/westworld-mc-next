@@ -33,10 +33,10 @@ export default function UserHomePage() {
   };
 
   const quickLinks = [
-    { href: "/user/application", label: "入服申请", desc: "申请白名单", color: "from-accent-emerald to-[#059669]" },
-    { href: "/user/tickets", label: "我的工单", desc: "提交与跟进问题", color: "from-blue-500 to-indigo-600" },
-    { href: "/user/ai", label: "AI 助手", desc: "咨询服务器问题", color: "from-purple-500 to-fuchsia-600" },
-    { href: "/user/orders", label: "我的订单", desc: "查看商城订单", color: "from-amber-500 to-orange-600" },
+    { href: "/user/application", label: "入服申请", desc: "申请白名单", color: "#ecfdf5", text: "#047857" },
+    { href: "/user/tickets", label: "我的工单", desc: "提交与跟进问题", color: "#eff6ff", text: "#1d4ed8" },
+    { href: "/user/ai", label: "AI 助手", desc: "咨询服务器问题", color: "#f5f3ff", text: "#6d28d9" },
+    { href: "/user/orders", label: "我的订单", desc: "查看商城订单", color: "#fef9c3", text: "#a16207" },
   ];
 
   return (
@@ -51,7 +51,7 @@ export default function UserHomePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border-2 border-accent-emerald/40" />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-emerald to-emerald-700 flex items-center justify-center text-3xl font-extrabold text-slate-800">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center text-3xl font-extrabold text-white">
                 {user.username.slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -80,9 +80,9 @@ export default function UserHomePage() {
           <div className="grid grid-cols-2 gap-4">
             {quickLinks.map((q) => (
               <Link key={q.href} href={q.href}>
-                <div className={`glass-card glass-card-hover p-5 bg-gradient-to-br ${q.color} !bg-opacity-10`}>
-                  <div className="text-[1rem] font-bold text-slate-800">{q.label}</div>
-                  <div className="text-[0.82rem] text-slate-800/70 mt-1">{q.desc}</div>
+                <div className="rounded-[14px] border border-slate-100 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: q.color }}>
+                  <div className="text-[1rem] font-bold" style={{ color: q.text }}>{q.label}</div>
+                  <div className="text-[0.82rem] mt-1" style={{ color: q.text, opacity: 0.75 }}>{q.desc}</div>
                 </div>
               </Link>
             ))}
@@ -114,7 +114,7 @@ function Row({ label, value, mono }: { label: string; value: string; mono?: bool
   return (
     <li className="flex items-center justify-between gap-3">
       <span className="text-slate-500 flex-shrink-0">{label}</span>
-      <span className={`text-slate-200 text-right break-all ${mono ? "font-mono text-[0.78rem]" : ""}`}>{value}</span>
+      <span className={`text-slate-600 text-right break-all ${mono ? "font-mono text-[0.78rem]" : ""}`}>{value}</span>
     </li>
   );
 }

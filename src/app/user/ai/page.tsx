@@ -165,7 +165,7 @@ export default function AiPage() {
                   className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed whitespace-pre-wrap max-w-[85%] ${
                     m.role === "user"
                       ? "self-end bg-accent-emerald/15 border border-accent-emerald/25 text-slate-800"
-                      : "self-start bg-slate-50 border border-slate-200 text-slate-200"
+                      : "self-start bg-slate-50 border border-slate-200 text-slate-600"
                   }`}
                 >
                   {m.content}

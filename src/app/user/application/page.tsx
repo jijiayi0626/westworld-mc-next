@@ -104,7 +104,7 @@ export default function ApplicationPage() {
         ) : list.length === 0 ? (
           <Empty text="还没有提交过申请" />
         ) : (
-          <div className="flex flex-col divide-y divide-white/10">
+          <div className="flex flex-col divide-y divide-slate-100">
             {list.map((a) => (
               <div key={a.id} className="py-4">
                 <div className="flex items-center justify-between gap-3">
