@@ -6,6 +6,44 @@ import { str } from "../lib/validate";
 
 const app = new Hono<AppEnv>();
 
+export interface AiConfig {
+  enabled: boolean;
+  api_key: string;
+  base_url: string;
+  model: string;
+  daily_limit: number;
+}
+
+const DEFAULT_AI: AiConfig = {
+  enabled: false,
+  api_key: "",
+  base_url: "https://api.openai.com/v1",
+  model: "gpt-4o-mini",
+  daily_limit: 5,
+};
+
+/** 读取 AI 配置：优先数据库 site_settings.ai_config，回退环境变量 */
+export async function loadAiConfig(db: D1Database, env: AppEnv["Bindings"]): Promise<AiConfig> {
+  const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'ai_config'").first<{ value: string }>();
+  let cfg: AiConfig = { ...DEFAULT_AI };
+  if (row) {
+    try {
+      cfg = { ...DEFAULT_AI, ...(JSON.parse(row.value) as Partial<AiConfig>) };
+    } catch {
+      /* 忽略损坏配置 */
+    }
+  }
+  // 环境变量作为回退：DB 未显式配置 enabled 时用 env 开关
+  if (env.AI_ENABLED === "true" && !row) cfg.enabled = true;
+  const envKey = env.AI_API_KEY ? String(env.AI_API_KEY) : "";
+  const envBase = env.AI_BASE_URL ? String(env.AI_BASE_URL) : "";
+  const envModel = env.AI_MODEL ? String(env.AI_MODEL) : "";
+  if (envKey) cfg.api_key = cfg.api_key || envKey;
+  if (envBase) cfg.base_url = cfg.base_url || envBase;
+  if (envModel) cfg.model = cfg.model || envModel;
+  return cfg;
+}
+
 // 会话限额（AI_ENABLED=false 时每用户每日 5 条；启用后由真实计费控制）
 const DAILY_LIMIT_DISABLED = 5;
 
@@ -16,13 +54,15 @@ app.post("/chat", requireAuth, async (c) => {
   const content = str(body.content, 4000).trim();
   if (!content) return fail("消息不能为空");
 
+  const aiCfg = await loadAiConfig(c.env.DB, c.env);
+
   // 未启用 AI 时按日限额限制；启用后由真实计费控制
-  if (c.env.AI_ENABLED !== "true") {
+  if (!aiCfg.enabled) {
     const usage = await c.env.DB.prepare(
       "SELECT COALESCE(count, 0) AS used FROM ai_usage WHERE user_id = ? AND date = date('now')",
     ).bind(user.id).first<{ used: number }>();
-    if ((usage?.used ?? 0) >= DAILY_LIMIT_DISABLED) {
-      return fail(`演示模式下每日最多 ${DAILY_LIMIT_DISABLED} 条，明天再来吧`, 429);
+    if ((usage?.used ?? 0) >= (aiCfg.daily_limit || DAILY_LIMIT_DISABLED)) {
+      return fail(`每日最多 ${aiCfg.daily_limit || DAILY_LIMIT_DISABLED} 条，明天再来吧`, 429);
     }
   }
 
@@ -46,11 +86,11 @@ app.post("/chat", requireAuth, async (c) => {
   ).bind(convoId, content).run();
 
   let reply: string;
-  if (c.env.AI_ENABLED === "true") {
-    const apiKey = c.env.AI_API_KEY;
-    const baseUrl = c.env.AI_BASE_URL || "https://api.openai.com/v1";
-    const model = c.env.AI_MODEL || "gpt-4o-mini";
-    if (!apiKey) return fail("AI 服务未配置 API Key", 503);
+  if (aiCfg.enabled) {
+    const apiKey = aiCfg.api_key;
+    const baseUrl = aiCfg.base_url || "https://api.openai.com/v1";
+    const model = aiCfg.model || "gpt-4o-mini";
+    if (!apiKey) return fail("AI 服务未配置 API Key，请在管理后台 AI 配置中填写", 503);
 
     // 拉取该会话历史作为上下文
     const { results: history } = await c.env.DB.prepare(
@@ -142,6 +182,35 @@ app.post("/conversations/:id/delete", requireAuth, async (c) => {
 // —— 管理端 ——
 
 app.use("/admin/*", requireAuth, requireAdmin);
+
+app.get("/admin/config", async (c) => {
+  const cfg = await loadAiConfig(c.env.DB, c.env);
+  return ok({ ...cfg, api_key: cfg.api_key ? "已配置" : "" });
+});
+
+app.post("/admin/config", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const current = await loadAiConfig(c.env.DB, c.env);
+  const next: AiConfig = {
+    ...current,
+    enabled: body.enabled === true,
+    base_url: str(body.base_url, 200).trim() || DEFAULT_AI.base_url,
+    model: str(body.model, 100).trim() || DEFAULT_AI.model,
+    daily_limit: Math.min(1000, Math.max(1, Number(body.daily_limit) || 5)),
+  };
+  if (typeof body.api_key === "string" && body.api_key.trim()) {
+    next.api_key = body.api_key.trim();
+  }
+  if (body.clear_key === true) next.api_key = "";
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at)
+     VALUES ('ai_config', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(JSON.stringify(next))
+    .run();
+  return ok({ ...next, api_key: next.api_key ? "已配置" : "" });
+});
 
 app.get("/admin/usage", async (c) => {
   const { results } = await c.env.DB.prepare(

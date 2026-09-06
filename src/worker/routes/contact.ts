@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/auth";
-import { requireAdmin } from "../lib/auth";
+import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { isEmail, str } from "../lib/validate";
 import { getClientIp, getUa } from "../lib/net";
@@ -40,7 +40,7 @@ app.post("/submit", async (c) => {
 
 // —— 管理接口：留言列表 / 回复 / 删除 ——
 
-app.use("/admin/*", requireAdmin);
+app.use("/admin/*", requireAuth, requireAdmin);
 
 app.get("/admin/list", async (c) => {
   const { results } = await c.env.DB.prepare(

@@ -15,10 +15,48 @@ interface Usage {
 export default function AdminAiPage() {
   const [list, setList] = useState<Usage[] | null>(null);
   const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  // AI 配置表单
+  const [cfg, setCfg] = useState<{ enabled: boolean; api_key: string; base_url: string; model: string; daily_limit: number } | null>(null);
+  const [newKey, setNewKey] = useState("");
+  const [clearKey, setClearKey] = useState(false);
 
   useEffect(() => {
     api<Usage[]>("/ai/admin/usage").then(setList).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
+    api<{ enabled: boolean; api_key: string; base_url: string; model: string; daily_limit: number }>("/ai/admin/config")
+      .then(setCfg)
+      .catch(() => {});
   }, []);
+
+  const saveConfig = async () => {
+    if (!cfg) return;
+    setError("");
+    setSuccess("");
+    setBusy(true);
+    try {
+      const updated = await api<{ enabled: boolean; api_key: string; base_url: string; model: string; daily_limit: number }>("/ai/admin/config", {
+        method: "POST",
+        body: JSON.stringify({
+          enabled: cfg.enabled,
+          base_url: cfg.base_url,
+          model: cfg.model,
+          daily_limit: cfg.daily_limit,
+          api_key: newKey,
+          clear_key: clearKey,
+        }),
+      });
+      setCfg(updated);
+      setNewKey("");
+      setClearKey(false);
+      setSuccess("AI 配置已保存");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setBusy(false);
+    }
+  };
 
   const total = (list ?? []).reduce((a, u) => a + u.total_usage, 0);
 
@@ -40,6 +78,57 @@ export default function AdminAiPage() {
               <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value}</div>
             </div>
           ))}
+        </div>
+
+        {/* AI 配置表单（后台直接设置） */}
+        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">AI 配置</h3>
+          {cfg === null ? (
+            <p className="text-slate-400 text-sm">加载配置中...</p>
+          ) : (
+            <div className="flex flex-col gap-4">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-[0.9rem] text-slate-600">启用 AI 功能总开关</span>
+                <button
+                  type="button"
+                  role="switch"
+                  aria-checked={cfg.enabled}
+                  onClick={() => setCfg({ ...cfg, enabled: !cfg.enabled })}
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-300 cursor-pointer ${cfg.enabled ? "bg-[#10b981]" : "bg-slate-200"}`}
+                >
+                  <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${cfg.enabled ? "left-[22px]" : "left-0.5"}`} />
+                </button>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-600 text-[0.85rem] font-medium">API 端点 Base URL</label>
+                  <input value={cfg.base_url} onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="https://api.openai.com/v1" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-600 text-[0.85rem] font-medium">默认模型</label>
+                  <input value={cfg.model} onChange={(e) => setCfg({ ...cfg, model: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="gpt-4o-mini" />
+                </div>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-600 text-[0.85rem] font-medium">API 密钥 {cfg.api_key ? <span className="text-emerald-600 text-[0.78rem]">（{cfg.api_key}，留空不改）</span> : <span className="text-red-500 text-[0.78rem]">（未配置）</span>}</label>
+                  <input type="password" value={newKey} onChange={(e) => { setNewKey(e.target.value); setClearKey(false); }} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="粘贴对应供应商的 API Key" autoComplete="new-password" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-600 text-[0.85rem] font-medium">每日限额（未启用演示模式）</label>
+                  <input type="number" min={1} max={1000} value={cfg.daily_limit} onChange={(e) => setCfg({ ...cfg, daily_limit: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" />
+                </div>
+              </div>
+              {clearKey && <p className="text-red-500 text-[0.8rem]">保存后将清除已配置的 API 密钥</p>}
+              {cfg.api_key && !clearKey && (
+                <button type="button" onClick={() => { setClearKey(true); setNewKey(""); }} className="text-left text-[0.8rem] text-red-500 hover:text-red-600 cursor-pointer bg-transparent border-none">清除已保存的密钥</button>
+              )}
+              <div className="flex items-center gap-3">
+                <button type="button" onClick={saveConfig} disabled={busy} className="px-5 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.9rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50">{busy ? "保存中..." : "保存 AI 设置"}</button>
+                {success && <span className="text-emerald-600 text-[0.85rem]">{success}</span>}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* AI 配置说明（图20 折叠面板） */}
