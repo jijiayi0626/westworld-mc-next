@@ -12,8 +12,21 @@ app.use("*", requireAuth, requireAdmin);
 // 管理面板概览统计
 app.get("/stats", async (c) => {
   const users = await c.env.DB.prepare("SELECT COUNT(*) AS cnt FROM users").first<{ cnt: number }>();
+  const todayUsers = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS cnt FROM users WHERE date(created_at) = date('now')",
+  ).first<{ cnt: number }>();
+  const todayApps = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS cnt FROM whitelist_applications WHERE date(created_at) = date('now')",
+  ).first<{ cnt: number }>();
   const pendingApps = await c.env.DB.prepare(
     "SELECT COUNT(*) AS cnt FROM whitelist_applications WHERE status = 'pending'",
+  ).first<{ cnt: number }>();
+  const approvedUnsynced = await c.env.DB.prepare(
+    `SELECT COUNT(*) AS cnt FROM whitelist_applications
+     WHERE status = 'approved' AND (sync_status = '' OR sync_status = 'failed' OR sync_status IS NULL)`,
+  ).first<{ cnt: number }>();
+  const needInfoApps = await c.env.DB.prepare(
+    "SELECT COUNT(*) AS cnt FROM whitelist_applications WHERE status = 'pending' AND review_note != ''",
   ).first<{ cnt: number }>();
   const openTickets = await c.env.DB.prepare(
     "SELECT COUNT(*) AS cnt FROM support_tickets WHERE status != 'closed'",
@@ -27,7 +40,11 @@ app.get("/stats", async (c) => {
 
   return ok({
     users: Number(users?.cnt ?? 0),
+    today_users: Number(todayUsers?.cnt ?? 0),
+    today_applications: Number(todayApps?.cnt ?? 0),
     pending_applications: Number(pendingApps?.cnt ?? 0),
+    approved_unsynced: Number(approvedUnsynced?.cnt ?? 0),
+    need_info_applications: Number(needInfoApps?.cnt ?? 0),
     open_tickets: Number(openTickets?.cnt ?? 0),
     pending_orders: Number(pendingOrders?.cnt ?? 0),
     new_messages: Number(newMessages?.cnt ?? 0),
