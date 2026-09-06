@@ -66,7 +66,7 @@ export default function AdminSettingsPage() {
       <PageHeader title="站点设置" desc="键值对形式的站点配置" />
 
       <Card className="mb-5">
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">{editingKey ? `编辑设置 ${editingKey}` : "新增 / 编辑设置"}</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingKey ? `编辑设置 ${editingKey}` : "新增 / 编辑设置"}</h3>
         <form onSubmit={save} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_2fr] gap-4">
             <Field label="Key" hint="不能以 reset_code: 开头">
@@ -86,7 +86,7 @@ export default function AdminSettingsPage() {
       </Card>
 
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">现有设置</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">现有设置</h3>
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
@@ -97,7 +97,7 @@ export default function AdminSettingsPage() {
               <div key={s.key} className="py-3 flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-mono text-[0.85rem] text-accent-emerald">{s.key}</div>
-                  <div className="mt-1 text-[0.85rem] text-slate-300 truncate">{s.value}</div>
+                  <div className="mt-1 text-[0.85rem] text-slate-600 truncate">{s.value}</div>
                 </div>
                 <Btn size="sm" variant="ghost" onClick={() => startEdit(s)}>编辑</Btn>
               </div>

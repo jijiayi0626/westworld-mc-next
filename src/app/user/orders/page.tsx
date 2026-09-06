@@ -93,7 +93,7 @@ export default function OrdersPage() {
 
       {/* 商城商品 */}
       <Card className="mt-4 mb-5">
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">商城商品</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">商城商品</h3>
         {products === null ? (
           <Empty text="加载中..." />
         ) : products.length === 0 ? (
@@ -103,10 +103,10 @@ export default function OrdersPage() {
             {products.map((p) => (
               <div key={p.id} className="glass-card p-5 flex flex-col gap-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-white font-semibold">{p.name}</span>
+                  <span className="text-slate-800 font-semibold">{p.name}</span>
                   <Badge color="gray">{p.category || "综合"}</Badge>
                 </div>
-                <p className="text-[0.82rem] text-slate-400 flex-1">{p.description || "暂无描述"}</p>
+                <p className="text-[0.82rem] text-slate-500 flex-1">{p.description || "暂无描述"}</p>
                 <div className="flex items-center justify-between mt-2">
                   <span className="text-accent-emerald font-bold text-[1.05rem]">{p.price} {p.currency}</span>
                   <Btn size="sm" disabled={busy} onClick={() => buy(p.id)}>购买</Btn>
@@ -122,7 +122,7 @@ export default function OrdersPage() {
 
       {/* 我的订单 */}
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">订单列表</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">订单列表</h3>
         {orders === null ? (
           <Empty text="加载中..." />
         ) : orders.length === 0 ? (
@@ -131,7 +131,7 @@ export default function OrdersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[0.85rem]">
               <thead>
-                <tr className="text-slate-500 text-[0.78rem] border-b border-white/10">
+                <tr className="text-slate-500 text-[0.78rem] border-b border-slate-200">
                   <th className="py-2.5 pr-3 font-medium">订单号</th>
                   <th className="py-2.5 pr-3 font-medium">商品</th>
                   <th className="py-2.5 pr-3 font-medium">数量</th>
@@ -143,7 +143,7 @@ export default function OrdersPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {orders.map((o) => (
-                  <tr key={o.id} className="text-slate-300">
+                  <tr key={o.id} className="text-slate-600">
                     <td className="py-3 pr-3 font-mono text-[0.78rem]">{o.order_no}</td>
                     <td className="py-3 pr-3">{o.product_name}</td>
                     <td className="py-3 pr-3">{o.qty}</td>

@@ -98,7 +98,7 @@ export default function AdminAnnouncementsPage() {
       <PageHeader title="公告管理" desc="发布 / 编辑 / 下线站点公告" />
 
       <Card className="mb-5">
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">{editingId ? `编辑公告 #${editingId}` : "新建公告"}</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑公告 #${editingId}` : "新建公告"}</h3>
         <form onSubmit={save} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-4">
             <Field label="标题">
@@ -125,7 +125,7 @@ export default function AdminAnnouncementsPage() {
       </Card>
 
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">公告列表</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">公告列表</h3>
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
@@ -135,7 +135,7 @@ export default function AdminAnnouncementsPage() {
             {list.map((a) => (
               <div key={a.id} className="py-4 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="text-white font-medium truncate">{a.title}</div>
+                  <div className="text-slate-800 font-medium truncate">{a.title}</div>
                   <div className="mt-1 text-[0.78rem] text-slate-500">
                     {fmtTime(a.created_at)}
                     {a.published_at && <span className="ml-3">发布于 {fmtTime(a.published_at)}</span>}

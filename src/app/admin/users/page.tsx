@@ -59,7 +59,7 @@ export default function AdminUsersPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[0.88rem]">
               <thead>
-                <tr className="text-left text-slate-500 text-[0.8rem] border-b border-white/10">
+                <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
                   <th className="py-2.5 pr-3">ID</th>
                   <th className="py-2.5 pr-3">用户名</th>
                   <th className="py-2.5 pr-3">邮箱</th>
@@ -72,16 +72,16 @@ export default function AdminUsersPage() {
               </thead>
               <tbody className="divide-y divide-white/10">
                 {list.map((u) => (
-                  <tr key={u.id} className="hover:bg-white/5">
+                  <tr key={u.id} className="hover:bg-slate-50">
                     <td className="py-3 pr-3 font-mono text-slate-500">{u.id}</td>
-                    <td className="py-3 pr-3 font-medium text-white">{u.username}</td>
-                    <td className="py-3 pr-3 text-slate-400">{u.email}</td>
+                    <td className="py-3 pr-3 font-medium text-slate-800">{u.username}</td>
+                    <td className="py-3 pr-3 text-slate-500">{u.email}</td>
                     <td className="py-3 pr-3">
                       {u.role === "admin" ? <Badge color="yellow">管理员</Badge> : <Badge color="gray">用户</Badge>}
                     </td>
                     <td className="py-3 pr-3"><StatusBadge status={u.status} /></td>
-                    <td className="py-3 pr-3 text-slate-400">{fmtTime(u.created_at)}</td>
-                    <td className="py-3 pr-3 text-slate-400">{fmtTime(u.last_login_at)}</td>
+                    <td className="py-3 pr-3 text-slate-500">{fmtTime(u.created_at)}</td>
+                    <td className="py-3 pr-3 text-slate-500">{fmtTime(u.last_login_at)}</td>
                     <td className="py-3">
                       <div className="flex flex-wrap items-center gap-2">
                         {u.status === "banned" ? (

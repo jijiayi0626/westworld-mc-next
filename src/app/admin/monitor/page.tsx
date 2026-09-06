@@ -115,12 +115,12 @@ export default function AdminMonitorPage() {
             <Card key={s.id}>
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
-                  <div className="text-white font-bold">{s.server_name}</div>
-                  <div className="mt-0.5 text-[0.82rem] text-slate-400 font-mono">{s.host}:{s.port} · {s.game}</div>
+                  <div className="text-slate-800 font-bold">{s.server_name}</div>
+                  <div className="mt-0.5 text-[0.82rem] text-slate-500 font-mono">{s.host}:{s.port} · {s.game}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={s.status} />
-                  <span className="text-[0.9rem] text-slate-300">
+                  <span className="text-[0.9rem] text-slate-600">
                     {s.players_online} / {s.max_players} 在线
                   </span>
                 </div>
@@ -138,7 +138,7 @@ export default function AdminMonitorPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         <Card>
-          <h3 className="text-[1.05rem] font-bold text-white mb-4">手动更新状态</h3>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">手动更新状态</h3>
           <form onSubmit={manualUpdate} className="flex flex-col gap-4">
             <div className="grid grid-cols-2 gap-4">
               <Field label="在线人数">
@@ -164,7 +164,7 @@ export default function AdminMonitorPage() {
         </Card>
 
         <Card>
-          <h3 className="text-[1.05rem] font-bold text-white mb-1">RCON 命令</h3>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">RCON 命令</h3>
           <p className="text-[0.8rem] text-slate-500 mb-4">RCON 未开启（RCON_ENABLED=false）时不可用，需在 wrangler 配置中开启并设置服务器密码。</p>
           <form onSubmit={runCommand} className="flex flex-col gap-3">
             <Field label="命令">
@@ -175,7 +175,7 @@ export default function AdminMonitorPage() {
             </div>
           </form>
           {cmdOutput && (
-            <div className="mt-4 px-4 py-3 rounded-[10px] bg-black/40 border border-white/10 font-mono text-[0.82rem] text-emerald-300 whitespace-pre-wrap">
+            <div className="mt-4 px-4 py-3 rounded-[10px] bg-white border border-slate-200 font-mono text-[0.82rem] text-emerald-300 whitespace-pre-wrap">
               {cmdOutput}
             </div>
           )}

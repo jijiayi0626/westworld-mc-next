@@ -91,7 +91,7 @@ function RconWizard() {
   }, [load]);
 
   if (!cfg) {
-    return <Card><p className="text-slate-400 text-sm">加载配置中...</p></Card>;
+    return <Card><p className="text-slate-500 text-sm">加载配置中...</p></Card>;
   }
 
   const set = (patch: Partial<RconConfig>) => setCfg((prev) => (prev ? { ...prev, ...patch } : prev));
@@ -178,13 +178,13 @@ function RconWizard() {
   };
 
   const inputBase =
-    "w-full bg-black/30 border border-white/10 rounded-[10px] px-4 py-2.5 text-white text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-black/50";
-  const labelBase = "text-slate-400 text-[0.82rem] font-medium mb-1.5 block";
+    "w-full bg-white border border-slate-200 rounded-[10px] px-4 py-2.5 text-slate-800 text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-white";
+  const labelBase = "text-slate-500 text-[0.82rem] font-medium mb-1.5 block";
 
   return (
     <Card className="mb-5">
       <details className="group" open>
-        <summary className="cursor-pointer flex items-center justify-between gap-3 font-extrabold text-white list-none [&::-webkit-details-marker]:hidden">
+        <summary className="cursor-pointer flex items-center justify-between gap-3 font-extrabold text-slate-800 list-none [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2.5">
             <span className="w-2 h-2 rounded-full bg-accent-emerald inline-block" />
             白名单自动同步向导（RCON）
@@ -265,7 +265,7 @@ function RconWizard() {
                     type="button"
                     onClick={() => setShowPwd((v) => !v)}
                     title="显示/隐藏"
-                    className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-sm cursor-pointer"
+                    className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 text-sm cursor-pointer"
                   >
                     {showPwd ? "🙈" : "👁"}
                   </button>
@@ -364,13 +364,13 @@ function RconWizard() {
                   title={p.label}
                 >
                   {"{"}{p.key}{"}"}
-                  <span className="ml-1 text-[0.7rem] text-slate-400 font-normal not-italic">{p.label}</span>
+                  <span className="ml-1 text-[0.7rem] text-slate-500 font-normal not-italic">{p.label}</span>
                 </button>
               ))}
             </div>
 
             <div className="mt-3 bg-[#0f172a] rounded-[10px] px-4 py-3 font-mono text-[0.84rem] text-slate-200 leading-[1.8]">
-              <div className="text-slate-400 text-[0.76rem] mb-1.5">实时预览（用示例数据替换占位符）</div>
+              <div className="text-slate-500 text-[0.76rem] mb-1.5">实时预览（用示例数据替换占位符）</div>
               <div>
                 通过时：<span className="text-emerald-400">{renderPreview(cfg.approve_template)}</span>
               </div>
@@ -439,14 +439,14 @@ export default function AdminApplicationsPage() {
     <AdminShell>
       <PageHeader title="入服审核" desc="审核玩家白名单申请，可配置 RCON 自动同步" />
 
-      <div className="flex gap-2 mb-5 p-1 bg-white/5 rounded-[10px] w-fit">
+      <div className="flex gap-2 mb-5 p-1 bg-slate-50 rounded-[10px] w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
             className={`px-5 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
-              tab === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-400 hover:text-white"
+              tab === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {t.label}
@@ -460,7 +460,7 @@ export default function AdminApplicationsPage() {
       {tab === "pending" && (
         <Card className="mb-4">
           <label className="flex flex-col gap-1.5 text-left">
-            <span className="text-slate-400 text-[0.85rem] font-medium ml-1">审核备注（选填，随操作一并提交）</span>
+            <span className="text-slate-500 text-[0.85rem] font-medium ml-1">审核备注（选填，随操作一并提交）</span>
             <TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder="如通过原因 / 拒绝理由..." maxLength={1000} />
           </label>
         </Card>
@@ -476,7 +476,7 @@ export default function AdminApplicationsPage() {
             <Card key={a.id}>
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div className="flex items-center gap-3 flex-wrap">
-                  <span className="font-mono text-white font-semibold text-[1.02rem]">{a.mc_name}</span>
+                  <span className="font-mono text-slate-800 font-semibold text-[1.02rem]">{a.mc_name}</span>
                   <Badge color={a.type === "bedrock" ? "blue" : "gray"}>{a.type === "bedrock" ? "基岩版" : "Java"}</Badge>
                   <StatusBadge status={a.status} />
                   {syncBadge(a.sync_status)}
@@ -488,11 +488,11 @@ export default function AdminApplicationsPage() {
                 </div>
               </div>
               {a.channel && <div className="mt-2 text-[0.8rem] text-slate-500">来源：{a.channel}</div>}
-              <div className="mt-3 px-4 py-3 rounded-[10px] bg-white/5 border border-white/10 text-[0.9rem] text-slate-300 whitespace-pre-wrap leading-relaxed">
+              <div className="mt-3 px-4 py-3 rounded-[10px] bg-slate-50 border border-slate-200 text-[0.9rem] text-slate-600 whitespace-pre-wrap leading-relaxed">
                 {a.intro}
               </div>
               {a.sync_log && (
-                <div className="mt-2 px-4 py-2.5 rounded-[8px] text-[0.82rem] font-mono text-slate-400 bg-slate-500/10 border border-white/10">
+                <div className="mt-2 px-4 py-2.5 rounded-[8px] text-[0.82rem] font-mono text-slate-500 bg-slate-500/10 border border-slate-200">
                   同步：{a.sync_log}
                 </div>
               )}

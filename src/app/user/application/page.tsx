@@ -69,7 +69,7 @@ export default function ApplicationPage() {
 
       {!hasPending && (
         <Card className="mb-5">
-          <h3 className="text-[1.05rem] font-bold text-white mb-4">新申请</h3>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新申请</h3>
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="游戏名" hint="3-16 位字母/数字/下划线，与游戏内一致">
@@ -98,7 +98,7 @@ export default function ApplicationPage() {
       )}
 
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">我的申请记录</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">我的申请记录</h3>
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
@@ -109,7 +109,7 @@ export default function ApplicationPage() {
               <div key={a.id} className="py-4">
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3">
-                    <span className="font-mono text-white font-semibold">{a.mc_name}</span>
+                    <span className="font-mono text-slate-800 font-semibold">{a.mc_name}</span>
                     <StatusBadge status={a.status} />
                     <span className="text-[0.78rem] text-slate-500">{a.type === "bedrock" ? "基岩版" : "Java"}</span>
                   </div>

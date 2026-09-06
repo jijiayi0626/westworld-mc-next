@@ -105,7 +105,7 @@ export default function AdminHomePage() {
                 <span className="text-[1.5rem] font-extrabold text-slate-800">{c.num ?? "0"}</span>
                 <Link
                   href={c.href}
-                  className="px-4 py-2 rounded-[8px] text-white text-[0.85rem] font-semibold transition-all hover:opacity-90"
+                  className="px-4 py-2 rounded-[8px] text-slate-800 text-[0.85rem] font-semibold transition-all hover:opacity-90"
                   style={{ background: c.btnColor }}
                 >
                   {c.btn}

@@ -66,7 +66,7 @@ export default function AdminBlacklistPage() {
       <PageHeader title="IP 黑名单" desc="封禁恶意访问的 IP 地址" />
 
       <Card className="mb-5">
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">新增拉黑</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新增拉黑</h3>
         <form onSubmit={add} className="flex flex-col gap-4">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <Field label="IP 地址">
@@ -85,7 +85,7 @@ export default function AdminBlacklistPage() {
       </Card>
 
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-white mb-4">黑名单列表</h3>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">黑名单列表</h3>
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
@@ -95,7 +95,7 @@ export default function AdminBlacklistPage() {
             {list.map((b) => (
               <div key={b.id} className="py-3.5 flex items-center justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-mono text-white font-medium">{b.ip}</div>
+                  <div className="font-mono text-slate-800 font-medium">{b.ip}</div>
                   <div className="mt-1 text-[0.78rem] text-slate-500">{b.reason || "无原因"} · {fmtTime(b.created_at)}</div>
                 </div>
                 <Btn size="sm" variant="danger" onClick={() => remove(b.id)}>移除</Btn>

@@ -27,7 +27,7 @@ function LongTxt({ value, onChange, placeholder }: { value: string; onChange: (v
 function Section({ title, children }: { title: string; children: ReactNode }) {
   return (
     <Card className="mb-5">
-      <h3 className="text-[1.05rem] font-bold text-white mb-4 border-b border-white/10 pb-3">{title}</h3>
+      <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4 border-b border-slate-200 pb-3">{title}</h3>
       <div className="flex flex-col gap-4">{children}</div>
     </Card>
   );
@@ -117,7 +117,7 @@ export default function AdminContentPage() {
             className={`px-4 py-1.5 rounded-full text-[0.88rem] font-semibold cursor-pointer border transition-all duration-300 ${
               tab === t.key
                 ? "bg-accent-emerald text-white border-accent-emerald shadow-[0_4px_15px_rgba(16,185,129,0.35)]"
-                : "bg-white/5 text-white/70 border-white/15 hover:bg-white/15 hover:text-white"
+                : "bg-slate-50 text-slate-800/70 border-slate-200 hover:bg-white/15 hover:text-slate-800"
             }`}
           >
             {t.label}
@@ -129,7 +129,7 @@ export default function AdminContentPage() {
       {success && <div className="mb-4"><SuccessNote message={success} /></div>}
 
       {loading ? (
-        <Card><p className="text-slate-400 text-sm">加载中...</p></Card>
+        <Card><p className="text-slate-500 text-sm">加载中...</p></Card>
       ) : (
         <div className="flex flex-col gap-0">
           {tab === "site" && <SiteEditor content={content} set={set} />}
@@ -409,7 +409,7 @@ function ListEditor({ label, items, onChange }: { label: string; items: string[]
   const add = () => onChange([...items, ""]);
   return (
     <div className="flex flex-col gap-2">
-      <span className="text-slate-400 text-[0.85rem] font-medium ml-1">{label}</span>
+      <span className="text-slate-500 text-[0.85rem] font-medium ml-1">{label}</span>
       {items.map((item, i) => (
         <div key={i} className="flex items-center gap-2">
           <Input value={item} onChange={(e) => update(i, e.target.value)} />
@@ -440,9 +440,9 @@ function ObjectsEditor<T extends Record<string, unknown>>({
   const add = () => onChange([...items, Object.fromEntries(fields.map((f) => [f.key, ""])) as T]);
   return (
     <div className="flex flex-col gap-3">
-      <span className="text-slate-400 text-[0.85rem] font-medium ml-1">{label}</span>
+      <span className="text-slate-500 text-[0.85rem] font-medium ml-1">{label}</span>
       {items.map((item, i) => (
-        <div key={i} className="bg-white/[0.04] border border-white/10 rounded-[10px] p-3 flex flex-col gap-2">
+        <div key={i} className="bg-slate-50 border border-slate-200 rounded-[10px] p-3 flex flex-col gap-2">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
             {fields.map((f) => (
               <Input

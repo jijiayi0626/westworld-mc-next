@@ -69,7 +69,7 @@ export default function NotificationsPage() {
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-2.5 min-w-0">
                     <StatusBadge status={n.type} />
-                    <span className={`text-white font-medium truncate ${!n.is_read ? "font-semibold" : ""}`}>{n.title}</span>
+                    <span className={`text-slate-800 font-medium truncate ${!n.is_read ? "font-semibold" : ""}`}>{n.title}</span>
                     {!n.is_read && <span className="w-2 h-2 rounded-full bg-accent-emerald flex-shrink-0" />}
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
@@ -81,7 +81,7 @@ export default function NotificationsPage() {
                     )}
                   </div>
                 </div>
-                {n.content && <div className="mt-1.5 text-[0.85rem] text-slate-400 whitespace-pre-wrap pl-1">{n.content}</div>}
+                {n.content && <div className="mt-1.5 text-[0.85rem] text-slate-500 whitespace-pre-wrap pl-1">{n.content}</div>}
               </div>
             ))}
           </div>

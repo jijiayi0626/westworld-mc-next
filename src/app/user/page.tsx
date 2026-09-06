@@ -46,18 +46,18 @@ export default function UserHomePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* 左侧：账号信息 */}
         <Card className="lg:col-span-1 h-fit">
-          <div className="flex flex-col items-center text-center gap-3 pb-5 border-b border-white/10">
+          <div className="flex flex-col items-center text-center gap-3 pb-5 border-b border-slate-200">
             {user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border-2 border-accent-emerald/40" />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-emerald to-emerald-700 flex items-center justify-center text-3xl font-extrabold text-white">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-accent-emerald to-emerald-700 flex items-center justify-center text-3xl font-extrabold text-slate-800">
                 {user.username.slice(0, 1).toUpperCase()}
               </div>
             )}
             <div>
-              <div className="text-lg font-bold text-white">{user.username}</div>
-              <div className="text-[0.8rem] text-slate-400 mt-0.5">{user.email}</div>
+              <div className="text-lg font-bold text-slate-800">{user.username}</div>
+              <div className="text-[0.8rem] text-slate-500 mt-0.5">{user.email}</div>
             </div>
             {user.role === "admin" && <Badge color="yellow">管理员</Badge>}
           </div>
@@ -81,15 +81,15 @@ export default function UserHomePage() {
             {quickLinks.map((q) => (
               <Link key={q.href} href={q.href}>
                 <div className={`glass-card glass-card-hover p-5 bg-gradient-to-br ${q.color} !bg-opacity-10`}>
-                  <div className="text-[1rem] font-bold text-white">{q.label}</div>
-                  <div className="text-[0.82rem] text-white/70 mt-1">{q.desc}</div>
+                  <div className="text-[1rem] font-bold text-slate-800">{q.label}</div>
+                  <div className="text-[0.82rem] text-slate-800/70 mt-1">{q.desc}</div>
                 </div>
               </Link>
             ))}
           </div>
 
           <Card>
-            <h3 className="text-[1.05rem] font-bold text-white mb-4">编辑资料</h3>
+            <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">编辑资料</h3>
             <div className="flex flex-col gap-4">
               <Field label="头像 URL" hint="留空使用首字母头像">
                 <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://..." />

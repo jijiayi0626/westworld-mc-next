@@ -93,7 +93,7 @@ export default function AdminMessagesPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="font-mono text-slate-500 text-[0.82rem]">#{m.id}</span>
-                      <span className="text-white font-medium truncate">{m.subject || "(无主题)"}</span>
+                      <span className="text-slate-800 font-medium truncate">{m.subject || "(无主题)"}</span>
                       <StatusBadge status={m.status} />
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
@@ -104,7 +104,7 @@ export default function AdminMessagesPage() {
                 </button>
                 {openId === m.id && (
                   <div className="mt-3">
-                    <div className="px-4 py-3 rounded-[10px] bg-white/5 border border-white/10 text-[0.9rem] text-slate-300 whitespace-pre-wrap leading-relaxed">
+                    <div className="px-4 py-3 rounded-[10px] bg-slate-50 border border-slate-200 text-[0.9rem] text-slate-600 whitespace-pre-wrap leading-relaxed">
                       {m.message}
                     </div>
                     <div className="mt-2 text-[0.78rem] text-slate-500 flex items-center gap-3">

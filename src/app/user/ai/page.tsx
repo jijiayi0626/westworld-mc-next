@@ -114,7 +114,7 @@ export default function AiPage() {
       <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5 items-start">
         {/* 会话列表 */}
         <Card className="h-fit">
-          <h3 className="text-[0.9rem] font-bold text-slate-300 mb-3">历史会话</h3>
+          <h3 className="text-[0.9rem] font-bold text-slate-600 mb-3">历史会话</h3>
           {convos === null ? (
             <Empty text="加载中..." />
           ) : convos.length === 0 ? (
@@ -127,7 +127,7 @@ export default function AiPage() {
                     type="button"
                     onClick={() => openConvo(c.id)}
                     className={`flex-1 text-left px-3 py-2 rounded-[8px] text-[0.85rem] transition-colors cursor-pointer truncate ${
-                      current === c.id ? "bg-accent-emerald/20 text-accent-emerald" : "text-slate-300 hover:bg-white/10"
+                      current === c.id ? "bg-accent-emerald/20 text-accent-emerald" : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     {c.title}
@@ -154,7 +154,7 @@ export default function AiPage() {
             {!messages || messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
                 <div className="text-3xl">🤖</div>
-                <p className="text-slate-400 text-[0.9rem] max-w-[320px]">
+                <p className="text-slate-500 text-[0.9rem] max-w-[320px]">
                   你好！我是西域之光 AI 助手。可以问我服务器玩法、如何入服、地址版本等问题。
                 </p>
               </div>
@@ -164,8 +164,8 @@ export default function AiPage() {
                   key={m.id}
                   className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed whitespace-pre-wrap max-w-[85%] ${
                     m.role === "user"
-                      ? "self-end bg-accent-emerald/15 border border-accent-emerald/25 text-white"
-                      : "self-start bg-white/5 border border-white/10 text-slate-200"
+                      ? "self-end bg-accent-emerald/15 border border-accent-emerald/25 text-slate-800"
+                      : "self-start bg-slate-50 border border-slate-200 text-slate-200"
                   }`}
                 >
                   {m.content}
@@ -173,7 +173,7 @@ export default function AiPage() {
               ))
             )}
             {busy && (
-              <div className="self-start px-4 py-3 rounded-[12px] bg-white/5 border border-white/10 text-slate-400 text-[0.85rem]">
+              <div className="self-start px-4 py-3 rounded-[12px] bg-slate-50 border border-slate-200 text-slate-500 text-[0.85rem]">
                 AI 思考中...
               </div>
             )}
@@ -186,7 +186,7 @@ export default function AiPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="输入你的问题..."
               maxLength={4000}
-              className="flex-1 bg-black/30 border border-white/10 rounded-[10px] px-4 py-2.5 text-white text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-black/50"
+              className="flex-1 bg-white border border-slate-200 rounded-[10px] px-4 py-2.5 text-slate-800 text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-white"
             />
             <Btn type="submit" disabled={busy || !input.trim()}>{busy ? "..." : "发送"}</Btn>
           </form>

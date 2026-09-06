@@ -57,7 +57,7 @@ export default function AdminOpLogsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[0.88rem]">
               <thead>
-                <tr className="text-left text-slate-500 text-[0.8rem] border-b border-white/10">
+                <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
                   <th className="py-2.5 pr-3">ID</th>
                   <th className="py-2.5 pr-3">操作</th>
                   <th className="py-2.5 pr-3">操作者</th>
@@ -71,14 +71,14 @@ export default function AdminOpLogsPage() {
                 {list.map((o) => {
                   const meta = actionLabel[o.action] || { label: o.action, color: "gray" as const };
                   return (
-                    <tr key={o.id} className="hover:bg-white/5">
+                    <tr key={o.id} className="hover:bg-slate-50">
                       <td className="py-3 pr-3 font-mono text-slate-500">{o.id}</td>
                       <td className="py-3 pr-3"><Badge color={meta.color}>{meta.label}</Badge></td>
-                      <td className="py-3 pr-3 text-white">{o.operator || "系统"}</td>
-                      <td className="py-3 pr-3 text-slate-400 font-mono text-[0.82rem]">{o.target}</td>
-                      <td className="py-3 pr-3 text-slate-400 max-w-[220px] truncate">{o.detail}</td>
+                      <td className="py-3 pr-3 text-slate-800">{o.operator || "系统"}</td>
+                      <td className="py-3 pr-3 text-slate-500 font-mono text-[0.82rem]">{o.target}</td>
+                      <td className="py-3 pr-3 text-slate-500 max-w-[220px] truncate">{o.detail}</td>
                       <td className="py-3 pr-3 font-mono text-[0.8rem] text-slate-500">{o.ip || "-"}</td>
-                      <td className="py-3 text-slate-400">{fmtTime(o.created_at)}</td>
+                      <td className="py-3 text-slate-500">{fmtTime(o.created_at)}</td>
                     </tr>
                   );
                 })}

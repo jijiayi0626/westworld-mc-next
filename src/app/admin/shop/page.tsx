@@ -182,14 +182,14 @@ export default function AdminShopPage() {
     <AdminShell>
       <PageHeader title="商城管理" desc="商品上下架与订单发货" />
 
-      <div className="flex gap-2 mb-5 p-1 bg-white/5 rounded-[10px] w-fit">
+      <div className="flex gap-2 mb-5 p-1 bg-slate-50 rounded-[10px] w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
             className={`px-5 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
-              tab === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-400 hover:text-white"
+              tab === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {t.label}
@@ -203,7 +203,7 @@ export default function AdminShopPage() {
       {tab === "products" ? (
         <>
           <Card className="mb-5">
-            <h3 className="text-[1.05rem] font-bold text-white mb-4">{editingId ? `编辑商品 #${editingId}` : "新增商品"}</h3>
+            <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑商品 #${editingId}` : "新增商品"}</h3>
             <form onSubmit={saveProduct} className="flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <Field label="商品名">
@@ -247,7 +247,7 @@ export default function AdminShopPage() {
           </Card>
 
           <Card>
-            <h3 className="text-[1.05rem] font-bold text-white mb-4">商品列表</h3>
+            <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">商品列表</h3>
             {products === null ? (
               <Empty text="加载中..." />
             ) : products.length === 0 ? (
@@ -256,7 +256,7 @@ export default function AdminShopPage() {
               <div className="overflow-x-auto">
                 <table className="w-full text-[0.88rem]">
                   <thead>
-                    <tr className="text-left text-slate-500 text-[0.8rem] border-b border-white/10">
+                    <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
                       <th className="py-2.5 pr-3">ID</th>
                       <th className="py-2.5 pr-3">名称</th>
                       <th className="py-2.5 pr-3">价格</th>
@@ -268,12 +268,12 @@ export default function AdminShopPage() {
                   </thead>
                   <tbody className="divide-y divide-white/10">
                     {products.map((p) => (
-                      <tr key={p.id} className="hover:bg-white/5">
+                      <tr key={p.id} className="hover:bg-slate-50">
                         <td className="py-3 pr-3 font-mono text-slate-500">{p.id}</td>
-                        <td className="py-3 pr-3 font-medium text-white">{p.name}</td>
-                        <td className="py-3 pr-3 text-slate-300">{p.price} {p.currency}</td>
-                        <td className="py-3 pr-3 text-slate-400">{p.category || "-"}</td>
-                        <td className="py-3 pr-3 text-slate-400">{p.sort}</td>
+                        <td className="py-3 pr-3 font-medium text-slate-800">{p.name}</td>
+                        <td className="py-3 pr-3 text-slate-600">{p.price} {p.currency}</td>
+                        <td className="py-3 pr-3 text-slate-500">{p.category || "-"}</td>
+                        <td className="py-3 pr-3 text-slate-500">{p.sort}</td>
                         <td className="py-3 pr-3">{p.active === 1 ? <Badge color="green">上架</Badge> : <Badge color="gray">下架</Badge>}</td>
                         <td className="py-3">
                           <div className="flex flex-wrap gap-2">
@@ -292,7 +292,7 @@ export default function AdminShopPage() {
         </>
       ) : (
         <Card>
-          <h3 className="text-[1.05rem] font-bold text-white mb-4">订单列表</h3>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">订单列表</h3>
           {orders === null ? (
             <Empty text="加载中..." />
           ) : orders.length === 0 ? (
@@ -301,7 +301,7 @@ export default function AdminShopPage() {
             <div className="overflow-x-auto">
               <table className="w-full text-[0.88rem]">
                 <thead>
-                  <tr className="text-left text-slate-500 text-[0.8rem] border-b border-white/10">
+                  <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
                     <th className="py-2.5 pr-3">订单号</th>
                     <th className="py-2.5 pr-3">商品</th>
                     <th className="py-2.5 pr-3">买家</th>
@@ -313,13 +313,13 @@ export default function AdminShopPage() {
                 </thead>
                 <tbody className="divide-y divide-white/10">
                   {orders.map((o) => (
-                    <tr key={o.id} className="hover:bg-white/5">
-                      <td className="py-3 pr-3 font-mono text-slate-400 text-[0.8rem]">{o.order_no}</td>
-                      <td className="py-3 pr-3 text-white">{o.product_name} × {o.qty}</td>
-                      <td className="py-3 pr-3 text-slate-400">{o.username}</td>
-                      <td className="py-3 pr-3 text-slate-300">{o.total} {o.currency}</td>
+                    <tr key={o.id} className="hover:bg-slate-50">
+                      <td className="py-3 pr-3 font-mono text-slate-500 text-[0.8rem]">{o.order_no}</td>
+                      <td className="py-3 pr-3 text-slate-800">{o.product_name} × {o.qty}</td>
+                      <td className="py-3 pr-3 text-slate-500">{o.username}</td>
+                      <td className="py-3 pr-3 text-slate-600">{o.total} {o.currency}</td>
                       <td className="py-3 pr-3"><StatusBadge status={o.status} /></td>
-                      <td className="py-3 pr-3 text-slate-400">{fmtTime(o.created_at)}</td>
+                      <td className="py-3 pr-3 text-slate-500">{fmtTime(o.created_at)}</td>
                       <td className="py-3">
                         {o.status !== "completed" ? (
                           <Btn size="sm" variant="ghost" onClick={() => { setDeliverOrderId(o.id); setDelivery(""); }}>发货</Btn>
@@ -335,7 +335,7 @@ export default function AdminShopPage() {
           )}
 
           {deliverOrderId !== null && (
-            <form onSubmit={deliver} className="mt-5 border-t border-white/10 pt-4">
+            <form onSubmit={deliver} className="mt-5 border-t border-slate-200 pt-4">
               <Field label={`订单 #${deliverOrderId} 发货信息`} hint="填写发放方式/信息，提交后订单标记为已完成">
                 <TextArea value={delivery} onChange={(e) => setDelivery(e.target.value)} placeholder="如：已发放 100 金币至玩家 Steve_01" maxLength={2000} required />
               </Field>

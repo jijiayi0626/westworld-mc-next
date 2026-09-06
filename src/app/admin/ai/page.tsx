@@ -34,7 +34,7 @@ export default function AdminAiPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-[0.88rem]">
               <thead>
-                <tr className="text-left text-slate-500 text-[0.8rem] border-b border-white/10">
+                <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
                   <th className="py-2.5 pr-3">排名</th>
                   <th className="py-2.5 pr-3">用户</th>
                   <th className="py-2.5 pr-3">调用次数</th>
@@ -43,11 +43,11 @@ export default function AdminAiPage() {
               </thead>
               <tbody className="divide-y divide-white/10">
                 {list.map((u, idx) => (
-                  <tr key={u.id} className="hover:bg-white/5">
+                  <tr key={u.id} className="hover:bg-slate-50">
                     <td className="py-3 pr-3 text-slate-500">{idx + 1}</td>
-                    <td className="py-3 pr-3 font-medium text-white">{u.username}</td>
-                    <td className="py-3 pr-3 text-slate-300">{u.total_usage}</td>
-                    <td className="py-3 text-slate-400">{fmtTime(u.last_used)}</td>
+                    <td className="py-3 pr-3 font-medium text-slate-800">{u.username}</td>
+                    <td className="py-3 pr-3 text-slate-600">{u.total_usage}</td>
+                    <td className="py-3 text-slate-500">{fmtTime(u.last_used)}</td>
                   </tr>
                 ))}
               </tbody>

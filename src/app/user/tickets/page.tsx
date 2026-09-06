@@ -133,7 +133,7 @@ export default function TicketsPage() {
 
       {showCreate && (
         <Card className="mb-5">
-          <h3 className="text-[1.05rem] font-bold text-white mb-4">新建工单</h3>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新建工单</h3>
           <form onSubmit={create} className="flex flex-col gap-4">
             <Field label="标题">
               <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="简要描述问题" maxLength={100} required />
@@ -171,7 +171,7 @@ export default function TicketsPage() {
         <Card>
           <div className="flex items-start justify-between gap-3 mb-3">
             <div>
-              <h3 className="text-[1.05rem] font-bold text-white">#{detail.ticket.id} {detail.ticket.subject}</h3>
+              <h3 className="text-[1.05rem] font-bold text-slate-800">#{detail.ticket.id} {detail.ticket.subject}</h3>
               <div className="flex items-center gap-2 mt-2 flex-wrap">
                 <StatusBadge status={detail.ticket.status} />
                 <Badge color="gray">{statusBadgeLabel(detail.ticket.category)}</Badge>
@@ -191,11 +191,11 @@ export default function TicketsPage() {
                 className={`px-4 py-3 rounded-[10px] text-[0.9rem] leading-relaxed ${
                   r.is_staff
                     ? "bg-emerald-500/10 border border-emerald-500/25 text-emerald-100 ml-6"
-                    : "bg-white/5 border border-white/10 text-slate-200 mr-6"
+                    : "bg-slate-50 border border-slate-200 text-slate-200 mr-6"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-1.5 text-[0.75rem] text-slate-500">
-                  <span className={r.is_staff ? "text-emerald-400 font-semibold" : "text-slate-400 font-semibold"}>
+                  <span className={r.is_staff ? "text-emerald-400 font-semibold" : "text-slate-500 font-semibold"}>
                     {r.is_staff ? "管理员" : "我"}
                   </span>
                   <span>{fmtTime(r.created_at)}</span>
@@ -219,7 +219,7 @@ export default function TicketsPage() {
         </Card>
       ) : (
         <Card>
-          <h3 className="text-[1.05rem] font-bold text-white mb-4">工单列表</h3>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">工单列表</h3>
           {list === null ? (
             <Empty text="加载中..." />
           ) : list.length === 0 ? (
@@ -231,7 +231,7 @@ export default function TicketsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-2.5 min-w-0">
                       <span className="font-mono text-slate-500 text-[0.82rem]">#{t.id}</span>
-                      <span className="text-white font-medium truncate group-hover:text-accent-emerald transition-colors">{t.subject}</span>
+                      <span className="text-slate-800 font-medium truncate group-hover:text-accent-emerald transition-colors">{t.subject}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <StatusBadge status={t.status} />

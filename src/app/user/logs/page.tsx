@@ -55,7 +55,7 @@ export default function LogsPage() {
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[0.88rem]">
               <thead>
-                <tr className="text-slate-500 text-[0.78rem] border-b border-white/10">
+                <tr className="text-slate-500 text-[0.78rem] border-b border-slate-200">
                   <th className="py-2.5 pr-3 font-medium">时间</th>
                   <th className="py-2.5 pr-3 font-medium">操作</th>
                   <th className="py-2.5 pr-3 font-medium">详情</th>
@@ -64,10 +64,10 @@ export default function LogsPage() {
               </thead>
               <tbody className="divide-y divide-white/5">
                 {list.map((l) => (
-                  <tr key={l.id} className="text-slate-300">
+                  <tr key={l.id} className="text-slate-600">
                     <td className="py-3 pr-3 whitespace-nowrap text-slate-500">{fmtTime(l.created_at)}</td>
                     <td className="py-3 pr-3 whitespace-nowrap">{actionLabel[l.action] || l.action}</td>
-                    <td className="py-3 pr-3 text-slate-400">{l.detail || "-"}</td>
+                    <td className="py-3 pr-3 text-slate-500">{l.detail || "-"}</td>
                     <td className="py-3 whitespace-nowrap font-mono text-[0.78rem] text-slate-500">{l.ip || "-"}</td>
                   </tr>
                 ))}
