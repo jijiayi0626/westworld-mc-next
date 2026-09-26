@@ -6,10 +6,40 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { Spinner } from "./ui";
 
-interface ShellItem {
+interface ShellSubItem {
   href: string;
   label: string;
   icon?: string;
+}
+
+interface ShellItem extends ShellSubItem {
+  /** 有 children 时为分组导航（收进子菜单） */
+  children?: ShellSubItem[];
+}
+
+interface AdminStyle {
+  sidebarCollapsed?: boolean;
+  theme?: "light" | "dark" | "system";
+  accent?: string;
+}
+
+/** 应用后台样式设置（主题 + 主色）到根节点 */
+function applyAdminStyle(style: AdminStyle) {
+  const root = document.documentElement;
+  if (style.theme) {
+    const media = window.matchMedia("(prefers-color-scheme: dark)");
+    const resolve = () =>
+      root.setAttribute("data-theme", style.theme === "system" ? (media.matches ? "dark" : "light") : style.theme!);
+    resolve();
+    if (style.theme === "system") {
+      media.addEventListener("change", resolve);
+      return () => media.removeEventListener("change", resolve);
+    }
+  }
+  if (style.accent) {
+    root.style.setProperty("--green", style.accent);
+  }
+  return () => {};
 }
 
 function Shell({
@@ -28,6 +58,7 @@ function Shell({
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+  const [groups, setGroups] = useState<Record<string, boolean>>({});
 
   useEffect(() => setOpen(false), [pathname]);
 
@@ -40,15 +71,49 @@ function Shell({
     return () => document.body.classList.remove("sidebar-open");
   }, [open]);
 
-  // 检测窗口宽度：窄屏自动折叠侧栏
+  // 读取后台样式设置（admin 会话可读，其它场景忽略）：主题/主色/侧栏默认折叠
+  useEffect(() => {
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
+    (async () => {
+      try {
+        const res = await fetch("/api/admin/settings");
+        const body = (await res.json()) as { code: number; data?: { key: string; value: string }[] };
+        if (cancelled || body.code !== 0 || !Array.isArray(body.data)) return;
+        const row = body.data.find((s) => s.key === "admin_style");
+        if (!row?.value) return;
+        const style = JSON.parse(row.value) as AdminStyle;
+        cleanup = applyAdminStyle(style);
+        // 侧栏默认折叠只对桌面生效；窄屏由下方 resize 逻辑强制展开
+        if (typeof style.sidebarCollapsed === "boolean" && window.innerWidth >= 1024) {
+          setCollapsed(style.sidebarCollapsed);
+        }
+      } catch {
+        // 读取失败时保持默认
+      }
+    })();
+    return () => {
+      cancelled = true;
+      cleanup?.();
+    };
+  }, []);
+
+  // 窄屏（<1024px）永远不折叠：移动端走汉堡 + 全宽抽屉；只有桌面端可手动折叠
   useEffect(() => {
     const onResize = () => {
-      setCollapsed(window.innerWidth < 1024);
+      if (window.innerWidth < 1024) setCollapsed(false);
     };
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, []);
+
+  const toggleCollapsed = () => {
+    if (window.innerWidth < 1024) return; // 移动端不折叠
+    setCollapsed((v) => !v);
+  };
+
+  const toggleGroup = (label: string) => setGroups((g) => ({ ...g, [label]: !g[label] }));
 
   const isActive = (href: string) =>
     href === base ? pathname === base : pathname.startsWith(href);
@@ -83,7 +148,7 @@ function Shell({
           </div>
           <button
             type="button"
-            onClick={() => setCollapsed((v) => !v)}
+            onClick={toggleCollapsed}
             className="sidebar-collapse-btn"
             aria-label="收起/展开侧栏"
           >
@@ -93,16 +158,43 @@ function Shell({
           </button>
         </div>
         <nav className="sidebar-nav">
-          {items.map((it) => (
-            <Link
-              key={it.href}
-              href={it.href}
-              className={`nav-item ${isActive(it.href) ? "active" : ""}`}
-            >
-              {it.icon && <span className="nav-item-icon">{it.icon}</span>}
-              <span>{it.label}</span>
-            </Link>
-          ))}
+          {items.map((it) =>
+            it.children ? (
+              <div key={it.label} className={`nav-group ${groups[it.label] || it.children.some((s) => isActive(s.href)) ? "open" : ""}`}>
+                <button
+                  type="button"
+                  className="nav-group-toggle nav-item"
+                  onClick={() => toggleGroup(it.label)}
+                  aria-expanded={groups[it.label]}
+                >
+                  {it.icon && <span className="nav-item-icon">{it.icon}</span>}
+                  <span>{it.label}</span>
+                  <span className="nav-group-arrow" aria-hidden="true">▾</span>
+                </button>
+                <div className="nav-submenu">
+                  {it.children.map((sub) => (
+                    <Link
+                      key={sub.href}
+                      href={sub.href}
+                      className={`nav-subitem ${isActive(sub.href) ? "active" : ""}`}
+                    >
+                      {sub.icon && <span className="nav-item-icon">{sub.icon}</span>}
+                      <span>{sub.label}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <Link
+                key={it.href}
+                href={it.href}
+                className={`nav-item ${isActive(it.href) ? "active" : ""}`}
+              >
+                {it.icon && <span className="nav-item-icon">{it.icon}</span>}
+                <span>{it.label}</span>
+              </Link>
+            ),
+          )}
           {extra}
         </nav>
       </aside>
@@ -128,14 +220,14 @@ export function UserShell({ children }: { children: ReactNode }) {
   if (!user) return null;
 
   const items: ShellItem[] = [
-    { href: "/user", label: "个人中心" },
-    { href: "/user/application", label: "入服申请" },
-    { href: "/user/tickets", label: "我的工单" },
-    { href: "/user/ai", label: "AI 助手" },
-    { href: "/user/orders", label: "我的订单" },
-    { href: "/user/notifications", label: "通知中心" },
-    { href: "/user/logs", label: "操作日志" },
-    { href: "/user/security", label: "安全中心" },
+    { href: "/user", label: "个人中心", icon: "👤" },
+    { href: "/user/application", label: "入服申请", icon: "📝" },
+    { href: "/user/tickets", label: "我的工单", icon: "🎫" },
+    { href: "/user/ai", label: "AI 助手", icon: "🤖" },
+    { href: "/user/orders", label: "我的订单", icon: "📦" },
+    { href: "/user/notifications", label: "通知中心", icon: "🔔" },
+    { href: "/user/logs", label: "操作日志", icon: "📜" },
+    { href: "/user/security", label: "安全中心", icon: "🔒" },
   ];
 
   return (
@@ -157,21 +249,47 @@ export function AdminShell({ children }: { children: ReactNode }) {
   if (!user || user.role !== "admin") return null;
 
   const items: ShellItem[] = [
-    { href: "/admin", label: "后台首页" },
-    { href: "/admin/messages", label: "消息通知" },
-    { href: "/admin/announcements", label: "公告管理" },
-    { href: "/admin/tickets", label: "工单管理" },
-    { href: "/admin/oplogs", label: "行为日志" },
-    { href: "/admin/blacklist", label: "风控分析" },
-    { href: "/admin/users", label: "用户管理" },
-    { href: "/admin/applications", label: "入服申请" },
-    { href: "/admin/shop", label: "商城管理" },
-    { href: "/admin/ai", label: "AI 管理" },
-    { href: "/admin/library", label: "图片管理" },
-    { href: "/admin/monitor", label: "服务器监控" },
-    { href: "/admin/visual", label: "可视化编辑" },
-    { href: "/admin/content", label: "内容管理" },
-    { href: "/admin/settings", label: "网站设置" },
+    { href: "/admin", label: "后台首页", icon: "🏠" },
+    {
+      label: "运营管理",
+      icon: "📊",
+      children: [
+        { href: "/admin/messages", label: "消息通知", icon: "💬" },
+        { href: "/admin/announcements", label: "公告管理", icon: "📢" },
+        { href: "/admin/tickets", label: "工单管理", icon: "🎫" },
+        { href: "/admin/oplogs", label: "行为日志", icon: "📜" },
+        { href: "/admin/blacklist", label: "风控分析", icon: "🛡️" },
+      ],
+    },
+    {
+      label: "用户与申请",
+      icon: "👥",
+      children: [
+        { href: "/admin/users", label: "用户管理", icon: "👤" },
+        { href: "/admin/applications", label: "入服申请", icon: "📝" },
+      ],
+    },
+    {
+      label: "商城与AI",
+      icon: "🛒",
+      children: [
+        { href: "/admin/shop", label: "商城管理", icon: "🛍️" },
+        { href: "/admin/ai", label: "AI 管理", icon: "🤖" },
+        { href: "/admin/library", label: "图片管理", icon: "🖼️" },
+      ],
+    },
+    {
+      label: "系统设置",
+      icon: "⚙️",
+      children: [
+        { href: "/admin/monitor", label: "服务器监控", icon: "📈" },
+        { href: "/admin/visual", label: "可视化编辑", icon: "🎨" },
+        { href: "/admin/content", label: "内容管理", icon: "📄" },
+        { href: "/admin/settings", label: "网站设置", icon: "🌐" },
+        { href: "/admin/backend", label: "后台样式", icon: "🎛️" },
+        { href: "/admin/about", label: "关于本站", icon: "ℹ️" },
+      ],
+    },
   ];
 
   return <Shell items={items} base="/admin" homeTitle="管理后台" children={children} />;

@@ -108,38 +108,45 @@
   color: #0f172a;
 }
 
-/* 收起状态：侧栏变窄，仅图标可见 */
-.sidebar-collapsed .sidebar,
-.sidebar-collapsed .user-sidebar {
-  width: 64px;
-}
-.sidebar-collapsed .sidebar .sidebar-title,
-.sidebar-collapsed .user-sidebar .sidebar-title,
-.sidebar-collapsed .sidebar .nav-item span:not(.nav-item-icon),
-.sidebar-collapsed .user-sidebar .nav-item span:not(.nav-item-icon),
-.sidebar-collapsed .sidebar .sidebar-collapse-btn svg,
-.sidebar-collapsed .user-sidebar .sidebar-collapse-btn svg {
-  display: none;
-}
-.sidebar-collapsed .sidebar .sidebar-header,
-.sidebar-collapsed .user-sidebar .sidebar-header {
-  flex-direction: column;
-  gap: 8px;
-  padding: 14px 10px;
-  align-items: center;
-}
-.sidebar-collapsed .sidebar .nav-item,
-.sidebar-collapsed .user-sidebar .nav-item {
-  justify-content: center;
-  padding: 12px 0;
-}
-.sidebar-collapsed .sidebar .nav-item-icon,
-.sidebar-collapsed .user-sidebar .nav-item-icon {
-  margin: 0;
-}
-
-/* 收起时主内容区跟随收窄 */
-@media (min-width: 1025px) {
+/* 收起状态：侧栏变窄，仅图标可见。
+ * 仅桌面端（≥769px）生效；移动端始终全宽抽屉，不受折叠影响 */
+@media (min-width: 769px) {
+  .sidebar-collapsed .sidebar,
+  .sidebar-collapsed .user-sidebar {
+    width: 64px;
+  }
+  .sidebar-collapsed .sidebar .sidebar-title,
+  .sidebar-collapsed .user-sidebar .sidebar-title,
+  .sidebar-collapsed .sidebar .nav-item span:not(.nav-item-icon),
+  .sidebar-collapsed .user-sidebar .nav-item span:not(.nav-item-icon),
+  .sidebar-collapsed .sidebar .sidebar-collapse-btn svg,
+  .sidebar-collapsed .user-sidebar .sidebar-collapse-btn svg {
+    display: none;
+  }
+  .sidebar-collapsed .sidebar .sidebar-header,
+  .sidebar-collapsed .user-sidebar .sidebar-header {
+    flex-direction: column;
+    gap: 8px;
+    padding: 14px 10px;
+    align-items: center;
+  }
+  .sidebar-collapsed .sidebar .nav-item,
+  .sidebar-collapsed .user-sidebar .nav-item {
+    justify-content: center;
+    padding: 12px 0;
+  }
+  .sidebar-collapsed .sidebar .nav-item-icon,
+  .sidebar-collapsed .user-sidebar .nav-item-icon {
+    margin: 0;
+  }
+  /* 折叠时隐藏分组子菜单（仅保留分组图标） */
+  .sidebar-collapsed .nav-submenu {
+    display: none;
+  }
+  .sidebar-collapsed .nav-group-arrow {
+    display: none;
+  }
+  /* 收起时主内容区跟随收窄 */
   .sidebar-collapsed .main-content,
   .sidebar-collapsed .user-main {
     margin-left: 64px;

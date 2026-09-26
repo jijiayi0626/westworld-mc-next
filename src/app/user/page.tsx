@@ -12,6 +12,7 @@ export default function UserHomePage() {
   const { user, refresh } = useAuth();
   const [bio, setBio] = useState(user?.bio || "");
   const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [qq, setQq] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
@@ -114,6 +115,10 @@ export default function UserHomePage() {
             <div className="flex flex-col gap-4">
               <Field label="头像" hint="支持 PNG/JPG/WEBP，小于 2MB；上传后自动填入 URL">
                 <div className="flex items-center gap-3">
+                  {avatar ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img src={avatar} alt="头像预览" className="w-10 h-10 rounded-full object-cover border border-slate-200 flex-shrink-0" />
+                  ) : null}
                   <Input value={avatar} onChange={(e) => setAvatar(e.target.value)} placeholder="https://... 或点击右侧上传" />
                   <label className="flex-shrink-0 cursor-pointer">
                     <input
@@ -131,6 +136,18 @@ export default function UserHomePage() {
                       {uploading ? "上传中..." : "上传头像"}
                     </span>
                   </label>
+                </div>
+              </Field>
+              <Field label="QQ 头像" hint="输入 QQ 号，一键使用腾讯 QQ 头像">
+                <div className="flex items-center gap-3">
+                  <Input
+                    value={qq}
+                    onChange={(e) => setQq(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                    placeholder="QQ 号"
+                    inputMode="numeric"
+                  />
+                  <Btn variant="ghost" onClick={() => { const n = qq.trim(); if (n) setAvatar(`https://q1.qlogo.cn/g?b=qq&nk=${n}&s=100`); }}>使用 QQ 头像</Btn>
+                  <Btn variant="subtle" onClick={() => { setAvatar(""); setQq(""); }}>清除</Btn>
                 </div>
               </Field>
               <Field label="个性签名">

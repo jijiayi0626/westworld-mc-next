@@ -32,7 +32,9 @@ export async function api<T = unknown>(
   const headers: Record<string, string> = {
     ...((init?.headers as Record<string, string>) || {}),
   };
-  if (init?.body && !headers["Content-Type"]) {
+  // 仅字符串 body 视为 JSON；FormData / Blob 等由浏览器自动设置 Content-Type（multipart 带 boundary），
+  // 手动覆盖会破坏上传解析
+  if (init?.body && typeof init.body === "string" && !headers["Content-Type"]) {
     headers["Content-Type"] = "application/json";
   }
   let res: Response;
