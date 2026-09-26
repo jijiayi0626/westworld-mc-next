@@ -1,0 +1,546 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: 80px;
+  }
+
+  body {
+    @apply bg-bg-dark text-text-main leading-relaxed overflow-x-hidden;
+    background-image:
+      radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 20%),
+      radial-gradient(circle at 90% 80%, rgba(233, 30, 99, 0.08) 0%, transparent 20%);
+  }
+
+  a {
+    @apply text-inherit no-underline;
+  }
+}
+
+@layer components {
+  .container-mc {
+    @apply max-w-container mx-auto px-6;
+  }
+
+  .glass-card {
+    @apply bg-glass-bg backdrop-blur-glass border border-glass-border rounded-2xl;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+  }
+
+  .glass-card-hover {
+    @apply transition-all duration-300 hover:bg-white/10 hover:border-white/30 hover:-translate-y-2.5 hover:scale-[1.02];
+  }
+
+  .section-overlay {
+    @apply relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden;
+  }
+
+  .section-overlay::before {
+    content: '';
+    @apply absolute inset-0 z-[1];
+    background: rgba(15, 23, 42, 0.7);
+    backdrop-filter: blur(3px);
+  }
+
+  .section-overlay > .container-mc {
+    @apply relative z-[2];
+  }
+
+  .text-rainbow {
+    background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98, #00ff7f, #adff2f, #7cfc00);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    @apply inline-block animate-rainbow-flow-slow;
+  }
+
+  .text-rainbow-fast {
+    background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    @apply font-extrabold animate-rainbow-flow;
+  }
+}
+
+@layer utilities {
+  .scroll-fade-up {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.6s ease-out, transform 0.6s ease-out;
+  }
+
+  .scroll-fade-up.revealed {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  .delay-100 { transition-delay: 0.1s; }
+  .delay-200 { transition-delay: 0.2s; }
+  .delay-300 { transition-delay: 0.3s; }
+  .delay-400 { transition-delay: 0.4s; }
+  .delay-500 { transition-delay: 0.5s; }
+  .delay-600 { transition-delay: 0.6s; }
+}
+
+/* ============================================================
+   导航（统一收编：Navbar.tsx 类 + 本段样式，与 front.css 导航段不重叠）
+   ============================================================ */
+.navbar {
+  background: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+.navbar-scrolled {
+  background: rgba(15, 23, 42, 0.9);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.35);
+}
+
+/* 桌面：水平导航 */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  list-style: none;
+}
+.nav-links a {
+  white-space: nowrap;
+}
+/* 当前页高亮：绿色下划线 */
+.nav-link-active {
+  color: #fff;
+}
+.nav-link-active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 2px;
+  background: var(--accent-green, #00e676);
+  box-shadow: 0 0 8px var(--accent-green, #00e676);
+  border-radius: 2px;
+}
+
+/* Hamburger 动画 */
+.hamburger {
+  display: block;
+}
+.hamburger.active .bar:nth-child(2) {
+  opacity: 0;
+}
+.hamburger.active .bar:nth-child(1) {
+  transform: translateY(8px) rotate(45deg);
+}
+.hamburger.active .bar:nth-child(3) {
+  transform: translateY(-8px) rotate(-45deg);
+}
+
+/* 抽屉遮罩 */
+.nav-backdrop {
+  position: fixed;
+  inset: var(--nav-height, 80px) 0 0 0;
+  background: rgba(0, 0, 0, 0.5);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+  z-index: 997;
+}
+.nav-backdrop.active {
+  opacity: 1;
+  visibility: visible;
+}
+body.nav-open {
+  overflow: hidden;
+}
+
+/* ============================================================
+   移动端（≤767px）：左侧抽屉导航
+   ============================================================ */
+@media (max-width: 767px) {
+  .nav-links {
+    position: fixed;
+    top: var(--nav-height, 80px);
+    left: -110%;
+    width: min(84vw, 340px);
+    height: calc(100vh - var(--nav-height, 80px));
+    height: calc(100dvh - var(--nav-height, 80px));
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: 4px;
+    padding: 16px 14px 24px;
+    text-align: left;
+    background-color: #0f172a;
+    background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 1));
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    border-right: 1px solid rgba(255, 255, 255, 0.08);
+    box-shadow: 6px 0 28px rgba(0, 0, 0, 0.45);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    transition: left 0.3s ease-in-out;
+    z-index: 998;
+  }
+  .nav-links.active {
+    left: 0;
+  }
+  .nav-links li {
+    margin: 0;
+    width: 100%;
+  }
+  .nav-links a {
+    display: block;
+    font-size: 1rem;
+    font-weight: 600;
+    padding: 12px 14px;
+    border-radius: 10px;
+    color: rgba(255, 255, 255, 0.88);
+    transition: background 0.2s ease, color 0.2s ease;
+  }
+  .nav-links a:hover,
+  .nav-links a:active {
+    background: rgba(34, 197, 94, 0.12);
+    color: #ffffff;
+  }
+  .nav-link-active::after {
+    display: none;
+  }
+  /* 账号区：贴底并分隔 */
+  .nav-actions {
+    margin-top: auto;
+    padding-top: 14px;
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+  }
+  .nav-actions .nav-register-btn {
+    display: block;
+    text-align: center;
+    padding: 12px 18px;
+    font-size: 0.95rem;
+  }
+  .nav-account {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .nav-account .nav-username {
+    text-align: center;
+    padding: 4px 0;
+  }
+  .nav-account a,
+  .nav-account button {
+    display: block;
+    width: 100%;
+    text-align: center;
+    padding: 12px 14px;
+    border-radius: 10px;
+  }
+}
+
+/* ============================================================
+   鸿蒙风格动效体系（HarmonyOS Design Motion）
+   - 柔和曲线、按压缩放、水波涟漪、毛玻璃分层、卡片入场
+   ============================================================ */
+:root {
+  /* 鸿蒙标准动效曲线 */
+  --hm-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --hm-ease-standard: cubic-bezier(0.33, 0, 0.67, 1);
+  --hm-ease-decelerate: cubic-bezier(0, 0, 0.2, 1);
+  --hm-dur-short: 150ms;
+  --hm-dur-medium: 250ms;
+  --hm-dur-long: 400ms;
+}
+
+/* 按压缩放反馈（鸿蒙质感：触点按压缩回） */
+.hm-press {
+  transition: transform var(--hm-dur-short) var(--hm-ease-emphasized), filter var(--hm-dur-short) var(--hm-ease-emphasized);
+}
+.hm-press:active {
+  transform: scale(0.96);
+  filter: brightness(1.08);
+}
+
+/* 水波涟漪（由 JS 注入 .ripple-ink，纯 CSS 动画） */
+.ripple-host {
+  position: relative;
+  overflow: hidden;
+  -webkit-tap-highlight-color: transparent;
+}
+.ripple-ink {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.35);
+  transform: scale(0);
+  animation: hm-ripple 0.55s var(--hm-ease-standard) forwards;
+  pointer-events: none;
+}
+@keyframes hm-ripple {
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* 卡片入场：淡入 + 上移 + 微缩放（鸿蒙分层转场） */
+.hm-enter {
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  animation: hm-enter 0.45s var(--hm-ease-emphasized) forwards;
+}
+@keyframes hm-enter {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 毛玻璃增强（鸿蒙 frosted-glass 语言） */
+.hm-frost {
+  background: rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(20px) saturate(1.4);
+  -webkit-backdrop-filter: blur(20px) saturate(1.4);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+
+/* 呼吸光晕（状态点/在线徽章） */
+.hm-breathe {
+  animation: hm-breathe 2.4s var(--hm-ease-standard) infinite;
+}
+@keyframes hm-breathe {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.55; }
+}
+
+/* ============================================================
+   可视化编辑器预览容器（/admin/visual）
+   ============================================================ */
+.visual-preview section {
+  background-attachment: scroll !important;
+}
+.visual-preview .hero {
+  height: auto !important;
+  min-height: 420px !important;
+}
+.visual-preview .hero-floating {
+  /* 预览中粒子层保持相对预览容器 */
+  position: absolute;
+}
+
+/* ============================================================
+   Hero 光效背景（网格 + 径向光晕）
+   ============================================================ */.hero-glow {
+  background:
+    radial-gradient(ellipse at 15% 35%, rgba(0, 230, 118, 0.18) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 70%, rgba(59, 130, 246, 0.16) 0%, transparent 45%),
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 78%);
+  mask-image: radial-gradient(ellipse at center, black 25%, transparent 78%);
+}
+
+/* Hero 浮动方块粒子（贴合 MC 主题，纯 CSS 动画，移动端禁用省性能） */
+.hero-floating {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-cube {
+  position: absolute;
+  bottom: -60px;
+  opacity: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05));
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow:
+    inset 0 0 12px rgba(0, 230, 118, 0.15),
+    0 0 20px rgba(0, 230, 118, 0.06);
+  animation: hero-cube-rise linear infinite;
+}
+.hero-cube-1 { left: 8%;  width: 18px; height: 18px; animation-duration: 16s; animation-delay: 0s; }
+.hero-cube-2 { left: 20%; width: 12px; height: 12px; animation-duration: 21s; animation-delay: 3s; }
+.hero-cube-3 { left: 34%; width: 26px; height: 26px; animation-duration: 18s; animation-delay: 6s; }
+.hero-cube-4 { left: 48%; width: 14px; height: 14px; animation-duration: 23s; animation-delay: 9s; }
+.hero-cube-5 { left: 62%; width: 20px; height: 20px; animation-duration: 17s; animation-delay: 4s; }
+.hero-cube-6 { left: 74%; width: 15px; height: 15px; animation-duration: 20s; animation-delay: 7s; }
+.hero-cube-7 { left: 86%; width: 22px; height: 22px; animation-duration: 19s; animation-delay: 11s; }
+.hero-cube-8 { left: 93%; width: 11px; height: 11px; animation-duration: 24s; animation-delay: 2s; }
+
+@keyframes hero-cube-rise {
+  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.9; }
+  90%  { opacity: 0.5; }
+  100% { transform: translateY(-110vh) rotate(540deg); opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-cube { display: none; }
+}
+
+/* ============================================================
+   公开站移动端全局微调（front.css 已有各区块规则，此处补漏）
+   ============================================================ */
+@media (max-width: 767px) {
+  .container-mc {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+  /* 锚点滚动不被固定导航遮挡 */
+  section[id] {
+    scroll-margin-top: calc(var(--nav-height, 80px) + 8px);
+  }
+  .hero {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+  /* 步骤卡与启动器卡在窄屏不溢出 */
+  .step-card {
+    max-width: 100%;
+  }
+  .launcher-card {
+    max-width: 100%;
+  }
+  /* 相册轮播图片圆角与留白 */
+  .gallery-slide img {
+    border-radius: 14px;
+  }
+  /* 触控目标与间距 */
+  .btn,
+  .btn-secondary,
+  .btn-step,
+  .copy-btn {
+    touch-action: manipulation;
+  }
+  .hero-buttons {
+    margin-bottom: 32px;
+  }
+}
+
+/* ============================================================
+   公开站区块标题装饰（覆盖 front.css 的纯白标题）
+   ============================================================ */
+.section-title {
+  position: relative;
+  display: inline-block;
+  padding-bottom: 10px;
+}
+.section-title::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 3px;
+  border-radius: 3px;
+  background: linear-gradient(90deg, var(--accent-green, #00e676), var(--accent-blue, #3b82f6));
+  box-shadow: 0 0 10px var(--accent-green, #00e676);
+}
+
+/* ============================================================
+   公告区（首页，兼容 front.css 遗留模板样式，覆盖为深色主题）
+   ============================================================ */
+.home-announcements {
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.82));
+}
+.home-announcements .home-announcement {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 16px;
+  padding: 16px 18px;
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
+  color: #fff;
+}
+.home-announcements .home-announcement:hover {
+  background: rgba(255, 255, 255, 0.09);
+  border-color: rgba(16, 185, 129, 0.4);
+}
+.home-announcements .home-announcement-level {
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
+}
+.home-announcements .home-announcement-time {
+  color: #94a3b8;
+}
+.home-announcements .home-announcement-title {
+  color: #fff;
+}
+.home-announcements .home-announcement p {
+  color: #cbd5e1;
+}
+
+/* ============================================================
+   相册/公开站窄屏（≤767px）细节适配
+   ============================================================ */
+@media (max-width: 767px) {
+  /* 相册：描述与导航按钮上下堆叠，避免窄屏拥挤 */
+  .gallery-controls {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .gallery-text-content {
+    max-width: 100%;
+    text-align: left;
+  }
+  .gallery-nav-buttons {
+    justify-content: center;
+  }
+  /* 相册切换标签收窄 */
+  .gallery-tabs,
+  .gallery-location-tabs {
+    gap: 7px;
+  }
+  .gallery-tabs button,
+  .gallery-location-tabs button {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+  /* Hero 复制 IP 按钮全宽不溢出 */
+  .boton-minecraft {
+    max-width: 100%;
+  }
+  .boton-minecraft div {
+    width: auto;
+  }
+}
+
+/* ============================================================
+   规则/FAQ 等独立页背景光效
+   ============================================================ */
+.rules-glow {
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(0, 230, 118, 0.12) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 100%, rgba(59, 130, 246, 0.1) 0%, transparent 45%);
+}
+
+/* ============================================================
+   弱动画偏好
+   ============================================================ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .scroll-fade-up {
+    opacity: 1;
+    transform: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}

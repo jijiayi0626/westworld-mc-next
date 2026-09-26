@@ -1,0 +1,60 @@
+"use client";
+
+import ScrollFadeUp from "./ScrollFadeUp";
+import { useSiteContent } from "./SiteContentProvider";
+
+export default function SpecsSection() {
+  const { specs } = useSiteContent();
+
+  return (
+    <section
+      id="specs"
+      className="specs-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[60px] flex items-center"
+      style={{ backgroundImage: `url('${specs.bg_image}')` }}
+    >
+      <div className="absolute inset-0 z-[1] bg-bg-dark/70 backdrop-blur-[3px]" />
+      <div className="container-mc relative z-[2] text-center">
+        <ScrollFadeUp>
+          <div className="section-header mb-10 text-center">
+            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+              {specs.title}
+          </h2>
+            <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
+              {specs.subtitle}
+        </p>
+      </div>
+       </ScrollFadeUp>
+
+        <div className="specs-grid grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 mt-[30px]">
+          {specs.items.map((spec, i) => (
+            <ScrollFadeUp key={i} delay={((i + 1) * 100) as 100 | 200 | 300 | 400}>
+              <div className="spec-card group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl px-5 py-6 text-center transition-all duration-300 overflow-hidden hover:bg-white/10 hover:-translate-y-2 hover:scale-[1.02] hover:border-accent-emerald/40 hover:shadow-[0_20px_50px_rgba(0,0,0,0.45)]">
+                {/* 卡片顶部渐变光条 */}
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-accent-emerald/70 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="spec-icon-wrapper w-20 h-20 mx-auto mb-2.5 flex items-center justify-center transition-all duration-300 group-hover:scale-110 group-hover:rotate-[5deg]">
+                  <div className="relative">
+                    <div className="absolute inset-0 rounded-full bg-accent-emerald/10 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
+                    <img
+                      src={spec.icon}
+                      alt={spec.title}
+                      className="relative w-[72px] h-[72px] object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:drop-shadow-[0_8px_18px_rgba(0,230,118,0.35)]"
+                    />
+                  </div>
+                </div>
+                <h3 className="spec-title text-[1.2rem] font-bold mb-2 text-white">
+                  {spec.title}
+                </h3>
+                <p className="spec-desc text-[0.9rem] text-white/70 mb-4 leading-snug">
+                  {spec.desc}
+                </p>
+                <div className="spec-value text-[1rem] font-extrabold text-accent-green px-3 py-1.5 bg-[rgba(0,230,118,0.1)] rounded-md inline-block border border-[rgba(0,230,118,0.3)] shadow-[0_0_12px_rgba(0,230,118,0.15)]">
+                  {spec.value}
+                </div>
+              </div>
+           </ScrollFadeUp>
+          ))}
+      </div>
+    </div>
+  </section>
+  );
+}

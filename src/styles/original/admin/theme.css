@@ -1,0 +1,891 @@
+:root[data-theme="dark"] {
+    --bg-primary: #0f1419;
+    --bg-secondary: #171d23;
+    --bg-card: #171d23;
+    --bg-card-hover: #202830;
+    --bg-input: #11171c;
+    --border: #303a43;
+    --border-hover: #46525d;
+    --text-primary: #eef3f6;
+    --text-secondary: #b5c0c8;
+    --text-muted: #7f8c96;
+    --green: #34d399;
+    --green-dark: #6ee7b7;
+    --shadow-sm: 0 1px 2px rgba(0,0,0,.24);
+    --shadow: 0 8px 20px rgba(0,0,0,.28);
+    --shadow-lg: 0 20px 45px rgba(0,0,0,.38);
+}
+
+:root[data-theme="dark"] .topbar { background: rgba(15,20,25,.88); }
+:root[data-theme="dark"] .nav-item.active,
+:root[data-theme="dark"] .nav-subitem.active { background: rgba(16,185,129,.14); }
+:root[data-theme="dark"] input,
+:root[data-theme="dark"] select,
+:root[data-theme="dark"] textarea { color: var(--text-primary); background-color: var(--bg-input); border-color: var(--border); }
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder { color: var(--text-muted); }
+:root[data-theme="dark"] table,
+:root[data-theme="dark"] th,
+:root[data-theme="dark"] td { border-color: var(--border); }
+:root[data-theme="dark"] th { background: var(--bg-input); color: var(--text-secondary); }
+:root[data-theme="dark"] tr:hover td { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .modal-content,
+:root[data-theme="dark"] .user-detail-modal-inner,
+:root[data-theme="dark"] .user-detail-modal-head,
+:root[data-theme="dark"] .user-detail-tabs { background: var(--bg-card); border-color: var(--border); }
+
+.theme-trigger,
+.theme-icon-btn {
+    width: 38px;
+    height: 38px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-secondary);
+    transition: var(--tr);
+}
+.theme-trigger:hover,
+.theme-icon-btn:hover { color: var(--text-primary); border-color: var(--border-hover); background: var(--bg-card-hover); }
+.theme-icon-dark { display: none; }
+:root[data-theme="dark"] .theme-icon-light { display: none; }
+:root[data-theme="dark"] .theme-icon-dark { display: block; }
+
+.theme-dialog {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    width: min(460px, calc(100vw - 32px));
+    max-height: calc(100dvh - 32px);
+    margin: 0;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    box-shadow: var(--shadow-lg);
+    transform: translate(-50%, -50%);
+    overflow: hidden;
+}
+.theme-dialog[open] { animation: theme-dialog-in 240ms var(--ease-out, cubic-bezier(.16, 1, .3, 1)) both; }
+.theme-dialog::backdrop {
+    background: rgba(2,6,10,.62);
+    backdrop-filter: blur(3px);
+    animation: theme-backdrop-in 180ms ease-out both;
+}
+.theme-dialog-card { max-height: calc(100dvh - 34px); padding: 22px; overflow-y: auto; }
+.theme-dialog-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 20px; }
+.theme-dialog-head h3 { font-size: 1.1rem; margin: 0 0 3px; }
+.theme-dialog-head p { color: var(--text-muted); font-size: .86rem; }
+.theme-icon-btn { flex: 0 0 auto; border: 0; font-size: 1.5rem; }
+.theme-mode-group { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 18px; }
+.theme-mode-group input { position: absolute; opacity: 0; pointer-events: none; }
+.theme-mode-group span { display: block; padding: 10px; text-align: center; border: 1px solid var(--border); border-radius: 8px; color: var(--text-secondary); cursor: pointer; }
+.theme-mode-group input:checked + span { border-color: var(--green); background: rgba(16,185,129,.12); color: var(--green-dark); font-weight: 700; }
+.theme-schedule { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 14px; background: var(--bg-input); border: 1px solid var(--border); border-radius: 8px; }
+.theme-schedule[hidden] { display: none; }
+.theme-schedule label span { display: block; color: var(--text-secondary); font-size: .82rem; margin-bottom: 6px; }
+.theme-schedule input { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 6px; }
+.theme-schedule p { grid-column: 1 / -1; color: var(--text-muted); font-size: .8rem; line-height: 1.55; }
+.theme-dialog-actions { display: flex; justify-content: flex-end; gap: 9px; margin-top: 20px; }
+.theme-dialog-actions button { padding: 9px 18px; border-radius: 7px; border: 1px solid var(--border); font-weight: 600; }
+.theme-cancel-btn { background: var(--bg-card); color: var(--text-secondary); }
+.theme-save-btn { background: var(--green); border-color: var(--green) !important; color: #052e24; }
+
+@keyframes theme-dialog-in {
+    from { opacity: 0; transform: translate(-50%, calc(-50% + 18px)) scale(.96); }
+    to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+}
+@keyframes theme-backdrop-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .theme-dialog[open],
+    .theme-dialog::backdrop { animation-duration: 1ms; }
+}
+@media (max-width: 520px) { .theme-schedule { grid-template-columns: 1fr; } .theme-schedule p { grid-column: auto; } }
+
+/* ============================================================
+   DARK MODE 补丁：覆盖各面板中硬编码的浅色背景/边框/文字
+   ============================================================ */
+:root[data-theme="dark"] {
+    /* 通用卡片/面板背景（原 #fff / #f8fafc / #f1f5f9） */
+    --dm-surface: var(--bg-card);
+    --dm-surface-2: var(--bg-input);
+    --dm-border: var(--border);
+}
+
+/* —— 通用容器：卡片、面板、设置块 —— */
+:root[data-theme="dark"] .security-notice,
+:root[data-theme="dark"] .message-item,
+:root[data-theme="dark"] .msg-actions,
+:root[data-theme="dark"] .message-settings-panel,
+:root[data-theme="dark"] .message-toggle-card,
+:root[data-theme="dark"] .announcement-composer,
+:root[data-theme="dark"] .application-settings-panel,
+:root[data-theme="dark"] .settings-card,
+:root[data-theme="dark"] .user-detail-setting-block,
+:root[data-theme="dark"] .user-detail-pc,
+:root[data-theme="dark"] .rich-text-editor,
+:root[data-theme="dark"] .inv-card,
+:root[data-theme="dark"] .shop-card,
+:root[data-theme="dark"] .shop-panel,
+:root[data-theme="dark"] .ai-group {
+    background: var(--bg-card);
+    border-color: var(--border);
+}
+
+/* —— 次级底色区（summary / aside / toolbar / stat 条） —— */
+:root[data-theme="dark"] .message-settings-panel[open] > summary,
+:root[data-theme="dark"] .application-settings-panel[open] .application-settings-summary,
+:root[data-theme="dark"] .message-toggle-card,
+:root[data-theme="dark"] .announcement-composer,
+:root[data-theme="dark"] .application-settings-panel,
+:root[data-theme="dark"] .user-detail-aside,
+:root[data-theme="dark"] .inv-stat,
+:root[data-theme="dark"] .rich-text-toolbar,
+:root[data-theme="dark"] .rich-text-status {
+    background: var(--bg-input);
+    border-color: var(--border);
+}
+
+/* —— 深色文字改为浅色 —— */
+:root[data-theme="dark"] .security-notice__title,
+:root[data-theme="dark"] .security-notice__title code,
+:root[data-theme="dark"] .message-settings-panel > summary,
+:root[data-theme="dark"] .message-toggle-card strong,
+:root[data-theme="dark"] .announcement-composer summary,
+:root[data-theme="dark"] .application-settings-summary,
+:root[data-theme="dark"] .settings-card-title,
+:root[data-theme="dark"] .user-detail-setting-block h4,
+:root[data-theme="dark"] .inv-stat__value,
+:root[data-theme="dark"] .inv-card__name,
+:root[data-theme="dark"] .inv-card__kv-val {
+    color: var(--text-primary);
+}
+:root[data-theme="dark"] .security-notice__desc,
+:root[data-theme="dark"] .msg-email,
+:root[data-theme="dark"] .message-toggle-card p,
+:root[data-theme="dark"] .announcement-composer summary span:last-child,
+:root[data-theme="dark"] .application-settings-summary span:last-child,
+:root[data-theme="dark"] .user-detail-setting-desc,
+:root[data-theme="dark"] .user-detail-pc-tip,
+:root[data-theme="dark"] .settings-toggle-row,
+:root[data-theme="dark"] .ticket-rich-content {
+    color: var(--text-secondary);
+}
+:root[data-theme="dark"] .msg-time { color: var(--text-muted); }
+
+/* —— 富文本编辑器内元素 —— */
+:root[data-theme="dark"] .rich-text-editor:focus-within,
+:root[data-theme="dark"] .rich-text-toolbar button,
+:root[data-theme="dark"] .rich-text-btn { background: var(--bg-card); color: var(--text-secondary); border-color: var(--border); }
+:root[data-theme="dark"] .rich-text-area code,
+:root[data-theme="dark"] .ticket-rich-content code { background: var(--bg-card-hover); color: #fca5a5; }
+:root[data-theme="dark"] .rich-text-area blockquote,
+:root[data-theme="dark"] .ticket-rich-content blockquote { background: rgba(16,185,129,.10); }
+
+/* —— 用户详情弹窗 —— */
+:root[data-theme="dark"] .user-detail-modal-inner,
+:root[data-theme="dark"] .user-detail-modal-head,
+:root[data-theme="dark"] .user-detail-tabs { background: var(--bg-card); border-color: var(--border); }
+:root[data-theme="dark"] .user-detail-tab-btn { background: var(--bg-input); color: var(--text-secondary); }
+:root[data-theme="dark"] .user-detail-tab-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+:root[data-theme="dark"] .user-detail-pc-bar { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .user-detail-modal-close:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+
+/* —— 库存/商品徽章色底（保持语义色，调暗底） —— */
+:root[data-theme="dark"] .inv-stat--amber,
+:root[data-theme="dark"] .inv-stat--red,
+:root[data-theme="dark"] .inv-card__cat,
+:root[data-theme="dark"] .inv-filter-chip { background: var(--bg-input); border-color: var(--border); color: var(--text-secondary); }
+:root[data-theme="dark"] .inv-filter-chip:hover { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .inv-search__input { background: var(--bg-input); color: var(--text-primary); }
+
+/* —— AI 面板局部色板 —— */
+:root[data-theme="dark"] #tab-ai_settings,
+:root[data-theme="dark"] #tab-ai_playground {
+    --ai-green-soft: rgba(16,185,129,.12);
+    --ai-green-softer: rgba(16,185,129,.08);
+    --ai-green-border: rgba(16,185,129,.30);
+    --ai-green-text: var(--green-dark);
+}
+:root[data-theme="dark"] .ai-group,
+:root[data-theme="dark"] #tab-ai_settings .form-section,
+:root[data-theme="dark"] #tab-ai_playground .form-section { background: var(--bg-card); }
+:root[data-theme="dark"] .ai-hero { background: linear-gradient(135deg, rgba(16,185,129,.12) 0%, var(--bg-card) 100%); }
+:root[data-theme="dark"] .ai-tip code { background: var(--bg-card); }
+:root[data-theme="dark"] .ai-stat { background: linear-gradient(135deg, rgba(16,185,129,.10) 0%, var(--bg-card) 70%); }
+
+/* —— 工单详情中的 AI 分析 —— */
+.ticket-ai-analysis {
+    margin: 10px 0;
+    padding: 12px;
+    border: 1px solid #bfdbfe;
+    border-radius: 8px;
+    background: #eff6ff;
+    color: #1e3a8a;
+}
+:root[data-theme="dark"] .ticket-ai-analysis {
+    border-color: rgba(96,165,250,.38);
+    background: rgba(37,99,235,.12);
+    color: #bfdbfe;
+}
+:root[data-theme="dark"] .ticket-ai-analysis strong { color: #dbeafe; }
+
+/* —— details summary 上的内联深色文字（申请来源统计等） —— */
+:root[data-theme="dark"] details > summary[style*="color:#0f172a"],
+:root[data-theme="dark"] details > summary[style*="color: #0f172a"] { color: var(--text-primary) !important; }
+
+/* ============================================================
+   DARK MODE：覆盖 panel.php 内联硬编码浅色
+   （消息通知 / 公告 / 工单 / 行为日志 / 风控 / 用户 / 入服申请）
+   内联样式优先级高，需用属性选择器 + !important
+   ============================================================ */
+
+/* —— 浅色背景块（卡片 / 表格容器 / 面板） —— */
+:root[data-theme="dark"] [style*="background:#fff"]:not([style*="background:#fff5"]):not([style*="background:#fffbeb"]),
+:root[data-theme="dark"] [style*="background: #fff"]:not([style*="background: #fff5"]):not([style*="background: #fffbeb"]),
+:root[data-theme="dark"] [style*="background:#f8fafc"],
+:root[data-theme="dark"] [style*="background: #f8fafc"] {
+    background: var(--bg-card) !important;
+}
+:root[data-theme="dark"] [style*="background:#f1f5f9"],
+:root[data-theme="dark"] [style*="background: #f1f5f9"] {
+    background: var(--bg-input) !important;
+}
+
+/* —— 浅色边框 —— */
+:root[data-theme="dark"] [style*="border:1px solid #e2e8f0"],
+:root[data-theme="dark"] [style*="border: 1px solid #e2e8f0"] {
+    border-color: var(--border) !important;
+}
+
+/* —— 深色文字（标题 / 正文 / 次要说明） —— */
+:root[data-theme="dark"] [style*="color:#0f172a"],
+:root[data-theme="dark"] [style*="color: #0f172a"] { color: var(--text-primary) !important; }
+:root[data-theme="dark"] [style*="color:#334155"],
+:root[data-theme="dark"] [style*="color: #334155"],
+:root[data-theme="dark"] [style*="color:#475569"],
+:root[data-theme="dark"] [style*="color: #475569"] { color: var(--text-secondary) !important; }
+:root[data-theme="dark"] [style*="color:#64748b"],
+:root[data-theme="dark"] [style*="color: #64748b"],
+:root[data-theme="dark"] [style*="color:#94a3b8"],
+:root[data-theme="dark"] [style*="color: #94a3b8"] { color: var(--text-muted) !important; }
+
+/* —— 行为日志：降低密集行分隔线的对比度 —— */
+:root[data-theme="dark"] .logs-table-wrap {
+    border-color: rgba(127,140,150,.22) !important;
+}
+:root[data-theme="dark"] .logs-table thead {
+    border-bottom: 1px solid rgba(181,192,200,.22);
+}
+:root[data-theme="dark"] .logs-table tbody tr {
+    border-bottom-color: rgba(127,140,150,.12) !important;
+}
+:root[data-theme="dark"] .logs-table tbody tr:last-child { border-bottom-color: transparent !important; }
+:root[data-theme="dark"] .logs-table tbody tr:hover td { background: rgba(255,255,255,.025); }
+
+/* —— 用户列表：弱化表头和数据行分隔线 —— */
+:root[data-theme="dark"] .users-table-wrap {
+    border-color: rgba(127,140,150,.22) !important;
+}
+:root[data-theme="dark"] .users-table thead tr {
+    border-bottom-color: rgba(181,192,200,.20) !important;
+}
+:root[data-theme="dark"] .users-table tbody tr {
+    border-bottom-color: rgba(127,140,150,.12) !important;
+}
+:root[data-theme="dark"] .users-table tbody tr:last-child { border-bottom-color: transparent !important; }
+:root[data-theme="dark"] .users-table tbody tr:hover td { background: rgba(255,255,255,.025); }
+
+/* —— 风控分析：原因标签与空状态 —— */
+.risk-reason-chip {
+    display: inline-block;
+    margin: 3px 4px 0 0;
+    padding: 3px 9px;
+    border: 1px solid;
+    border-radius: 999px;
+    background: rgba(255,255,255,.7);
+    font-size: .82em;
+}
+.risk-empty-state {
+    padding: 18px;
+    border: 1px dashed #cbd5e1;
+    border-radius: 10px;
+    background: #f8fafc;
+    color: #94a3b8;
+    text-align: center;
+}
+:root[data-theme="dark"] .risk-reason-chip {
+    border-color: rgba(52,211,153,.25) !important;
+    background: rgba(52,211,153,.08);
+    color: var(--green-dark) !important;
+}
+:root[data-theme="dark"] .risk-empty-state {
+    border-style: solid;
+    border-color: rgba(127,140,150,.20);
+    background: rgba(17,23,28,.55);
+    color: var(--text-muted);
+}
+
+/* —— 表头浅底 —— */
+:root[data-theme="dark"] thead[style*="background:#f8fafc"],
+:root[data-theme="dark"] thead[style*="background: #f8fafc"] { background: var(--bg-input) !important; }
+
+/* —— 语义色浅底块（保留语义色调，改深底） —— */
+:root[data-theme="dark"] [style*="background:#f0fdf4"],
+:root[data-theme="dark"] [style*="background: #f0fdf4"],
+:root[data-theme="dark"] [style*="background:#ecfdf5"],
+:root[data-theme="dark"] [style*="background: #ecfdf5"] { background: rgba(16,185,129,.10) !important; }
+:root[data-theme="dark"] [style*="background:#fffbeb"],
+:root[data-theme="dark"] [style*="background: #fffbeb"],
+:root[data-theme="dark"] [style*="background:#fefce8"],
+:root[data-theme="dark"] [style*="background: #fefce8"] { background: rgba(245,158,11,.10) !important; }
+:root[data-theme="dark"] [style*="background:#fef2f2"],
+:root[data-theme="dark"] [style*="background: #fef2f2"],
+:root[data-theme="dark"] [style*="background:#fff5f5"],
+:root[data-theme="dark"] [style*="background: #fff5f5"],
+:root[data-theme="dark"] [style*="background:#fff1f2"],
+:root[data-theme="dark"] [style*="background: #fff1f2"] { background: rgba(239,68,68,.10) !important; }
+:root[data-theme="dark"] [style*="background:#eff6ff"],
+:root[data-theme="dark"] [style*="background: #eff6ff"] { background: rgba(59,130,246,.10) !important; }
+
+/* —— 表单控件浅底 —— */
+:root[data-theme="dark"] input[style*="border:1px solid #e2e8f0"],
+:root[data-theme="dark"] select[style*="border:1px solid #e2e8f0"],
+:root[data-theme="dark"] textarea[style*="border:1px solid #e2e8f0"] {
+    background: var(--bg-input) !important;
+    color: var(--text-primary) !important;
+}
+
+/* ============================================================
+   DARK MODE：用户管理 & 入服申请 专项优化
+   ============================================================ */
+
+/* —— 批量通知面板（原绿白底 #f0fdf4 / #bbf7d0） —— */
+:root[data-theme="dark"] .batch-notice-panel {
+    background: rgba(16,185,129,.08);
+    border-color: rgba(16,185,129,.28);
+}
+:root[data-theme="dark"] .batch-notice-panel[open] > summary {
+    background: rgba(16,185,129,.12);
+    border-bottom-color: rgba(16,185,129,.28);
+}
+:root[data-theme="dark"] .batch-notice-panel > summary { color: var(--green-dark); }
+:root[data-theme="dark"] .batch-notice-panel small { color: var(--text-muted); }
+:root[data-theme="dark"] .batch-notice-panel > summary::after { border-color: var(--green-dark); }
+
+/* —— 语义色统计卡片：调深底 + 调亮边框（覆盖内联 border-color） —— */
+:root[data-theme="dark"] [style*="border:1px solid #fde68a"],
+:root[data-theme="dark"] [style*="border: 1px solid #fde68a"] { border-color: rgba(245,158,11,.35) !important; }
+:root[data-theme="dark"] [style*="border:1px solid #fecaca"],
+:root[data-theme="dark"] [style*="border: 1px solid #fecaca"],
+:root[data-theme="dark"] [style*="border:1px solid #fecdd3"],
+:root[data-theme="dark"] [style*="border: 1px solid #fecdd3"] { border-color: rgba(239,68,68,.35) !important; }
+:root[data-theme="dark"] [style*="border:1px solid #bfdbfe"],
+:root[data-theme="dark"] [style*="border: 1px solid #bfdbfe"] { border-color: rgba(59,130,246,.35) !important; }
+:root[data-theme="dark"] [style*="border:1px solid #bbf7d0"],
+:root[data-theme="dark"] [style*="border: 1px solid #bbf7d0"],
+:root[data-theme="dark"] [style*="border:1px solid #dcfce7"],
+:root[data-theme="dark"] [style*="border: 1px solid #dcfce7"] { border-color: rgba(16,185,129,.35) !important; }
+:root[data-theme="dark"] [style*="border:1px solid #ddd6fe"],
+:root[data-theme="dark"] [style*="border: 1px solid #ddd6fe"] { border-color: rgba(124,58,237,.40) !important; }
+
+/* —— 语义文字：暗色下提亮，保证可读 —— */
+:root[data-theme="dark"] [style*="color:#a16207"],
+:root[data-theme="dark"] [style*="color: #a16207"],
+:root[data-theme="dark"] [style*="color:#ca8a04"],
+:root[data-theme="dark"] [style*="color: #ca8a04"],
+:root[data-theme="dark"] [style*="color:#92400e"],
+:root[data-theme="dark"] [style*="color: #92400e"] { color: #fbbf24 !important; }
+:root[data-theme="dark"] [style*="color:#b91c1c"],
+:root[data-theme="dark"] [style*="color: #b91c1c"],
+:root[data-theme="dark"] [style*="color:#dc2626"],
+:root[data-theme="dark"] [style*="color: #dc2626"],
+:root[data-theme="dark"] [style*="color:#be123c"],
+:root[data-theme="dark"] [style*="color: #be123c"] { color: #f87171 !important; }
+:root[data-theme="dark"] [style*="color:#1d4ed8"],
+:root[data-theme="dark"] [style*="color: #1d4ed8"],
+:root[data-theme="dark"] [style*="color:#2563eb"],
+:root[data-theme="dark"] [style*="color: #2563eb"] { color: #60a5fa !important; }
+:root[data-theme="dark"] [style*="color:#15803d"],
+:root[data-theme="dark"] [style*="color: #15803d"],
+:root[data-theme="dark"] [style*="color:#16a34a"],
+:root[data-theme="dark"] [style*="color: #16a34a"],
+:root[data-theme="dark"] [style*="color:#6d28d9"],
+:root[data-theme="dark"] [style*="color: #6d28d9"] { color: var(--green-dark) !important; }
+
+/* 例外：语义色实心按钮文字保持白色，不被上面的文字规则影响 */
+:root[data-theme="dark"] button[style*="color:#fff"],
+:root[data-theme="dark"] button[style*="color: #fff"],
+:root[data-theme="dark"] a[style*="color:#fff"],
+:root[data-theme="dark"] a[style*="color: #fff"] { color: #fff !important; }
+
+/* —— 白底描边按钮（全选/清空/重试等）改深底 —— */
+:root[data-theme="dark"] button[style*="background:#fff"],
+:root[data-theme="dark"] button[style*="background: #fff"] { background: var(--bg-card) !important; }
+
+/* —— 用户表格双色表头下边框 —— */
+:root[data-theme="dark"] tr[style*="border-bottom:2px solid #e2e8f0"],
+:root[data-theme="dark"] tr[style*="border-bottom: 2px solid #e2e8f0"] { border-bottom-color: var(--border) !important; }
+
+/* ============================================================
+   DARK MODE：商城管理（收益/商品/订单/库存/发货/支付）专项
+   ============================================================ */
+
+/* —— 支付页作用域变量重定义（.shop-admin 下 --pay-*） —— */
+:root[data-theme="dark"] .shop-admin {
+    --pay-card-bg: var(--bg-card);
+    --pay-card-border: var(--border);
+    --pay-muted: var(--text-muted);
+    --pay-strong: var(--text-primary);
+    --pay-divider: var(--border);
+    --pay-brand-soft: rgba(16,185,129,.18);
+    --pay-brand-tint: rgba(16,185,129,.10);
+}
+
+/* —— 卡片 / 面板 / 表格容器（原 #fff） —— */
+:root[data-theme="dark"] .shop-metric-card,
+:root[data-theme="dark"] .shop-card,
+:root[data-theme="dark"] .shop-panel,
+:root[data-theme="dark"] .shop-collapse,
+:root[data-theme="dark"] .shop-table-wrap,
+:root[data-theme="dark"] .shop-empty,
+:root[data-theme="dark"] .shop-btn,
+:root[data-theme="dark"] .shop-page-btn {
+    background: var(--bg-card);
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+
+/* —— 次级底色区（原 #f8fafc / #f1f5f9） —— */
+:root[data-theme="dark"] .shop-toggle-card,
+:root[data-theme="dark"] .shop-row,
+:root[data-theme="dark"] .shop-url-card,
+:root[data-theme="dark"] .shop-loading,
+:root[data-theme="dark"] .shop-stat,
+:root[data-theme="dark"] .inv-stat {
+    background: var(--bg-input);
+    border-color: var(--border);
+    color: var(--text-secondary);
+}
+:root[data-theme="dark"] .shop-table thead { background: var(--bg-input); }
+:root[data-theme="dark"] .shop-table th,
+:root[data-theme="dark"] .shop-table td { border-top-color: var(--border); }
+:root[data-theme="dark"] .shop-table tbody tr:hover { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .shop-product-card .shop-actions { border-top-color: var(--border); }
+:root[data-theme="dark"] .shop-product-card.is-inactive { background: var(--bg-input); }
+
+/* —— 悬停态 —— */
+:root[data-theme="dark"] .shop-btn:hover,
+:root[data-theme="dark"] .shop-page-btn:hover:not(:disabled) { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .shop-toggle-card:hover,
+:root[data-theme="dark"] .shop-toggle-card:has(input:checked) { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.35); }
+:root[data-theme="dark"] .shop-row--clickable:hover { background: var(--bg-card-hover); }
+
+/* —— 深色文字改浅 —— */
+:root[data-theme="dark"] .shop-collapse > summary { color: var(--text-primary); }
+:root[data-theme="dark"] .shop-collapse > summary:hover { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .shop-price { color: var(--green-dark); }
+
+/* —— 语义徽章 / chips：半透明深底 + 提亮文字 —— */
+:root[data-theme="dark"] .shop-badge--green,
+:root[data-theme="dark"] .shop-badge--soft-green,
+:root[data-theme="dark"] .shop-stat--stock-ok { background: rgba(16,185,129,.16); color: #6ee7b7; }
+:root[data-theme="dark"] .shop-badge--gray { background: var(--bg-input); color: var(--text-secondary); }
+:root[data-theme="dark"] .shop-badge--blue { background: rgba(59,130,246,.16); color: #93c5fd; }
+:root[data-theme="dark"] .shop-badge--amber,
+:root[data-theme="dark"] .shop-stat--stock-low { background: rgba(245,158,11,.16); color: #fcd34d; }
+:root[data-theme="dark"] .shop-badge--red,
+:root[data-theme="dark"] .shop-stat--stock-out { background: rgba(239,68,68,.16); color: #fca5a5; }
+
+/* —— 语义描边按钮：提亮文字色 —— */
+:root[data-theme="dark"] .shop-btn--primary { border-color: rgba(16,185,129,.40); color: #6ee7b7; }
+:root[data-theme="dark"] .shop-btn--info { border-color: rgba(59,130,246,.40); color: #93c5fd; }
+:root[data-theme="dark"] .shop-btn--danger { border-color: rgba(239,68,68,.40); color: #fca5a5; }
+:root[data-theme="dark"] .shop-btn--muted { border-color: var(--border-hover); color: var(--text-secondary); }
+
+/* —— 提示 / 通知 / 错误块 —— */
+:root[data-theme="dark"] .shop-notice { background: rgba(16,185,129,.08); border-color: rgba(16,185,129,.28); }
+:root[data-theme="dark"] .shop-notice-head { color: var(--green-dark); }
+:root[data-theme="dark"] .shop-error { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.35); color: #fca5a5; }
+:root[data-theme="dark"] .shop-collapse[open] { border-color: rgba(16,185,129,.30); }
+
+/* —— 商品编辑器 RCON 发货生成器 —— */
+:root[data-theme="dark"] .shop-rcon-delivery {
+    background: var(--bg-input);
+    border-color: rgba(16,185,129,.35) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery > summary {
+    color: var(--green-dark) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery > summary span:last-child,
+:root[data-theme="dark"] .shop-rcon-delivery label,
+:root[data-theme="dark"] .shop-rcon-delivery [style*="color:#6b7280"],
+:root[data-theme="dark"] .shop-rcon-delivery [style*="color:#9ca3af"] {
+    color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery [style*="color:#374151"] {
+    color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery > div {
+    border-top-color: rgba(16,185,129,.25) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery .shop-builder-tab {
+    background: var(--bg-card) !important;
+    border-color: var(--border-hover) !important;
+    color: var(--text-secondary) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery .shop-builder-tab:hover {
+    background: var(--bg-card-hover) !important;
+    color: var(--text-primary) !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery .shop-builder-tab.is-active {
+    background: rgba(16,185,129,.16) !important;
+    border-color: rgba(52,211,153,.55) !important;
+    color: #6ee7b7 !important;
+}
+:root[data-theme="dark"] .shop-rcon-delivery .shop-ph-chip {
+    background: rgba(16,185,129,.10) !important;
+    border-color: rgba(52,211,153,.38) !important;
+    color: #6ee7b7 !important;
+}
+:root[data-theme="dark"] #shopDeliveryAiBtn {
+    background: rgba(168,85,247,.12) !important;
+    border-color: rgba(192,132,252,.55) !important;
+    color: #d8b4fe !important;
+}
+:root[data-theme="dark"] #shopDeliveryAiBtn:hover {
+    background: rgba(168,85,247,.20) !important;
+}
+:root[data-theme="dark"] #shopDeliveryPreview {
+    background: #071d15 !important;
+    color: #86efac !important;
+    border: 1px solid rgba(52,211,153,.24);
+}
+
+/* —— 库存搜索/过滤/统计（inv-*） —— */
+:root[data-theme="dark"] .inv-stat--amber { background: rgba(245,158,11,.12); border-color: rgba(245,158,11,.30); }
+:root[data-theme="dark"] .inv-stat--red { background: rgba(239,68,68,.12); border-color: rgba(239,68,68,.30); }
+:root[data-theme="dark"] .inv-stat--amber .inv-stat__value { color: #fcd34d; }
+:root[data-theme="dark"] .inv-stat--red .inv-stat__value { color: #fca5a5; }
+:root[data-theme="dark"] .inv-card__kv-val--price,
+:root[data-theme="dark"] .inv-card__stock--ok { color: #6ee7b7; }
+:root[data-theme="dark"] .inv-card__stock--low { color: #fcd34d; }
+:root[data-theme="dark"] .inv-card__stock--out { color: #fca5a5; }
+:root[data-theme="dark"] .inv-card__stock-badge--ok { background: rgba(16,185,129,.16); color: #6ee7b7; }
+:root[data-theme="dark"] .inv-card__stock-badge--low { background: rgba(245,158,11,.16); color: #fcd34d; }
+:root[data-theme="dark"] .inv-card__stock-badge--out { background: rgba(239,68,68,.16); color: #fca5a5; }
+:root[data-theme="dark"] .shop-batch-bar { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.28); }
+:root[data-theme="dark"] .shop-batch-count { color: var(--green-dark); }
+
+/* —— 支付页头部 / chip —— */
+:root[data-theme="dark"] .pay-page-header { background: linear-gradient(135deg, var(--bg-card) 0%, var(--bg-input) 100%); }
+:root[data-theme="dark"] .pay-page-header__chip { background: var(--bg-input); color: var(--text-secondary); border-color: var(--border); }
+:root[data-theme="dark"] .pay-page-header__chip--on { background: rgba(16,185,129,.14); color: #6ee7b7; border-color: rgba(16,185,129,.35); }
+
+/* —— 支付卡片头/尾渐变浅底 —— */
+:root[data-theme="dark"] .pay-card__header { background: linear-gradient(to right, rgba(16,185,129,.10), var(--bg-card)); }
+:root[data-theme="dark"] .pay-card__footer { background: var(--bg-input); }
+
+/* —— 支付启用开关行 —— */
+:root[data-theme="dark"] .pay-block--toggle { background: var(--bg-input); border-left-color: var(--border-hover); }
+:root[data-theme="dark"] .pay-block--toggle:has(#shopPaymentEnabled:checked) { background: rgba(16,185,129,.10); border-color: rgba(16,185,129,.35); border-left-color: var(--green); }
+:root[data-theme="dark"] .pay-switch-track { background: var(--border-hover); }
+
+/* —— 支付字段标签 / 密钥徽章 / 眼睛按钮 —— */
+:root[data-theme="dark"] .pay-field-label { color: var(--text-secondary); }
+:root[data-theme="dark"] .pay-key-badge--set { background: rgba(16,185,129,.16); color: #6ee7b7; }
+:root[data-theme="dark"] .pay-key-badge--unset { background: var(--bg-input); }
+:root[data-theme="dark"] .pay-key-inline-actions { background: var(--bg-card); border-color: var(--border); color: var(--text-muted); }
+:root[data-theme="dark"] .pay-key-inline-actions:hover,
+:root[data-theme="dark"] .pay-key-inline-actions:has(input:checked) { background: rgba(239,68,68,.10); border-color: rgba(239,68,68,.35); color: #fca5a5; }
+
+/* —— 支付方式选项卡 —— */
+:root[data-theme="dark"] .pay-method-option,
+:root[data-theme="dark"] .pay-default-option { background: var(--bg-card); border-color: var(--border); }
+:root[data-theme="dark"] .pay-method-option:hover,
+:root[data-theme="dark"] .pay-default-option:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
+:root[data-theme="dark"] .pay-method-option:has(input:checked),
+:root[data-theme="dark"] .pay-default-option:has(input:checked) { background: var(--bg-card-hover); }
+:root[data-theme="dark"] .pay-method-option:has(input:checked)::after,
+:root[data-theme="dark"] .pay-default-option:has(input:checked)::after { box-shadow: 0 0 0 2px var(--bg-card); }
+:root[data-theme="dark"] .pay-method-option:has(#shopPayTypeAlipay:checked),
+:root[data-theme="dark"] .pay-default-option:has(input[value="alipay"]:checked) { background: rgba(22,119,255,.12); }
+:root[data-theme="dark"] .pay-method-option:has(#shopPayTypeWxpay:checked),
+:root[data-theme="dark"] .pay-default-option:has(input[value="wxpay"]:checked) { background: rgba(7,193,96,.12); }
+:root[data-theme="dark"] .pay-method-option:has(#shopPayTypeQqpay:checked),
+:root[data-theme="dark"] .pay-default-option:has(input[value="qqpay"]:checked) { background: rgba(245,166,35,.12); }
+:root[data-theme="dark"] .pay-default-option:has(input[value="alipay"]:checked) .pay-option-main { color: #69b1ff; }
+:root[data-theme="dark"] .pay-default-option:has(input[value="wxpay"]:checked) .pay-option-main { color: #4ade80; }
+:root[data-theme="dark"] .pay-default-option:has(input[value="qqpay"]:checked) .pay-option-main { color: #fbbf24; }
+
+/* —— 回调地址卡片（.pay-url-*） —— */
+:root[data-theme="dark"] .pay-url-card { background: var(--bg-input); border-color: var(--border); }
+:root[data-theme="dark"] .pay-url-card:hover { background: var(--bg-card-hover); border-color: var(--border-hover); }
+:root[data-theme="dark"] .pay-url-value { background: var(--bg-card); color: var(--text-primary); border-color: var(--border); }
+:root[data-theme="dark"] .pay-url-name { color: var(--text-primary); }
+:root[data-theme="dark"] .pay-url-key { color: var(--text-muted); }
+:root[data-theme="dark"] .pay-copy-btn { background: var(--bg-card); border-color: var(--border); color: var(--text-secondary); }
+:root[data-theme="dark"] .pay-copy-btn:hover,
+:root[data-theme="dark"] .pay-copy-btn.is-copied { background: rgba(16,185,129,.12); border-color: rgba(16,185,129,.40); color: #6ee7b7; }
+:root[data-theme="dark"] .pay-badge-method--post { background: rgba(16,185,129,.14); color: #6ee7b7; border-color: rgba(16,185,129,.35); }
+:root[data-theme="dark"] .pay-badge-method--get { background: rgba(59,130,246,.14); color: #93c5fd; border-color: rgba(59,130,246,.35); }
+
+/* ============================================================
+   DARK MODE：通用弹窗（modal-content）底部按钮栏 & 头部
+   —— 修复商品编辑器等弹窗底部 sticky 操作栏发白
+   ============================================================ */
+:root[data-theme="dark"] .modal-content { background: var(--bg-card); border-color: var(--border); }
+:root[data-theme="dark"] .modal-content > form > .form-actions {
+    background: var(--bg-card);
+    border-top-color: var(--border);
+    box-shadow: 0 -4px 12px rgba(0,0,0,.28);
+}
+
+/* ============================================================
+   DARK MODE：图片上传拖拽区（网站设置等 .is-dropzone）
+   ============================================================ */
+:root[data-theme="dark"] .image-upload-group.is-dropzone { background: var(--bg-input); border-color: var(--border); }
+:root[data-theme="dark"] .image-upload-group.is-dropzone:hover,
+:root[data-theme="dark"] .image-upload-group.is-dropzone:focus-within { border-color: var(--green); background: rgba(16,185,129,.10); }
+:root[data-theme="dark"] .image-upload-group.is-dropzone.is-dragover { border-color: var(--green); background: rgba(16,185,129,.16); }
+:root[data-theme="dark"] .image-upload-group.is-dropzone.has-error { border-color: #ef4444; background: rgba(239,68,68,.12); }
+
+/* 缩略图占位 */
+:root[data-theme="dark"] .dz-thumb { background-color: var(--bg-card); border-color: var(--border); color: var(--text-muted); }
+
+/* dropzone 操作按钮 */
+:root[data-theme="dark"] .dz-btn { background: var(--bg-card); border-color: var(--border); color: var(--text-secondary); }
+:root[data-theme="dark"] .dz-btn:hover { border-color: var(--green); color: var(--green-dark); background: rgba(16,185,129,.12); }
+:root[data-theme="dark"] .dz-btn.is-danger:hover { border-color: #ef4444; color: #fca5a5; background: rgba(239,68,68,.12); }
+:root[data-theme="dark"] .dz-meta.is-error { color: #fca5a5; }
+
+/* 预览图底色 */
+:root[data-theme="dark"] .preview-img { background: var(--bg-card-hover); border-color: var(--border); }
+
+/* 通用文件选择框（.form-file，非 dropzone 场景） */
+:root[data-theme="dark"] .form-file:hover { background: rgba(16,185,129,.10); border-color: var(--green); }
+
+/* ============================================================
+   DARK MODE：图片管理页面（img-*）
+   ============================================================ */
+
+/* —— 工具栏 —— */
+:root[data-theme="dark"] .img-toolbar { background: var(--bg-card); border-color: var(--border); }
+:root[data-theme="dark"] .img-orphan-btn.active { background: rgba(245,158,11,.16); border-color: rgba(245,158,11,.45); color: #fcd34d; }
+
+/* —— 批量操作栏 —— */
+:root[data-theme="dark"] .img-sel-bar { background: rgba(59,130,246,.12); border-color: rgba(59,130,246,.35); color: #93c5fd; }
+:root[data-theme="dark"] .btn-danger-sm { background: rgba(239,68,68,.14); border-color: rgba(239,68,68,.40); color: #fca5a5; }
+:root[data-theme="dark"] .btn-danger-sm:hover:not(:disabled) { background: rgba(239,68,68,.24); }
+:root[data-theme="dark"] .btn-secondary-sm { background: var(--bg-card); border-color: var(--border); color: var(--text-secondary); }
+:root[data-theme="dark"] .btn-secondary-sm:hover { background: var(--bg-card-hover); }
+
+/* —— 拖拽上传区 —— */
+:root[data-theme="dark"] .img-dropzone:hover,
+:root[data-theme="dark"] .img-dropzone.drag-over { border-color: var(--green); background: rgba(16,185,129,.10); color: var(--green-dark); }
+
+/* —— 图片卡片 —— */
+:root[data-theme="dark"] .img-card { background: var(--bg-card); border-color: var(--border); }
+:root[data-theme="dark"] .img-card:hover { border-color: rgba(16,185,129,.40); box-shadow: 0 4px 16px rgba(0,0,0,.35); }
+:root[data-theme="dark"] .img-card.selected { border-color: var(--green); box-shadow: 0 0 0 2px rgba(16,185,129,.35); }
+:root[data-theme="dark"] .img-card__thumb { background: var(--bg-input); }
+:root[data-theme="dark"] .img-card__thumb.img-error { background: rgba(239,68,68,.14); }
+:root[data-theme="dark"] .img-card__thumb.img-error::after { color: #fca5a5; }
+:root[data-theme="dark"] .img-card__meta span { background: var(--bg-input); }
+:root[data-theme="dark"] .img-card__actions { border-top-color: var(--border); }
+:root[data-theme="dark"] .img-action-btn:hover { background: var(--bg-card-hover); color: var(--text-primary); }
+:root[data-theme="dark"] .img-action-btn.danger:hover { background: rgba(239,68,68,.16); color: #fca5a5; }
+:root[data-theme="dark"] .img-error-msg { color: #fca5a5; }
+
+/* —— Lightbox 弹窗 —— */
+:root[data-theme="dark"] .img-lb-box { background: var(--bg-card); }
+:root[data-theme="dark"] .img-lb-footer { border-top-color: var(--border); }
+:root[data-theme="dark"] .img-lb-url { background: var(--bg-input); color: var(--text-secondary); }
+:root[data-theme="dark"] .img-lb-info { color: var(--text-muted); }
+
+/* ============================================================
+   DARK MODE：用户详情弹窗内动态内容（admin.js 注入，内联样式为主）
+   ============================================================ */
+
+/* —— tab 内容面板（.user-detail-pane，内联 #f8fafc 底 + #e2e8f0 边框） —— */
+:root[data-theme="dark"] .user-detail-pane {
+    background: var(--bg-input) !important;
+    border-color: var(--border) !important;
+}
+:root[data-theme="dark"] .user-detail-pane h4 { color: var(--text-secondary); }
+
+/* —— pane 内输入框 / 文本域（内联 border 白底） —— */
+:root[data-theme="dark"] .user-detail-pane input,
+:root[data-theme="dark"] .user-detail-pane textarea,
+:root[data-theme="dark"] .user-detail-modal input,
+:root[data-theme="dark"] .user-detail-modal textarea {
+    background: var(--bg-card) !important;
+    color: var(--text-primary) !important;
+    border-color: var(--border) !important;
+}
+
+/* —— 头像块渐变（内联 linear-gradient(#ecfdf5,#10b981)） —— */
+:root[data-theme="dark"] .user-detail-aside > div:first-child > div:first-child[style*="linear-gradient"] {
+    background: linear-gradient(135deg, rgba(16,185,129,.20), rgba(16,185,129,.45)) !important;
+    border-color: rgba(16,185,129,.35) !important;
+}
+
+/* —— 蓝色审核备注框（内联 #eff6ff） —— */
+:root[data-theme="dark"] .user-detail-pane [style*="background:#eff6ff"],
+:root[data-theme="dark"] .user-detail-pane [style*="background: #eff6ff"] { background: rgba(59,130,246,.12) !important; }
+
+/* —— 日志分隔线（内联 #f1f5f9） —— */
+:root[data-theme="dark"] .user-detail-pane [style*="border-bottom:1px solid #f1f5f9"],
+:root[data-theme="dark"] .user-detail-pane [style*="border-bottom: 1px solid #f1f5f9"] { border-bottom-color: var(--border) !important; }
+
+/* —— 危险区块（内联 #fef2f2 底 + #fecaca 边框已由通用规则覆盖，补文字） —— */
+:root[data-theme="dark"] .user-detail-danger h4,
+:root[data-theme="dark"] .user-detail-danger .user-detail-setting-desc strong { color: #fca5a5; }
+
+/* —— 侧栏资料网格 / 头像文字 —— */
+:root[data-theme="dark"] .user-detail-aside-grid span[style*="color:#0f172a"],
+:root[data-theme="dark"] .user-detail-aside [style*="color:#0f172a"] { color: var(--text-primary) !important; }
+
+/* ============================================================
+   DARK MODE：后台登录页（login-page / login-card / lg-* 验证码）
+   ============================================================ */
+
+/* —— 页面背景 —— */
+:root[data-theme="dark"] .login-page {
+    background: linear-gradient(135deg, #0a1210 0%, var(--bg-primary) 100%);
+}
+:root[data-theme="dark"] .login-page::before {
+    background: radial-gradient(circle, rgba(16,185,129,.08) 0%, transparent 60%);
+}
+:root[data-theme="dark"] .login-page::after {
+    background: radial-gradient(circle, rgba(59,130,246,.04) 0%, transparent 60%);
+}
+
+/* —— 登录卡片 —— */
+:root[data-theme="dark"] .login-card {
+    background: rgba(23,29,35,.92);
+    border-color: var(--border);
+    box-shadow: 0 20px 40px rgba(0,0,0,.45), 0 8px 16px rgba(0,0,0,.30);
+}
+
+/* —— LOGO 图标底色 —— */
+:root[data-theme="dark"] .login-logo {
+    background: linear-gradient(135deg, rgba(16,185,129,.18) 0%, rgba(16,185,129,.30) 100%);
+    box-shadow: 0 4px 6px -1px rgba(16,185,129,.15);
+}
+
+/* —— 错误提示 —— */
+:root[data-theme="dark"] .login-error {
+    background: rgba(239,68,68,.12);
+    border-color: rgba(239,68,68,.35);
+    color: #fca5a5;
+}
+
+/* —— 输入框聚焦状态（覆盖 focus 时 background:white） —— */
+:root[data-theme="dark"] .input-wrap input:focus {
+    background: var(--bg-card);
+    box-shadow: 0 0 0 4px rgba(16,185,129,.14);
+}
+
+/* —— 锁定提示 banner（.lg-banner） —— */
+:root[data-theme="dark"] .lg-banner {
+    background: rgba(245,158,11,.10);
+    color: #fbbf24;
+    border-color: rgba(245,158,11,.35);
+}
+
+/* —— 图形验证码背景（.lg-simple-captcha） —— */
+:root[data-theme="dark"] .lg-simple-captcha {
+    background: repeating-linear-gradient(
+        45deg,
+        rgba(16,185,129,.10),
+        rgba(16,185,129,.10) 6px,
+        rgba(16,185,129,.06) 6px,
+        rgba(16,185,129,.06) 12px
+    );
+    border-color: rgba(16,185,129,.30);
+    color: var(--green-dark);
+}
+
+/* —— 数学验证码题目（.lg-captcha-q） —— */
+:root[data-theme="dark"] .lg-captcha-q {
+    background: rgba(16,185,129,.10);
+    color: var(--green-dark);
+    border-color: rgba(16,185,129,.30);
+}
+
+/* —— 换一张按钮（.lg-refresh-btn） —— */
+:root[data-theme="dark"] .lg-refresh-btn {
+    background: rgba(16,185,129,.10);
+    color: var(--green-dark);
+    border-color: rgba(16,185,129,.28);
+}
+:root[data-theme="dark"] .lg-refresh-btn:hover:not(:disabled) {
+    background: rgba(16,185,129,.18);
+}
+:root[data-theme="dark"] .lg-refresh-btn:disabled {
+    background: var(--bg-input);
+    color: var(--text-muted);
+    border-color: var(--border);
+}
+
+/* —— 账号状态 / 角色权限：未选中按钮（内联 #e2e8f0 浅灰底） —— */
+:root[data-theme="dark"] .user-detail-btn-row > button[style*="background:#e2e8f0"],
+:root[data-theme="dark"] .user-detail-btn-row > button[style*="background: #e2e8f0"] {
+    background: var(--bg-card-hover) !important;
+    color: var(--text-secondary) !important;
+    border: 1px solid var(--border) !important;
+}
+:root[data-theme="dark"] .user-detail-btn-row > button[style*="background:#e2e8f0"]:hover,
+:root[data-theme="dark"] .user-detail-btn-row > button[style*="background: #e2e8f0"]:hover {
+    border-color: var(--border-hover) !important;
+    opacity: 1 !important;
+}
+
+/* ============================================================
+   DARK MODE：商城页面细节优化
+   ============================================================ */
+
+/* —— 支付状态概览：图标区4种语义底色 —— */
+:root[data-theme="dark"] .pay-status-icon-wrap.bg-primary-light { background: rgba(16,185,129,.14); color: #34d399; }
+:root[data-theme="dark"] .pay-status-icon-wrap.bg-blue-light    { background: rgba(59,130,246,.14); color: #60a5fa; }
+:root[data-theme="dark"] .pay-status-icon-wrap.bg-purple-light  { background: rgba(126,34,206,.16); color: #c084fc; }
+:root[data-theme="dark"] .pay-status-icon-wrap.bg-green-light   { background: rgba(4,120,87,.18);   color: var(--green-dark); }
+
+/* —— 状态指示点：光晕改为透明度更低的深色友好版本 —— */
+:root[data-theme="dark"] .pay-status-dot.is-on,
+:root[data-theme="dark"] .pay-status-dot.is-ready { box-shadow: 0 0 0 3px rgba(52,211,153,.22); }
+:root[data-theme="dark"] .pay-status-dot.is-warn  { box-shadow: 0 0 0 3px rgba(245,158,11,.22); }
+
+/* —— 支付状态卡片悬停边框（原 #d6e0ec 浅蓝灰） —— */
+:root[data-theme="dark"] .pay-status-item:hover { border-color: var(--border-hover); box-shadow: 0 4px 16px rgba(0,0,0,.30); }
+
+/* —— 支付卡片内虚线分隔线（.pay-section border-top dashed） —— */
+:root[data-theme="dark"] .pay-section { border-top-color: var(--border); }
+
+/* —— 商品封面占位底色（原 #f1f5f9） —— */
+:root[data-theme="dark"] .shop-cover-wrap { background: var(--bg-input); }
+
+/* —— 折叠面板展开箭头（原 #16a34a 偏暗） —— */
+:root[data-theme="dark"] .shop-collapse > summary::before { color: var(--green-dark); }
+
+/* ============================================================
+   DARK MODE：AI 配置/测试台页面细节优化
+   ============================================================ */
+
+/* —— 主开关行渐变：尾色 #fff → bg-card（防止右侧发白） —— */
+:root[data-theme="dark"] .ai-master {
+    background: linear-gradient(135deg, var(--ai-green-soft), var(--bg-card));
+}
+
+/* —— 测试台输出区：加深 inset shadow，暗底更有层次 —— */
+:root[data-theme="dark"] .ai-play-output {
+    box-shadow: inset 0 1px 4px rgba(0,0,0,.22);
+}

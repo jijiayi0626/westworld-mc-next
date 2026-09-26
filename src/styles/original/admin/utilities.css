@@ -1,0 +1,4 @@
+/* ============ UTILS ============ */
+.alert { padding: 16px; border-radius: 12px; margin: 24px 32px 0; font-weight: 500; display: flex; align-items: center; gap: 12px; }
+.alert.success { background: #ecfdf5; color: var(--green-dark); border: 1px solid #a7f3d0; }
+.alert.error { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
