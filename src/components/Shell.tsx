@@ -6,16 +6,21 @@ import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { Spinner } from "./ui";
 
-interface ShellSubItem {
-  href: string;
+interface ShellItemBase {
   label: string;
   icon?: string;
 }
 
-interface ShellItem extends ShellSubItem {
-  /** 有 children 时为分组导航（收进子菜单） */
-  children?: ShellSubItem[];
+interface ShellLinkItem extends ShellItemBase {
+  href: string;
 }
+
+interface ShellGroupItem extends ShellItemBase {
+  /** 分组导航：收进子菜单的二级项 */
+  children: { href: string; label: string; icon?: string }[];
+}
+
+type ShellItem = ShellLinkItem | ShellGroupItem;
 
 interface AdminStyle {
   sidebarCollapsed?: boolean;
@@ -159,7 +164,7 @@ function Shell({
         </div>
         <nav className="sidebar-nav">
           {items.map((it) =>
-            it.children ? (
+            "children" in it ? (
               <div key={it.label} className={`nav-group ${groups[it.label] || it.children.some((s) => isActive(s.href)) ? "open" : ""}`}>
                 <button
                   type="button"
