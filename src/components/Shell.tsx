@@ -90,7 +90,7 @@ function Shell({
         const style = JSON.parse(row.value) as AdminStyle;
         cleanup = applyAdminStyle(style);
         // 侧栏默认折叠只对桌面生效；窄屏由下方 resize 逻辑强制展开
-        if (typeof style.sidebarCollapsed === "boolean" && window.innerWidth >= 1024) {
+        if (typeof style.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
           setCollapsed(style.sidebarCollapsed);
         }
       } catch {
@@ -103,10 +103,11 @@ function Shell({
     };
   }, []);
 
-  // 窄屏（<1024px）永远不折叠：移动端走汉堡 + 全宽抽屉；只有桌面端可手动折叠
+  // 窄屏（≤768px）永远不折叠：移动端走汉堡 + 全宽抽屉；只有桌面端可手动折叠
+  // 断点与 CSS `@media (min-width:769px)` 对齐（mobile.css 的收起规则）
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth < 1024) setCollapsed(false);
+      if (window.innerWidth <= 768) setCollapsed(false);
     };
     onResize();
     window.addEventListener("resize", onResize);
@@ -114,7 +115,7 @@ function Shell({
   }, []);
 
   const toggleCollapsed = () => {
-    if (window.innerWidth < 1024) return; // 移动端不折叠
+    if (window.innerWidth <= 768) return; // 移动端不折叠
     setCollapsed((v) => !v);
   };
 
@@ -172,7 +173,7 @@ function Shell({
                   onClick={() => toggleGroup(it.label)}
                   aria-expanded={groups[it.label]}
                 >
-                  {it.icon && <span className="nav-item-icon">{it.icon}</span>}
+                  {it.icon && <span className="nav-item-icon material-icons">{it.icon}</span>}
                   <span>{it.label}</span>
                   <span className="nav-group-arrow" aria-hidden="true">▾</span>
                 </button>
@@ -183,7 +184,7 @@ function Shell({
                       href={sub.href}
                       className={`nav-subitem ${isActive(sub.href) ? "active" : ""}`}
                     >
-                      {sub.icon && <span className="nav-item-icon">{sub.icon}</span>}
+                      {sub.icon && <span className="nav-item-icon material-icons">{sub.icon}</span>}
                       <span>{sub.label}</span>
                     </Link>
                   ))}
@@ -195,7 +196,7 @@ function Shell({
                 href={it.href}
                 className={`nav-item ${isActive(it.href) ? "active" : ""}`}
               >
-                {it.icon && <span className="nav-item-icon">{it.icon}</span>}
+                {it.icon && <span className="nav-item-icon material-icons">{it.icon}</span>}
                 <span>{it.label}</span>
               </Link>
             ),
@@ -225,14 +226,14 @@ export function UserShell({ children }: { children: ReactNode }) {
   if (!user) return null;
 
   const items: ShellItem[] = [
-    { href: "/user", label: "个人中心", icon: "👤" },
-    { href: "/user/application", label: "入服申请", icon: "📝" },
-    { href: "/user/tickets", label: "我的工单", icon: "🎫" },
-    { href: "/user/ai", label: "AI 助手", icon: "🤖" },
-    { href: "/user/orders", label: "我的订单", icon: "📦" },
-    { href: "/user/notifications", label: "通知中心", icon: "🔔" },
-    { href: "/user/logs", label: "操作日志", icon: "📜" },
-    { href: "/user/security", label: "安全中心", icon: "🔒" },
+    { href: "/user", label: "个人中心", icon: "person" },
+    { href: "/user/application", label: "入服申请", icon: "edit_note" },
+    { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
+    { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
+    { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
+    { href: "/user/notifications", label: "通知中心", icon: "notifications" },
+    { href: "/user/logs", label: "操作日志", icon: "receipt_long" },
+    { href: "/user/security", label: "安全中心", icon: "lock" },
   ];
 
   return (
@@ -254,45 +255,45 @@ export function AdminShell({ children }: { children: ReactNode }) {
   if (!user || user.role !== "admin") return null;
 
   const items: ShellItem[] = [
-    { href: "/admin", label: "后台首页", icon: "🏠" },
+    { href: "/admin", label: "后台首页", icon: "home" },
     {
       label: "运营管理",
-      icon: "📊",
+      icon: "analytics",
       children: [
-        { href: "/admin/messages", label: "消息通知", icon: "💬" },
-        { href: "/admin/announcements", label: "公告管理", icon: "📢" },
-        { href: "/admin/tickets", label: "工单管理", icon: "🎫" },
-        { href: "/admin/oplogs", label: "行为日志", icon: "📜" },
-        { href: "/admin/blacklist", label: "风控分析", icon: "🛡️" },
+        { href: "/admin/messages", label: "消息通知", icon: "chat" },
+        { href: "/admin/announcements", label: "公告管理", icon: "campaign" },
+        { href: "/admin/tickets", label: "工单管理", icon: "confirmation_number" },
+        { href: "/admin/oplogs", label: "行为日志", icon: "history" },
+        { href: "/admin/blacklist", label: "风控分析", icon: "shield" },
       ],
     },
     {
       label: "用户与申请",
-      icon: "👥",
+      icon: "group",
       children: [
-        { href: "/admin/users", label: "用户管理", icon: "👤" },
-        { href: "/admin/applications", label: "入服申请", icon: "📝" },
+        { href: "/admin/users", label: "用户管理", icon: "person" },
+        { href: "/admin/applications", label: "入服申请", icon: "edit_note" },
       ],
     },
     {
       label: "商城与AI",
-      icon: "🛒",
+      icon: "shopping_cart",
       children: [
-        { href: "/admin/shop", label: "商城管理", icon: "🛍️" },
-        { href: "/admin/ai", label: "AI 管理", icon: "🤖" },
-        { href: "/admin/library", label: "图片管理", icon: "🖼️" },
+        { href: "/admin/shop", label: "商城管理", icon: "storefront" },
+        { href: "/admin/ai", label: "AI 管理", icon: "smart_toy" },
+        { href: "/admin/library", label: "图片管理", icon: "image" },
       ],
     },
     {
       label: "系统设置",
-      icon: "⚙️",
+      icon: "settings",
       children: [
-        { href: "/admin/monitor", label: "服务器监控", icon: "📈" },
-        { href: "/admin/visual", label: "可视化编辑", icon: "🎨" },
-        { href: "/admin/content", label: "内容管理", icon: "📄" },
-        { href: "/admin/settings", label: "网站设置", icon: "🌐" },
-        { href: "/admin/backend", label: "后台样式", icon: "🎛️" },
-        { href: "/admin/about", label: "关于本站", icon: "ℹ️" },
+        { href: "/admin/monitor", label: "服务器监控", icon: "monitoring" },
+        { href: "/admin/visual", label: "可视化编辑", icon: "palette" },
+        { href: "/admin/content", label: "内容管理", icon: "description" },
+        { href: "/admin/settings", label: "网站设置", icon: "language" },
+        { href: "/admin/backend", label: "后台样式", icon: "tune" },
+        { href: "/admin/about", label: "关于本站", icon: "info" },
       ],
     },
   ];
