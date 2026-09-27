@@ -38,11 +38,12 @@
   color: #0f172a;
 }
 
-/* admin.css 的 .mobile-menu-btn 默认 display:none，覆盖为隐藏（由顶栏控制） */
+/* admin.css 的 .mobile-menu-btn 基线规则是 display:none，会误伤移动顶栏自己的汉堡按钮；
+   这里必须把 mobile-topbar 内的汉堡按钮重新显示（否则移动端侧栏打不开）。 */
 @media (max-width: 768px) {
-  .admin-shell .mobile-menu-btn,
-  .user-container .mobile-menu-btn {
-    display: none;
+  .admin-shell .mobile-topbar .mobile-menu-btn,
+  .user-container .mobile-topbar .mobile-menu-btn {
+    display: inline-flex;
   }
   .mobile-topbar {
     display: flex;
@@ -151,4 +152,13 @@
   .sidebar-collapsed .user-main {
     margin-left: 64px;
   }
+}
+
+/* ============================================================
+   Material Icons 侧栏图标尺寸
+   ============================================================ */
+.nav-item-icon.material-icons {
+  font-size: 20px;
+  line-height: 1;
+  flex-shrink: 0;
 }
