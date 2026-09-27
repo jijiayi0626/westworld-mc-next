@@ -5,7 +5,7 @@
 
 /* 移动端顶栏：默认隐藏，≤768px 显示 */
 .mobile-topbar {
-  display: none;
+  display: flex;
   position: fixed;
   top: 0;
   left: 0;
@@ -38,8 +38,7 @@
   color: #0f172a;
 }
 
-/* admin.css 的 .mobile-menu-btn 基线规则是 display:none，会误伤移动顶栏自己的汉堡按钮；
-   这里必须把 mobile-topbar 内的汉堡按钮重新显示（否则移动端侧栏打不开）。 */
+/* admin.css 的 .mobile-menu-btn 基线规则是 display:none，这里把它重新显示（否则顶栏汉堡点不到）。 */
 @media (max-width: 768px) {
   .admin-shell .mobile-topbar .mobile-menu-btn,
   .user-container .mobile-topbar .mobile-menu-btn {
@@ -64,11 +63,24 @@
   }
 }
 
-/* 桌面端隐藏顶栏与移动端遮罩已由原版处理，这里兜底 */
+/* 桌面端：顶栏靠内容区（侧栏右侧），内容顶部留出顶栏高度；移动端遮罩隐藏 */
 @media (min-width: 769px) {
   .admin-shell .admin-sidebar-overlay,
   .user-container .sidebar-overlay {
     display: none !important;
+  }
+  .admin-shell .mobile-topbar,
+  .user-container .mobile-topbar {
+    left: var(--sidebar-w);
+  }
+  /* 内容区顶部给固定顶栏留位 */
+  .admin-shell > .main-content,
+  .user-container > .user-main {
+    padding-top: 56px;
+  }
+  /* 折叠时顶栏跟随收窄 */
+  .sidebar-collapsed .mobile-topbar {
+    left: 64px;
   }
 }
 

@@ -31,6 +31,7 @@ interface AdminStyle {
 /** 应用后台样式设置（主题 + 主色）到根节点 */
 function applyAdminStyle(style: AdminStyle) {
   const root = document.documentElement;
+  let removeMedia: (() => void) | undefined;
   if (style.theme) {
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const resolve = () =>
@@ -38,13 +39,18 @@ function applyAdminStyle(style: AdminStyle) {
     resolve();
     if (style.theme === "system") {
       media.addEventListener("change", resolve);
-      return () => media.removeEventListener("change", resolve);
+      removeMedia = () => media.removeEventListener("change", resolve);
     }
   }
   if (style.accent) {
     root.style.setProperty("--green", style.accent);
   }
-  return () => {};
+  // 卸载时恢复主题，避免深色泄漏到登录页/公开站（登录页是浅色设计）
+  return () => {
+    removeMedia?.();
+    root.removeAttribute("data-theme");
+    root.style.removeProperty("--green");
+  };
 }
 
 function Shell({
@@ -128,13 +134,16 @@ function Shell({
 
   return (
     <div className={`${isUser ? "user-container" : "admin-shell"} ${collapsed ? "sidebar-collapsed" : ""}`}>
-      {/* 移动端：顶栏 + 汉堡按钮 */}
+      {/* 顶栏 + 汉堡按钮（桌面端折叠侧栏 / 移动端开抽屉） */}
       <div className="mobile-topbar">
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onClick={() => {
+            if (window.innerWidth <= 768) setOpen((v) => !v);
+            else toggleCollapsed();
+          }}
           className="mobile-menu-btn"
-          aria-label="打开菜单"
+          aria-label="菜单"
         >
           <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
             <path d="M4 6h16M4 12h16M4 18h16" />
