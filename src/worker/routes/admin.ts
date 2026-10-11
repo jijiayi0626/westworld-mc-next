@@ -48,6 +48,46 @@ app.post("/integrations/microsoft", async (c) => {
   return ok({ saved: true });
 });
 
+// 行为日志（user_logs）：按类型 / 用户筛选，分页 50 条
+app.get("/action-logs", async (c) => {
+  const action = (c.req.query("action") || "").slice(0, 60);
+  const userId = Number(c.req.query("user_id")) || 0;
+  const page = Math.max(1, Number(c.req.query("page")) || 1);
+  const size = 50;
+
+  const conds: string[] = [];
+  const binds: (string | number)[] = [];
+  if (action) {
+    conds.push("l.action = ?");
+    binds.push(action);
+  }
+  if (userId) {
+    conds.push("l.user_id = ?");
+    binds.push(userId);
+  }
+  const whereSql = conds.length ? `WHERE ${conds.join(" AND ")}` : "";
+
+  const total = await c.env.DB.prepare(`SELECT COUNT(*) AS n FROM user_logs l ${whereSql}`)
+    .bind(...binds)
+    .first<{ n: number }>();
+  const { results } = await c.env.DB.prepare(
+    `SELECT l.id, l.user_id, l.action, l.detail, l.ip, l.created_at, u.username
+     FROM user_logs l LEFT JOIN users u ON u.id = l.user_id
+     ${whereSql} ORDER BY l.id DESC LIMIT ${size} OFFSET ?`,
+  )
+    .bind(...binds, (page - 1) * size)
+    .all();
+  const types = await c.env.DB.prepare("SELECT DISTINCT action FROM user_logs ORDER BY action").all<{ action: string }>();
+
+  return ok({
+    logs: results ?? [],
+    total: total?.n ?? 0,
+    page,
+    size,
+    types: (types.results ?? []).map((r) => r.action),
+  });
+});
+
 // 系统健康自检：自动发现不可用的组件并给出提示
 app.get("/health", async (c) => {
   type Item = { id: string; label: string; ok: boolean; detail: string };
