@@ -1,38 +1,44 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { useSiteContent } from "./SiteContentProvider";
 import ServerStatus from "./ServerStatus";
 
-const navItems = [
+// 顶部栏精简：常用页面直出，低频页面收进「更多」下拉（桌面）；移动端抽屉平铺全部
+// 聊天室入口已移至用户中心（/user/chat）
+const mainItems = [
   { label: "首页", href: "/" },
   { label: "配置", href: "/specs" },
   { label: "下载", href: "/help" },
-  { label: "特色", href: "/features" },
   { label: "相册", href: "/gallery" },
+];
+
+const moreItems = [
+  { label: "特色", href: "/features" },
   { label: "团队", href: "/team" },
   { label: "规则", href: "/rules" },
   { label: "FAQ", href: "/faq" },
   { label: "社区", href: "/community" },
-  { label: "聊天", href: "/chat" },
   { label: "联系", href: "/contact" },
-  { label: "关于", href: "/about" },
 ];
 
 export default function Navbar() {
   const [open, setOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const moreRef = useRef<HTMLLIElement | null>(null);
   const { user, logout } = useAuth();
   const { site } = useSiteContent();
 
-  // 路由变化时关闭抽屉
+  // 路由变化时关闭抽屉与下拉
   useEffect(() => {
     setOpen(false);
+    setMoreOpen(false);
   }, [pathname]);
 
   // 抽屉打开时锁定 body 滚动
@@ -40,6 +46,16 @@ export default function Navbar() {
     document.body.classList.toggle("nav-open", open);
     return () => document.body.classList.remove("nav-open");
   }, [open]);
+
+  // 点击外部关闭「更多」下拉
+  useEffect(() => {
+    if (!moreOpen) return;
+    const onClick = (e: MouseEvent) => {
+      if (moreRef.current && !moreRef.current.contains(e.target as Node)) setMoreOpen(false);
+    };
+    document.addEventListener("click", onClick);
+    return () => document.removeEventListener("click", onClick);
+  }, [moreOpen]);
 
   // 滚动超过 10px 时强化导航背景
   useEffect(() => {
@@ -51,6 +67,11 @@ export default function Navbar() {
 
   const isActive = (href: string) =>
     href === "/" ? pathname === "/" : pathname.startsWith(href);
+
+  const linkCls = (href: string) =>
+    `text-[0.95rem] font-semibold transition-all duration-300 relative py-[5px] ${
+      isActive(href) ? "text-white nav-link-active" : "text-white/80 hover:text-white"
+    }`;
 
   return (
     <>
@@ -101,20 +122,69 @@ export default function Navbar() {
             </button>
 
             <ul className={`nav-links ${open ? "active" : ""}`}>
-              {navItems.map((item) => (
+              {mainItems.map((item) => (
                 <li key={item.href}>
-                  <Link
-                    href={item.href}
-                    className={`text-[0.95rem] font-semibold transition-all duration-300 relative py-[5px] ${
-                      isActive(item.href)
-                        ? "text-white nav-link-active"
-                        : "text-white/80 hover:text-white"
-                    }`}
-                  >
+                  <Link href={item.href} className={linkCls(item.href)}>
                     {item.label}
                   </Link>
                 </li>
               ))}
+
+              {/* 低频页面：桌面端隐藏（收进下方「更多」），移动端抽屉平铺 */}
+              {moreItems.map((item) => (
+                <li key={item.href} className="nav-more-item">
+                  <Link href={item.href} className={linkCls(item.href)}>
+                    {item.label}
+                  </Link>
+                </li>
+              ))}
+
+              {/* 「更多」下拉：仅桌面端显示 */}
+              <li ref={moreRef} className="nav-more-toggle relative">
+                <button
+                  type="button"
+                  onClick={() => setMoreOpen((v) => !v)}
+                  aria-expanded={moreOpen}
+                  className={`text-[0.95rem] font-semibold relative py-[5px] flex items-center gap-1 cursor-pointer transition-colors duration-300 ${
+                    moreOpen || moreItems.some((i) => isActive(i.href))
+                      ? "text-white nav-link-active"
+                      : "text-white/80 hover:text-white"
+                  }`}
+                >
+                  更多
+                  <svg
+                    viewBox="0 0 24 24"
+                    width="13"
+                    height="13"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    className={`transition-transform duration-200 ${moreOpen ? "rotate-180" : ""}`}
+                  >
+                    <path d="m6 9 6 6 6-6" />
+                  </svg>
+                </button>
+                {moreOpen && (
+                  <div className="absolute right-0 top-full mt-3 w-40 rounded-[14px] overflow-hidden border border-white/12 bg-slate-900/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.45)] py-1.5">
+                    {moreItems.map((item) => (
+                      <Link
+                        key={item.href}
+                        href={item.href}
+                        className={`block px-4 py-2.5 text-[0.9rem] font-medium transition-colors ${
+                          isActive(item.href)
+                            ? "text-emerald-300 bg-emerald-400/10"
+                            : "text-white/75 hover:text-white hover:bg-white/10"
+                        }`}
+                      >
+                        {item.label}
+                      </Link>
+                    ))}
+                  </div>
+                )}
+              </li>
+
               <li className="nav-actions">
                 {!user ? (
                   <Link
