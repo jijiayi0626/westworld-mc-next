@@ -68,12 +68,18 @@ export default function ServerStatus({
       >
         <span
           className={`status-dot w-2.5 h-2.5 rounded-full ${
-            failed ? "bg-slate-400" : online ? "bg-accent-green shadow-[0_0_10px_var(--accent-green)] animate-pulse-glow" : "bg-red-500"
+            failed || !server
+              ? "bg-slate-400"
+              : online
+                ? "bg-accent-green shadow-[0_0_10px_var(--accent-green)] animate-pulse-glow"
+                : "bg-red-500"
           }`}
         />
         <span className="status-text">
           {failed ? (
             "服务器状态暂不可用"
+          ) : !server ? (
+            "正在获取服务器状态..."
           ) : online ? (
             <>
               服务器在线:{" "}
@@ -162,7 +168,7 @@ export default function ServerStatus({
               : "bg-red-500"
         }`}
       />
-      {failed ? "状态未知" : online ? `${server?.players_online ?? 0} 人在线` : "离线"}
+      {failed ? "状态未知" : !server ? "获取中..." : online ? `${server?.players_online ?? 0} 人在线` : "离线"}
     </span>
   );
 }

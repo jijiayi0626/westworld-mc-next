@@ -23,10 +23,15 @@ import { RconDO } from "./do/rcon-do";
 
 const app = new Hono<AppEnv>();
 
-// CORS（前后端同域部署时通常不需要；保留以防拆分部署）
+// CORS（默认同域部署不开启；仅当配置 CORS_ORIGINS/SITE_URL 时按白名单放行，防止任意站点携带 Cookie 跨域调用）
 app.use("/api/*", async (c, next) => {
   const origin = c.req.header("origin");
-  if (origin) {
+  const siteUrl = c.env.SITE_URL ? String(c.env.SITE_URL).replace(/\/$/, "") : "";
+  const allowList = String(c.env.CORS_ORIGINS || "")
+    .split(",")
+    .map((s) => s.trim().replace(/\/$/, ""))
+    .filter(Boolean);
+  if (origin && (allowList.includes(origin) || (siteUrl && origin === siteUrl))) {
     c.header("Access-Control-Allow-Origin", origin);
     c.header("Access-Control-Allow-Credentials", "true");
     c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
