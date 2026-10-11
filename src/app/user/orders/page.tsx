@@ -60,25 +60,10 @@ export default function OrdersPage() {
         method: "POST",
         body: JSON.stringify({ product_id: productId, qty }),
       });
-      setSuccess(`订单已创建：${data.order_no}，应付 ${data.total} ${data.currency}。联系管理员转账后点击「模拟支付」即可标记已付。`);
+      setSuccess(`订单已创建：${data.order_no}，应付 ${data.total} ${data.currency}。请按商品说明联系管理员转账，管理员确认收款后订单状态会更新为「已支付」。`);
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "下单失败");
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  const simulatePay = async (orderNo: string) => {
-    setError("");
-    setSuccess("");
-    setBusy(true);
-    try {
-      await api("/pay/verify", { method: "POST", body: JSON.stringify({ order_no: orderNo }) });
-      setSuccess("已模拟支付成功");
-      await load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "支付失败");
     } finally {
       setBusy(false);
     }
@@ -116,7 +101,7 @@ export default function OrdersPage() {
           </div>
         )}
         <p className="mt-4 text-[0.78rem] text-slate-500">
-          说明：当前支付为演示模式，下单后需联系管理员转账，再在订单列表点击「模拟支付」标记已付。接入真实支付后此提示会移除。
+          说明：下单后请联系管理员完成转账，管理员在后台确认收款后订单才会标记为「已支付」。
         </p>
       </Card>
 
@@ -151,9 +136,8 @@ export default function OrdersPage() {
                     <td className="py-3 pr-3"><StatusBadge status={o.status} /></td>
                     <td className="py-3 pr-3 whitespace-nowrap text-slate-500">{fmtTime(o.created_at)}</td>
                     <td className="py-3">
-                      {o.status === "pending" && (
-                        <Btn variant="ghost" size="sm" disabled={busy} onClick={() => simulatePay(o.order_no)}>模拟支付</Btn>
-                      )}
+                      {o.status === "pending" && <span className="text-[0.75rem] text-slate-500">待管理员确认收款</span>}
+                      {o.status === "paid" && <span className="text-[0.75rem] text-slate-500">待发货</span>}
                       {o.status === "completed" && <span className="text-[0.75rem] text-slate-500">已交付</span>}
                     </td>
                   </tr>

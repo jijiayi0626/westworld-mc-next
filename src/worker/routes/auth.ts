@@ -4,14 +4,15 @@ import { hashPassword, verifyPassword } from "../lib/password";
 import { signToken, verifyToken } from "../lib/jwt";
 import { ok, fail } from "../lib/http";
 import { isEmail, isValidUsername, isValidPassword, str } from "../lib/validate";
-import { getClientIp, getUa, uaFingerprint, genCsrfToken } from "../lib/net";
+import { getClientIp, getUa, uaFingerprint, genCsrfToken, genCode } from "../lib/net";
+import { rateLimit, isBlacklisted } from "../lib/ratelimit";
 import { logUserAction } from "../lib/log";
 import { getSecret } from "../lib/auth";
 
 const app = new Hono<AppEnv>();
 
 function authCookie(token: string, maxAge = 7 * 86400): string {
-  return `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`;
+  return `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
 }
 
 // 注册
@@ -25,6 +26,12 @@ app.post("/register", async (c) => {
   if (!isValidUsername(username)) return fail("用户名需 3-20 位（字母/数字/下划线/中文）");
   if (!isEmail(email)) return fail("邮箱格式不正确");
   if (!isValidPassword(password)) return fail("密码需 6-64 位");
+
+  const ip = getClientIp(c);
+  if (await isBlacklisted(c.env.DB, ip)) return fail("请求被拒绝", 403);
+  if (!(await rateLimit(c.env.DB, `reg:${ip}`, 5, 3600))) {
+    return fail("注册过于频繁，请一小时后再试", 429);
+  }
 
   const existing = await c.env.DB.prepare(
     "SELECT id FROM users WHERE username = ? OR email = ?",
@@ -57,6 +64,12 @@ app.post("/login", async (c) => {
   const password = str(body.password, 64);
 
   if (!account || !password) return fail("请输入账号和密码");
+
+  const ip = getClientIp(c);
+  if (await isBlacklisted(c.env.DB, ip)) return fail("请求被拒绝", 403);
+  if (!(await rateLimit(c.env.DB, `login:${ip}`, 10, 300))) {
+    return fail("尝试次数过多，请 5 分钟后再试", 429);
+  }
 
   const user = await c.env.DB.prepare(
     "SELECT id, username, email, password_hash, csrf_token, role, status FROM users WHERE username = ? OR email = ?",
@@ -111,38 +124,39 @@ app.get("/csrf", async (c) => {
   return ok({ csrf });
 });
 
-// 找回密码：发送重置码（邮件未接入时返回码供调试/日志记录）
+// 找回密码：生成重置码（永不通过 HTTP 返回明文验证码，防接管；仅写入后台日志）
 app.post("/forgot", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const email = str(body.email, 100).trim().toLowerCase();
   if (!isEmail(email)) return fail("邮箱格式不正确");
+
+  // 限流：同一邮箱 10 分钟内最多 3 次
+  if (!(await rateLimit(c.env.DB, `forgot:${email}`, 3, 600))) {
+    return fail("请求过于频繁，请稍后再试", 429);
+  }
 
   const user = await c.env.DB.prepare("SELECT id, username FROM users WHERE email = ?")
     .bind(email)
     .first<{ id: number; username: string }>();
   if (!user) return ok({ sent: true }); // 不暴露账号是否存在
 
-  const code = Math.random().toString(36).slice(2, 8).toUpperCase();
+  const code = genCode(6);
   const expires = Date.now() + 30 * 60 * 1000;
   const resetToken = await signToken(
     { sub: String(user.id), username: user.username, role: "reset" },
     getSecret(c),
   );
 
-  // 存储重置码到 site_settings（key=reset_code:{userId}），简单实现
   await c.env.DB.prepare(
     "INSERT INTO site_settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')",
   )
     .bind(`reset_code:${user.id}`, `${code}:${expires}:${resetToken}`)
     .run();
 
+  // 重置码仅记录到后台日志（用户/管理员可见），不再返回给前端，防止账号接管
   await logUserAction(c.env.DB, user.id, "forgot_password", `重置码已生成: ${code}`, getClientIp(c), getUa(c));
 
-  // TODO: 接入 SMTP 后通过邮件发送 code
-  if (c.env.SMTP_ENABLED === "true") {
-    // send email...
-  }
-  return ok({ sent: true, devCode: code });
+  return ok({ sent: true });
 });
 
 // 重置密码（凭重置码）

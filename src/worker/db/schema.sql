@@ -224,6 +224,13 @@ CREATE TABLE IF NOT EXISTS ip_blacklist (
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 
+-- 轻量限流（固定时间窗口计数；expires_at 为 UNIX 秒）
+CREATE TABLE IF NOT EXISTS rate_limits (
+  key TEXT PRIMARY KEY,
+  count INTEGER NOT NULL DEFAULT 0,
+  expires_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS op_logs (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   operator_id INTEGER,

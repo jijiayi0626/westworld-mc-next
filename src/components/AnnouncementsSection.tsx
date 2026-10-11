@@ -42,14 +42,19 @@ export default function AnnouncementsSection() {
     };
   }, []);
 
-  // Esc 关闭弹窗
+  // Esc 关闭弹窗 + 弹窗打开时锁定 body 滚动
   useEffect(() => {
     if (!active) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setActive(null);
     };
     window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prevOverflow;
+    };
   }, [active]);
 
   if (!loaded || list.length === 0) return null;
