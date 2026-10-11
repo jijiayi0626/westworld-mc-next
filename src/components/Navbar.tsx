@@ -16,8 +16,9 @@ const navItems = [
   { label: "团队", href: "/team" },
   { label: "规则", href: "/rules" },
   { label: "FAQ", href: "/faq" },
-  { label: "联系", href: "/contact" },
   { label: "社区", href: "/community" },
+  { label: "联系", href: "/contact" },
+  { label: "关于", href: "/about" },
 ];
 
 export default function Navbar() {

@@ -15,7 +15,9 @@ import aiRoutes from "./routes/ai";
 import shopRoutes from "./routes/shop";
 import payRoutes from "./routes/pay";
 import microsoftRoutes from "./routes/microsoft";
+import upopRoutes from "./routes/upop";
 import monitorRoutes from "./routes/monitor";
+import { checkAllServers } from "./routes/monitor";
 import rconRoutes from "./routes/rcon";
 import uploadRoutes from "./routes/upload";
 import assetsRoutes from "./routes/assets";
@@ -55,6 +57,7 @@ app.route("/api/ai", aiRoutes);
 app.route("/api/shop", shopRoutes);
 app.route("/api/pay", payRoutes);
 app.route("/api/microsoft", microsoftRoutes);
+app.route("/api/upop", upopRoutes);
 app.route("/api/monitor", monitorRoutes);
 app.route("/api/rcon", rconRoutes);
 app.route("/api/upload", uploadRoutes);
@@ -68,6 +71,35 @@ app.notFound((c) => c.json({ code: 404, message: "接口不存在", data: null }
 
 export default {
   fetch: app.fetch,
+  // 定时服务器巡检：cron 每 5 分钟触发一次；实际巡检间隔由
+  // site_settings.monitor_interval_minutes 控制（后台「服务器监控」可设置，默认 15 分钟），
+  // 未到期的触发直接跳过，避免无谓的外部 API 调用。
+  async scheduled(_event, env, ctx) {
+    ctx.waitUntil(
+      (async () => {
+        try {
+          const intervalRow = await env.DB.prepare(
+            "SELECT value FROM site_settings WHERE key = 'monitor_interval_minutes'",
+          ).first<{ value: string }>();
+          const minutes = Math.max(5, Math.min(1440, Number(intervalRow?.value) || 15));
+          const { results } = await env.DB.prepare("SELECT last_check FROM game_servers").all<{
+            last_check: string | null;
+          }>();
+          const now = Date.now();
+          const isStale = (row: { last_check: string | null }) => {
+            if (!row.last_check) return true;
+            const t = new Date(row.last_check.replace(" ", "T") + "Z").getTime();
+            return Number.isNaN(t) || now - t > minutes * 60_000 - 30_000;
+          };
+          if (results.some(isStale)) {
+            await checkAllServers(env.DB);
+          }
+        } catch {
+          // 定时任务失败不影响主服务，等待下一轮
+        }
+      })(),
+    );
+  },
 } satisfies ExportedHandler<AppEnv["Bindings"]>;
 
 export { RconDO };
