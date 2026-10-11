@@ -112,6 +112,12 @@
 .nav-links a {
   white-space: nowrap;
 }
+/* 导航精简：「更多」下拉仅桌面端；低频页面仅移动端抽屉显示 */
+.nav-more-toggle { display: none; }
+@media (min-width: 768px) {
+  .nav-more-toggle { display: block; }
+  .nav-links .nav-more-item { display: none; }
+}
 /* 当前页高亮：绿色下划线 */
 .nav-link-active {
   color: #fff;

@@ -43,6 +43,7 @@ const ICONS: Record<string, string[]> = {
   home: ["M3 10l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z", "M9 21v-8h6v8"],
   analytics: ["M3 3v18h18", "M7 14l4-4 3 3 5-6"],
   chat: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"],
+  forum: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z", "M8 9h8", "M8 12.5h5"],
   campaign: ["M3 11l18-5v12L3 13v-2z", "M11.6 16.8a3 3 0 1 1-5.8-1.6"],
   history: ["M3 12a9 9 0 1 0 3-6.7L3 8", "M3 3v5h5", "M12 7v5l3 3"],
   shield: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"],
@@ -123,12 +124,15 @@ function Shell({
   base,
   homeTitle,
   extra,
+  userRole,
   children,
 }: {
   items: ShellItem[];
   base: string;
   homeTitle: string;
   extra?: ReactNode;
+  /** 当前登录用户角色：admin 时顶栏显示管理后台快捷入口 */
+  userRole?: string;
   children: ReactNode;
 }) {
   const pathname = usePathname();
@@ -232,6 +236,26 @@ function Shell({
           </svg>
         </button>
         <span className="mobile-topbar-title">{homeTitle}</span>
+
+        {/* 快捷切换：返回首页 / 用户中心 / 管理后台 */}
+        <div className="topbar-quick">
+          <Link href="/" className="topbar-quick-btn" title="返回首页">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z" /><path d="M9 21v-8h6v8" /></svg>
+            <span>首页</span>
+          </Link>
+          {base !== "/user" && (
+            <Link href="/user" className="topbar-quick-btn" title="进入用户中心">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" /><circle cx="12" cy="7" r="4" /></svg>
+              <span>用户中心</span>
+            </Link>
+          )}
+          {userRole === "admin" && base !== "/admin" && (
+            <Link href="/admin" className="topbar-quick-btn" title="进入管理后台">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" /></svg>
+              <span>管理后台</span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {/* 移动端遮罩 */}
@@ -344,6 +368,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     { href: "/user", label: "个人中心", icon: "person" },
     { href: "/user/application", label: "入服申请", icon: "edit_note" },
     { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
+    { href: "/user/chat", label: "聊天室", icon: "forum" },
     { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
     { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
     { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },
@@ -351,9 +376,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     { href: "/user/security", label: "安全中心", icon: "lock" },
   ];
 
-  return (
-    <Shell items={items} base="/user" homeTitle="用户中心" children={children} />
-  );
+  return <Shell items={items} base="/user" homeTitle="用户中心" userRole={user.role} children={children} />;
 }
 
 /** 管理后台布局：未登录跳登录，非管理员跳用户中心 */
@@ -413,5 +436,5 @@ export function AdminShell({ children }: { children: ReactNode }) {
     },
   ];
 
-  return <Shell items={items} base="/admin" homeTitle="管理后台" children={children} />;
+  return <Shell items={items} base="/admin" homeTitle="管理后台" userRole="admin" children={children} />;
 }
