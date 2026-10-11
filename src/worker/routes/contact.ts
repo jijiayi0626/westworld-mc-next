@@ -3,6 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { isEmail, str } from "../lib/validate";
+import { isBlacklisted } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
 
@@ -10,6 +11,7 @@ const app = new Hono<AppEnv>();
 
 // 提交留言（公开，带简单频率限制存储）
 app.post("/submit", async (c) => {
+  if (await isBlacklisted(c.env.DB, getClientIp(c))) return fail("请求被拒绝", 403);
   const body = await c.req.json().catch(() => ({}));
   const name = str(body.name, 50).trim();
   const email = str(body.email, 100).trim();

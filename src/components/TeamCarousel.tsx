@@ -12,7 +12,7 @@ export default function TeamCarousel() {
   const { team } = useSiteContent();
   const members = team.members;
   const items = [...members, ...members];
-  const loopWidth = members.length * (CARD_W + GAP);
+  const loopWidth = Math.max(members.length * (CARD_W + GAP), 1);
   const [dragging, setDragging] = useState(false);
 
   const containerRef = useRef<HTMLDivElement>(null);

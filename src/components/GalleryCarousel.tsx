@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import ScrollFadeUp from "./ScrollFadeUp";
 import { useSiteContent } from "./SiteContentProvider";
 import { galleryLocations } from "@/lib/content";
@@ -38,6 +38,17 @@ export default function GalleryCarousel() {
 
   const safeIndex = filtered.length === 0 ? 0 : index % filtered.length;
   const current = filtered[safeIndex];
+
+  // 键盘导航（左右方向键切换）
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "ArrowLeft") go(-1);
+      else if (e.key === "ArrowRight") go(1);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtered.length, fading]);
 
   const switchLevel = (tab: "全部" | "6.0" | "7.0") => {
     if (tab === level) return;
@@ -128,20 +139,26 @@ export default function GalleryCarousel() {
         </ScrollFadeUp>
 
         <div className="gallery-carousel-container max-w-[1000px] mx-auto mt-4 relative">
+          {filtered.length === 0 ? (
+            <div className="w-full aspect-video rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center text-white/60 text-[1rem]">
+              暂无该分类下的截图
+            </div>
+          ) : (
           <div className="gallery-carousel-wrapper w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative border border-white/10">
             <img
               src={current.src}
-              alt="Gallery Display"
+              alt={current.desc || "游戏截图"}
               decoding="async"
               className={`gallery-active-image w-full h-full object-cover transition-opacity duration-300 ${
                 fading ? "opacity-0" : "opacity-100"
               }`}
             />
           </div>
+          )}
 
           <div className="gallery-controls flex justify-between items-center mt-5 px-2.5">
             <div className="gallery-text-content text-white/90 text-[1rem] max-w-[70%] leading-relaxed text-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
-              <p>{current.desc}</p>
+              <p>{current ? current.desc : ""}{filtered.length > 0 ? `（${safeIndex + 1}/${filtered.length}）` : ""}</p>
             </div>
             <div className="gallery-nav-buttons flex gap-4">
               <button

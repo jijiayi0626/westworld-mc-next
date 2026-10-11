@@ -3,6 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { isValidPlayerName, str } from "../lib/validate";
+import { isBlacklisted } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
 import { getSecret } from "../lib/auth";
@@ -53,6 +54,7 @@ app.use("/submit", requireAuth);
 
 // 提交入服申请
 app.post("/submit", async (c) => {
+  if (await isBlacklisted(c.env.DB, getClientIp(c))) return fail("请求被拒绝", 403);
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const mcName = str(body.mc_name, 16).trim();
