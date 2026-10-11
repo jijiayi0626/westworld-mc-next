@@ -20,19 +20,21 @@ export default function AdminLibraryPage() {
   const [uploading, setUploading] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [copied, setCopied] = useState("");
+  const [tab, setTab] = useState<"mine" | "system">("mine");
   const fileRef = useRef<HTMLInputElement>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (which: "mine" | "system" = "mine") => {
     try {
-      setItems(await api<LibItem[]>("/upload/admin/library"));
+      setItems(null);
+      setItems(await api<LibItem[]>(`/upload/admin/library?tab=${which}`));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     }
   }, []);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    void load(tab);
+  }, [load, tab]);
 
   const upload = async (file: File) => {
     setError("");
@@ -44,7 +46,7 @@ export default function AdminLibraryPage() {
       await api<{ url: string }>("/upload/image", { method: "POST", body: fd });
       setSuccess("图片已上传");
       if (fileRef.current) fileRef.current.value = "";
-      await load();
+      await load("mine");
     } catch (e) {
       setError(e instanceof Error ? e.message : "上传失败");
     } finally {
@@ -53,7 +55,15 @@ export default function AdminLibraryPage() {
   };
 
   const remove = async (key: string) => {
-    if (!confirm("确定删除这张图片？此操作不可撤销。")) return;
+    const isSystem = key.startsWith("assets/");
+    if (
+      !confirm(
+        isSystem
+          ? "这是系统默认图片，删除后引用它的页面将显示不出来（重新部署可恢复）。确定删除？"
+          : "确定删除这张图片？此操作不可撤销。",
+      )
+    )
+      return;
     setError("");
     setSuccess("");
     try {
@@ -99,8 +109,23 @@ export default function AdminLibraryPage() {
           </label>
         </div>
 
-        {/* 检索区 */}
+        {/* 分类 Tab + 检索区 */}
         <div className="bg-white border border-slate-200 rounded-[14px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex flex-wrap items-center gap-2 mb-3">
+            {([
+              { key: "mine", label: "我上传的图片" },
+              { key: "system", label: "系统默认图片" },
+            ] as const).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setTab(t.key)}
+                className={`px-4 py-1.5 rounded-full text-[0.85rem] font-medium transition-colors cursor-pointer ${tab === t.key ? "bg-[#10b981] text-white" : "bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"}`}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
           <input
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}

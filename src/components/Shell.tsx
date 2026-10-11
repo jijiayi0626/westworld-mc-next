@@ -13,6 +13,8 @@ interface ShellItemBase {
 
 interface ShellLinkItem extends ShellItemBase {
   href: string;
+  /** 导航徽标数字（如未读通知数） */
+  badge?: number;
 }
 
 interface ShellGroupItem extends ShellItemBase {
@@ -102,6 +104,20 @@ function applyAdminStyle(style: AdminStyle) {
   };
 }
 
+/** 站点 Logo 标记：展开/折叠态均显示，折叠后作为侧栏唯一标识 */
+function LogoMark() {
+  return (
+    <svg className="sidebar-logo-mark" viewBox="0 0 24 24" width="26" height="26" aria-hidden="true">
+      {/* Minecraft 草方块风格 logo */}
+      <rect x="3" y="3" width="18" height="18" rx="3.5" fill="var(--sb-accent, #10b981)" />
+      <rect x="3" y="3" width="18" height="6.5" rx="3.5" fill="#34d399" />
+      <rect x="6.5" y="12.5" width="3.5" height="3.5" rx="0.8" fill="rgba(255,255,255,0.85)" />
+      <rect x="12" y="12.5" width="3.5" height="3.5" rx="0.8" fill="rgba(255,255,255,0.55)" />
+      <rect x="9" y="17" width="3.5" height="3.5" rx="0.8" fill="rgba(255,255,255,0.35)" />
+    </svg>
+  );
+}
+
 function Shell({
   items,
   base,
@@ -132,17 +148,34 @@ function Shell({
   }, [open]);
 
   // 读取后台样式设置（admin 会话可读，其它场景忽略）：主题/主色/侧栏默认折叠
+  // 先应用 localStorage 缓存（同步、无闪烁），再用最新值覆盖并写回缓存
   useEffect(() => {
     let cancelled = false;
     let cleanup: (() => void) | undefined;
     (async () => {
       try {
+        let style: AdminStyle | undefined;
+        const cached = localStorage.getItem("admin_style_v1");
+        if (cached) {
+          try {
+            style = JSON.parse(cached) as AdminStyle;
+          } catch {
+            /* 缓存损坏，忽略 */
+          }
+        }
         const res = await fetch("/api/admin/settings");
         const body = (await res.json()) as { code: number; data?: { key: string; value: string }[] };
         if (cancelled || body.code !== 0 || !Array.isArray(body.data)) return;
         const row = body.data.find((s) => s.key === "admin_style");
-        if (!row?.value) return;
-        const style = JSON.parse(row.value) as AdminStyle;
+        if (row?.value) {
+          try {
+            style = JSON.parse(row.value) as AdminStyle;
+            localStorage.setItem("admin_style_v1", row.value);
+          } catch {
+            /* 忽略非法配置 */
+          }
+        }
+        if (!style) return;
         cleanup = applyAdminStyle(style);
         // 侧栏默认折叠只对桌面生效；窄屏由下方 resize 逻辑强制展开
         if (typeof style.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
@@ -208,6 +241,7 @@ function Shell({
       <aside className={`${isUser ? "user-sidebar" : "sidebar"} ${collapsed ? "collapsed" : ""} ${open ? (isUser ? "open" : "active") : ""}`} id="sidebar">
         <div className="sidebar-header">
           <div className="sidebar-logo">
+            <LogoMark />
             <span className="sidebar-title">{homeTitle}</span>
           </div>
           <button
@@ -256,6 +290,7 @@ function Shell({
               >
                 {it.icon && <NavIcon name={it.icon} />}
                 <span>{it.label}</span>
+                {it.badge != null && it.badge > 0 && <span className="nav-item-badge">{it.badge > 99 ? "99+" : it.badge}</span>}
               </Link>
             ),
           )}
@@ -275,10 +310,32 @@ function Shell({
 export function UserShell({ children }: { children: ReactNode }) {
   const router = useRouter();
   const { user, loading } = useAuth();
+  const [unread, setUnread] = useState(0);
 
   useEffect(() => {
     if (!loading && !user) router.replace("/login");
   }, [loading, user, router]);
+
+  // 通知中心未读数（导航徽标）
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await fetch("/api/user/notifications", { credentials: "include" });
+        const body = (await list.json()) as {
+          code: number;
+          data?: { is_read: number | boolean }[];
+        };
+        if (cancelled || body.code !== 0 || !Array.isArray(body.data)) return;
+        setUnread(body.data.filter((n) => !n.is_read).length);
+      } catch {
+        /* 忽略 */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   if (loading) return <div className="user-page" style={{ padding: 40, textAlign: "center" }}><Spinner text="加载登录状态..." /></div>;
   if (!user) return null;
@@ -289,7 +346,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
     { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
     { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
-    { href: "/user/notifications", label: "通知中心", icon: "notifications" },
+    { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },
     { href: "/user/logs", label: "操作日志", icon: "receipt_long" },
     { href: "/user/security", label: "安全中心", icon: "lock" },
   ];

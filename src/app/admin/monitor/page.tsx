@@ -34,6 +34,32 @@ export default function AdminMonitorPage() {
   const [cmd, setCmd] = useState("");
   const [cmdOutput, setCmdOutput] = useState("");
 
+  // 自动巡检间隔（分钟；Cloudflare Cron 每 5 分钟触发，到期才真正巡检）
+  const [interval, setIntervalMin] = useState("15");
+  const [intervalLoaded, setIntervalLoaded] = useState(false);
+
+  useEffect(() => {
+    api<{ key: string; value: string }[]>("/admin/settings")
+      .then((rows) => {
+        const row = rows.find((s) => s.key === "monitor_interval_minutes");
+        if (row) setIntervalMin(row.value);
+        setIntervalLoaded(true);
+      })
+      .catch(() => setIntervalLoaded(true));
+  }, []);
+
+  const saveInterval = async () => {
+    const v = Math.max(5, Math.min(1440, Number(interval) || 15));
+    setIntervalMin(String(v));
+    setSuccess("");
+    try {
+      await api("/admin/settings", { method: "POST", body: JSON.stringify({ key: "monitor_interval_minutes", value: String(v) }) });
+      setSuccess(`自动巡检间隔已保存：每 ${v} 分钟自动探测一次`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    }
+  };
+
   const load = useCallback(async () => {
     try {
       setServers(await api<ServerStatus[]>("/monitor/status"));
@@ -104,6 +130,28 @@ export default function AdminMonitorPage() {
 
       <ErrorNote message={error} />
       <SuccessNote message={success} />
+
+      {/* 自动巡检设置 */}
+      <Card>
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">自动巡检</h3>
+        <p className="text-[0.8rem] text-slate-400 mb-3">系统每 5 分钟检查一次是否到期，到期后自动探测全部服务器并更新状态（默认每 15 分钟）。</p>
+        <div className="flex flex-wrap items-end gap-3">
+          <Field label="巡检间隔（分钟）">
+            <Select value={interval} onChange={(e) => setIntervalMin(e.target.value)} className="w-[140px]">
+              <option value="5">每 5 分钟</option>
+              <option value="10">每 10 分钟</option>
+              <option value="15">每 15 分钟</option>
+              <option value="30">每 30 分钟</option>
+              <option value="60">每 1 小时</option>
+              <option value="120">每 2 小时</option>
+              <option value="360">每 6 小时</option>
+              <option value="720">每 12 小时</option>
+              <option value="1440">每 24 小时</option>
+            </Select>
+          </Field>
+          <Btn onClick={saveInterval} disabled={!intervalLoaded}>保存间隔</Btn>
+        </div>
+      </Card>
 
       <div className="flex flex-col gap-4 mb-5">
         {servers === null ? (

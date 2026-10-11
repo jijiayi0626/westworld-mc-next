@@ -31,6 +31,31 @@ async function probeServer(
   }
 }
 
+/** 巡检所有服务器（写回 game_servers）。供管理端「立即巡检」与定时任务（scheduled）复用 */
+export async function checkAllServers(db: D1Database): Promise<number> {
+  const { results } = await db
+    .prepare("SELECT id, server_name, host, port FROM game_servers ORDER BY id ASC")
+    .all();
+  const servers = results as { id: number; server_name: string; host: string; port: number }[];
+
+  for (const s of servers) {
+    const probed = await probeServer(s.host, s.port);
+    const status = probed?.status ?? "offline";
+    const playersOnline = probed?.players_online ?? 0;
+    const maxPlayers = probed?.max_players ?? 0;
+    const version = probed?.version ?? "";
+    await db
+      .prepare(
+        `UPDATE game_servers
+         SET status = ?, players_online = ?, max_players = ?, version = ?, last_check = datetime('now')
+         WHERE id = ?`,
+      )
+      .bind(status, playersOnline, maxPlayers, version, s.id)
+      .run();
+  }
+  return servers.length;
+}
+
 // 服务器状态查询（公开只读）
 // 若 last_check 超过 2 分钟则同步重新探测一次，保证 Hero/导航显示真实在线人数；
 // 探测失败时回退库内旧值。
@@ -98,45 +123,8 @@ app.post("/admin/update", async (c) => {
 
 // 触发一次巡检（通过 mcsrvstat 公开 API 真实探测各服务器）
 app.post("/admin/check", async (c) => {
-  const { results } = await c.env.DB.prepare(
-    "SELECT id, server_name, host, port FROM game_servers ORDER BY id ASC",
-  ).all();
-  const servers = results as { id: number; server_name: string; host: string; port: number }[];
-
-  for (const s of servers) {
-    let status = "offline";
-    let playersOnline = 0;
-    let maxPlayers = 0;
-    let version = "";
-    try {
-      // address 不带端口时用默认 25565；显式端口保持原样
-      const withoutPort = s.port === 25565 ? s.host : `${s.host}:${s.port}`;
-      const resp = await fetch(`https://api.mcsrvstat.us/3/${encodeURIComponent(withoutPort)}`);
-      if (resp.ok) {
-        const data = (await resp.json()) as {
-          online?: boolean;
-          players?: { online?: number; max?: number };
-          version?: string;
-        };
-        if (data.online) {
-          status = "online";
-          playersOnline = data.players?.online ?? 0;
-          maxPlayers = data.players?.max ?? 0;
-          version = data.version ?? "";
-        }
-      }
-    } catch {
-      // 探测失败按离线处理
-    }
-    await c.env.DB.prepare(
-      `UPDATE game_servers
-       SET status = ?, players_online = ?, max_players = ?, version = ?, last_check = datetime('now')
-       WHERE id = ?`,
-    )
-      .bind(status, playersOnline, maxPlayers, version.slice(0, 50), s.id)
-      .run();
-  }
-  return ok({ checked: true, total: servers.length });
+  const total = await checkAllServers(c.env.DB);
+  return ok({ checked: true, total });
 });
 
 export default app;

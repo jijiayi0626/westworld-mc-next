@@ -12,6 +12,16 @@ interface Usage {
   last_used: string | null;
 }
 
+interface AiProvider {
+  id: string;
+  name: string;
+  base_url: string;
+  model: string;
+  api_key: string;
+}
+
+const emptyProvider = (): AiProvider => ({ id: "", name: "", base_url: "https://api.openai.com/v1", model: "gpt-4o-mini", api_key: "" });
+
 export default function AdminAiPage() {
   const [list, setList] = useState<Usage[] | null>(null);
   const [error, setError] = useState("");
@@ -23,11 +33,24 @@ export default function AdminAiPage() {
   const [newKey, setNewKey] = useState("");
   const [clearKey, setClearKey] = useState(false);
 
+  // 接口模板（多供应商一键切换）
+  const [providers, setProviders] = useState<AiProvider[] | null>(null);
+  const [activeId, setActiveId] = useState("");
+  const [editing, setEditing] = useState<AiProvider | null>(null);
+  const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }>>({});
+  const [provBusy, setProvBusy] = useState("");
+
   useEffect(() => {
     api<Usage[]>("/ai/admin/usage").then(setList).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
     api<{ enabled: boolean; api_key: string; base_url: string; model: string; daily_limit: number }>("/ai/admin/config")
       .then(setCfg)
       .catch(() => {});
+    api<{ providers: AiProvider[]; active_id: string }>("/ai/admin/providers")
+      .then((d) => {
+        setProviders(d.providers);
+        setActiveId(d.active_id);
+      })
+      .catch(() => setProviders([]));
   }, []);
 
   const saveConfig = async () => {
@@ -59,6 +82,54 @@ export default function AdminAiPage() {
   };
 
   const total = (list ?? []).reduce((a, u) => a + u.total_usage, 0);
+
+  // —— 接口模板操作 ——
+  const saveProviders = async (next: AiProvider[]) => {
+    setError("");
+    setSuccess("");
+    setProvBusy("save");
+    try {
+      const d = await api<{ providers: AiProvider[] }>("/ai/admin/providers/save", {
+        method: "POST",
+        body: JSON.stringify({ providers: next }),
+      });
+      setProviders(d.providers);
+      setEditing(null);
+      setSuccess("接口模板已保存");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setProvBusy("");
+    }
+  };
+
+  const activateProvider = async (id: string) => {
+    setProvBusy(id);
+    try {
+      await api("/ai/admin/providers/activate", { method: "POST", body: JSON.stringify({ id }) });
+      setActiveId(id);
+      setSuccess("已切换当前使用的 AI 接口");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "切换失败");
+    } finally {
+      setProvBusy("");
+    }
+  };
+
+  const testProvider = async (id: string) => {
+    setProvBusy(id);
+    try {
+      const d = await api<{ ok?: boolean; message: string }>("/ai/admin/providers/test", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      });
+      setTestResult((r) => ({ ...r, [id]: { ok: !!d.ok, message: d.message } }));
+    } catch (e) {
+      setTestResult((r) => ({ ...r, [id]: { ok: false, message: e instanceof Error ? e.message : "测试失败" } }));
+    } finally {
+      setProvBusy("");
+    }
+  };
 
   return (
     <AdminShell>
@@ -127,6 +198,102 @@ export default function AdminAiPage() {
                 <button type="button" onClick={saveConfig} disabled={busy} className="px-5 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.9rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50">{busy ? "保存中..." : "保存 AI 设置"}</button>
                 {success && <span className="text-emerald-600 text-[0.85rem]">{success}</span>}
               </div>
+            </div>
+          )}
+        </div>
+
+        {/* 接口模板：多供应商一键切换 */}
+        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">
+          <div className="flex items-center justify-between gap-3 mb-4">
+            <div>
+              <h3 className="text-[1.05rem] font-bold text-slate-800">接口模板</h3>
+              <p className="text-[0.8rem] text-slate-400 mt-0.5">可添加多个 AI 供应商模板，一键切换当前使用的接口；某个不可用时切换另一个即可。</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setEditing({ ...emptyProvider(), id: crypto.randomUUID() })}
+              className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors whitespace-nowrap cursor-pointer"
+            >
+              + 新增模板
+            </button>
+          </div>
+
+          {editing && (
+            <div className="border border-emerald-200 bg-emerald-50/50 rounded-[12px] p-4 mb-4 flex flex-col gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-600 text-[0.82rem] font-medium">模板名称</label>
+                  <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="如：OpenAI 主力" />
+                </div>
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-slate-600 text-[0.82rem] font-medium">API 端点 Base URL</label>
+                  <input value={editing.base_url} onChange={(e) => setEditing({ ...editing, base_url: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="https://api.openai.com/v1" />
+                </div>
+                <div className="flex flex-col gap-1.5">
+                  <label className="text-slate-600 text-[0.82rem] font-medium">模型</label>
+                  <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="gpt-4o-mini" />
+                </div>
+                <div className="flex flex-col gap-1.5 md:col-span-2">
+                  <label className="text-slate-600 text-[0.82rem] font-medium">API 密钥 {editing.api_key && <span className="text-emerald-600 text-[0.78rem]">（已保存，留空不改）</span>}</label>
+                  <input type="password" value={editing.api_key} onChange={(e) => setEditing({ ...editing, api_key: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="sk-..." autoComplete="new-password" />
+                </div>
+              </div>
+              <div className="flex items-center gap-2.5">
+                <button
+                  type="button"
+                  disabled={provBusy === "save" || !editing.name.trim()}
+                  onClick={() => {
+                    const list = providers ?? [];
+                    const exists = list.some((p) => p.id === editing.id);
+                    void saveProviders(exists ? list.map((p) => (p.id === editing.id ? editing : p)) : [...list, editing]);
+                  }}
+                  className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50 cursor-pointer"
+                >
+                  {provBusy === "save" ? "保存中..." : "保存模板"}
+                </button>
+                <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-[10px] bg-white border border-slate-200 text-slate-600 text-[0.85rem] hover:bg-slate-50 cursor-pointer">取消</button>
+              </div>
+            </div>
+          )}
+
+          {providers === null ? (
+            <p className="text-slate-400 text-sm">加载模板中...</p>
+          ) : providers.length === 0 ? (
+            <p className="text-slate-400 text-sm">暂无模板。添加后无需再改代码即可切换 AI 供应商；不添加时使用下方「AI 配置」中的全局端点。</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {providers.map((p) => {
+                const isActive = activeId === p.id;
+                const tr = testResult[p.id];
+                return (
+                  <div key={p.id} className={`border rounded-[12px] p-4 ${isActive ? "border-[#10b981] bg-[#f0fdf4]" : "border-slate-200 bg-white"}`}>
+                    <div className="flex flex-wrap items-center gap-2.5">
+                      <span className="font-semibold text-slate-800 text-[0.95rem]">{p.name}</span>
+                      {isActive && <span className="px-2 py-0.5 rounded-full bg-[#10b981] text-white text-[0.7rem] font-medium">使用中</span>}
+                      <span className="text-[0.78rem] text-slate-400 font-mono truncate max-w-[320px]">{p.base_url} · {p.model}</span>
+                      <div className="ml-auto flex items-center gap-2">
+                        {!isActive && (
+                          <button type="button" disabled={provBusy === p.id} onClick={() => void activateProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-[#10b981] text-white text-[0.8rem] font-medium hover:bg-[#059669] disabled:opacity-50 cursor-pointer">一键启用</button>
+                        )}
+                        <button type="button" disabled={provBusy === p.id} onClick={() => void testProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer">{provBusy === p.id ? "测试中..." : "测试连通"}</button>
+                        <button type="button" onClick={() => setEditing({ ...p, api_key: p.api_key })} className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 cursor-pointer">编辑</button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (confirm(`确定删除模板「${p.name}」？`)) void saveProviders((providers ?? []).filter((x) => x.id !== p.id));
+                          }}
+                          className="px-3 py-1.5 rounded-[8px] bg-red-50 border border-red-200 text-red-600 text-[0.8rem] hover:bg-red-100 cursor-pointer"
+                        >
+                          删除
+                        </button>
+                      </div>
+                    </div>
+                    {tr && (
+                      <p className={`mt-2.5 text-[0.8rem] ${tr.ok ? "text-emerald-600" : "text-red-500"}`}>{tr.ok ? "✓ " : "✗ "}{tr.message}</p>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           )}
         </div>

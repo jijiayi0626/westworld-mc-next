@@ -27,8 +27,8 @@ interface UserStats {
 }
 
 export default function AdminUsersPage() {
-  const [list, setList] = useState<AdminUser[] | null>(null);
   const { user: me } = useAuth();
+  const [list, setList] = useState<AdminUser[] | null>(null);
   const [stats, setStats] = useState<UserStats | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(0);
@@ -186,16 +186,18 @@ export default function AdminUsersPage() {
                       <td className="py-3 px-4 text-slate-500">{fmtTime(u.created_at)}</td>
                       <td className="py-3 px-4">
                         <div className="flex flex-wrap items-center gap-2">
-                          {u.status === "banned" ? (
+                          {me?.id === u.id ? (
+                            <span className="text-[0.78rem] text-slate-400">当前登录账号</span>
+                          ) : u.status === "banned" ? (
                             <Btn size="sm" variant="ghost" disabled={busyId === u.id} onClick={() => change(u.id, { status: "active" })}>解封</Btn>
                           ) : (
                             <Btn size="sm" variant="danger" disabled={busyId === u.id} onClick={() => change(u.id, { status: "banned" })}>封禁</Btn>
                           )}
-                          {u.role === "admin" ? (
+                          {me?.id !== u.id && (u.role === "admin" ? (
                             <Btn size="sm" variant="ghost" disabled={busyId === u.id} onClick={() => change(u.id, { role: "user" })}>取消管理员</Btn>
                           ) : (
                             <Btn size="sm" variant="ghost" disabled={busyId === u.id} onClick={() => change(u.id, { role: "admin" })}>设为管理员</Btn>
-                          )}
+                          ))}
                           {u.id !== me?.id && u.role !== "admin" && (
                             <Btn size="sm" variant="ghost" disabled={busyId === u.id} onClick={() => { setResetTarget(u); setResetPwd(""); }}>重置密码</Btn>
                           )}

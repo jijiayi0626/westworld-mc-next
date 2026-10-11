@@ -10,6 +10,46 @@ interface Setting {
   value: string;
 }
 
+interface Integrations {
+  microsoft: {
+    enabled: boolean;
+    client_id_set: boolean;
+    client_secret_set: boolean;
+    callback_url: string;
+  };
+  upop: {
+    enabled: boolean;
+    client_id: string;
+    client_secret_set: boolean;
+    authorize_url: string;
+    token_url: string;
+    userinfo_url: string;
+    scope: string;
+    callback_url: string;
+  };
+}
+
+const UPOP_FIELDS: { key: string; label: string; hint?: string }[] = [
+  { key: "upop_enabled", label: "启用 UPOP 绑定", hint: "true / false" },
+  { key: "upop_client_id", label: "Client ID" },
+  { key: "upop_client_secret", label: "Client Secret" },
+  { key: "upop_authorize_url", label: "授权端点", hint: "https://.../oauth2/authorize" },
+  { key: "upop_token_url", label: "令牌端点", hint: "https://.../oauth2/token" },
+  { key: "upop_userinfo_url", label: "用户信息端点", hint: "https://.../oauth2/userinfo" },
+  { key: "upop_scope", label: "授权 Scope", hint: "默认 openid profile" },
+  { key: "upop_user_id_field", label: "用户 ID 字段", hint: "userinfo 中的唯一 ID 字段，默认 id" },
+  { key: "upop_username_field", label: "用户名字段", hint: "默认 username" },
+];
+
+function StatusDot({ ok: good, label }: { ok: boolean; label: string }) {
+  return (
+    <span className="inline-flex items-center gap-1.5 text-[0.85rem]">
+      <span className={`w-2 h-2 rounded-full ${good ? "bg-emerald-500" : "bg-slate-300"}`} />
+      <span className={good ? "text-slate-800" : "text-slate-400"}>{label}</span>
+    </span>
+  );
+}
+
 export default function AdminSettingsPage() {
   const [list, setList] = useState<Setting[] | null>(null);
   const [error, setError] = useState("");
@@ -20,11 +60,26 @@ export default function AdminSettingsPage() {
   const [value, setValue] = useState("");
   const [editingKey, setEditingKey] = useState<string | null>(null);
 
+  const [integrations, setIntegrations] = useState<Integrations | null>(null);
+  const [upopForm, setUpopForm] = useState<Record<string, string>>({});
+  const [upopBusy, setUpopBusy] = useState(false);
+
   const load = useCallback(async () => {
     try {
       setList(await api<Setting[]>("/admin/settings"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
+    }
+    try {
+      const data = await api<Integrations>("/admin/integrations");
+      setIntegrations(data);
+      setUpopForm((prev) => ({
+        ...prev,
+        upop_enabled: data.upop.enabled ? "true" : "false",
+        upop_scope: data.upop.scope || "openid profile",
+      }));
+    } catch {
+      /* 接口预留状态加载失败不阻塞页面 */
     }
   }, []);
 
@@ -58,6 +113,26 @@ export default function AdminSettingsPage() {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveUpop = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    const entries = Object.entries(upopForm).filter(([, v]) => v !== "" && v !== undefined);
+    if (entries.length === 0) return;
+    setUpopBusy(true);
+    try {
+      for (const [k, v] of entries) {
+        await api("/admin/settings", { method: "POST", body: JSON.stringify({ key: k, value: v }) });
+      }
+      setSuccess("UPOP 配置已保存");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "UPOP 配置保存失败");
+    } finally {
+      setUpopBusy(false);
     }
   };
 
@@ -105,6 +180,72 @@ export default function AdminSettingsPage() {
             ))}
           </div>
         )}
+      </Card>
+
+      {/* 三方接口预留：微软 OAuth / UPOP */}
+      <Card className="mb-5">
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">三方接口预留</h3>
+        <p className="text-[0.82rem] text-slate-500 mb-4">微软 OAuth 与 UPOP 统一认证的绑定接口已预留完成，配置好凭据即可启用。</p>
+        {integrations === null ? (
+          <Empty text="加载中..." />
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+            {/* 微软 OAuth */}
+            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2">
+              <div className="font-semibold text-slate-800 flex items-center gap-2">
+                <StatusDot ok={integrations.microsoft.enabled} label="微软 OAuth" />
+              </div>
+              <StatusDot ok={integrations.microsoft.client_id_set} label="MICROSOFT_CLIENT_ID 已配置" />
+              <StatusDot ok={integrations.microsoft.client_secret_set} label="MICROSOFT_CLIENT_SECRET 已配置" />
+              <div className="text-[0.8rem] text-slate-500 mt-1">
+                回调地址（填入微软应用注册）：
+                <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
+                  {integrations.microsoft.callback_url}
+                </code>
+              </div>
+              <p className="text-[0.78rem] text-slate-400">
+                凭据通过 Wrangler Secrets 配置：<code className="font-mono">MICROSOFT_CLIENT_ID</code> /{" "}
+                <code className="font-mono">MICROSOFT_CLIENT_SECRET</code>，开关由环境变量{" "}
+                <code className="font-mono">MICROSOFT_OAUTH_ENABLED</code> 控制。
+              </p>
+            </div>
+
+            {/* UPOP */}
+            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2">
+              <div className="font-semibold text-slate-800 flex items-center gap-2">
+                <StatusDot ok={integrations.upop.enabled} label="UPOP 统一认证" />
+              </div>
+              <div className="text-[0.8rem] text-slate-500">
+                回调地址：
+                <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
+                  {integrations.upop.callback_url}
+                </code>
+              </div>
+              <p className="text-[0.78rem] text-slate-400">
+                下方配置保存到站点设置中，即时生效、无需重新部署。全部填好后将「启用」设为 true。
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* UPOP 快速配置 */}
+        <form onSubmit={saveUpop} className="mt-5 pt-4 border-t border-slate-100">
+          <h4 className="font-semibold text-slate-800 mb-3 text-[0.95rem]">UPOP 快速配置</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {UPOP_FIELDS.map((f) => (
+              <Field key={f.key} label={f.label} hint={f.hint}>
+                <Input
+                  value={upopForm[f.key] ?? ""}
+                  onChange={(e) => setUpopForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                  placeholder={f.key}
+                />
+              </Field>
+            ))}
+          </div>
+          <div className="mt-4">
+            <Btn type="submit" disabled={upopBusy}>{upopBusy ? "保存中..." : "保存 UPOP 配置"}</Btn>
+          </div>
+        </form>
       </Card>
 
         {/* 高级设置说明（图24） */}
