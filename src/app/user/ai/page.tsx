@@ -152,8 +152,15 @@ export default function AiPage() {
           <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3">
             {error && <div className="px-3 py-2 text-[0.82rem] text-red-300 bg-red-500/10 border border-red-500/25 rounded-[8px]">{error}</div>}
             {!messages || messages.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center gap-2">
-                <div className="text-3xl">🤖</div>
+              <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
+                <div className="w-16 h-16 rounded-[18px] bg-accent-emerald/10 border border-accent-emerald/25 flex items-center justify-center text-accent-emerald">
+                  <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 2a4 4 0 0 1 4 4h1a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h1a4 4 0 0 1 4-4z" />
+                    <path d="M9 12v.01" />
+                    <path d="M15 12v.01" />
+                    <path d="M9.5 16h5" />
+                  </svg>
+                </div>
                 <p className="text-slate-500 text-[0.9rem] max-w-[320px]">
                   你好！我是西域之光 AI 助手。可以问我服务器玩法、如何入服、地址版本等问题。
                 </p>

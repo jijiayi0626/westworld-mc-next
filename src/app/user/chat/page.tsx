@@ -17,6 +17,13 @@ interface ChatMessage {
   created_at: string;
 }
 
+interface ChatLimits {
+  enabled: boolean;
+  welcome: string;
+  max_text: number;
+  max_image_mb: number;
+}
+
 const POLL_MS = 4000;
 
 function fmtTime(s: string): string {
@@ -34,6 +41,7 @@ export default function UserChatPage() {
   const [sending, setSending] = useState(false);
   const [attached, setAttached] = useState<File | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [limits, setLimits] = useState<ChatLimits | null>(null);
 
   const lastIdRef = useRef(0);
   const listRef = useRef<HTMLDivElement | null>(null);
@@ -71,6 +79,12 @@ export default function UserChatPage() {
   useEffect(() => {
     let stop = false;
     (async () => {
+      try {
+        const cfg = await api<ChatLimits>("/chat/limits");
+        if (!stop) setLimits(cfg);
+      } catch {
+        /* 配置加载失败用默认行为 */
+      }
       try {
         const data = await api<{ messages: ChatMessage[]; online: number }>("/chat/messages");
         if (stop) return;
@@ -137,8 +151,9 @@ export default function UserChatPage() {
   const pickFile = (f: File | null) => {
     setError("");
     if (!f) return;
-    if (f.size > 4 * 1024 * 1024) {
-      setError("图片需小于 4MB");
+    const maxMb = limits?.max_image_mb ?? 4;
+    if (f.size > maxMb * 1024 * 1024) {
+      setError(`图片需小于 ${maxMb}MB`);
       return;
     }
     if (!["image/png", "image/jpeg", "image/webp", "image/gif"].includes(f.type)) {
@@ -163,11 +178,33 @@ export default function UserChatPage() {
 
         <ErrorNote message={error} />
 
+        {/* 欢迎公告 */}
+        {limits?.welcome && (
+          <div className="mb-3 px-4 py-2.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem] flex items-start gap-2">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0" aria-hidden="true">
+              <path d="M3 11 21 4v16L3 13v-2z" />
+              <path d="M7 13v5a2 2 0 0 0 4 0v-3" />
+            </svg>
+            <span>{limits.welcome}</span>
+          </div>
+        )}
+
+        {/* 已关闭提示 */}
+        {limits && !limits.enabled && (
+          <div className="mb-3 px-4 py-2.5 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.85rem] flex items-center gap-2">
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
+              <circle cx="12" cy="12" r="9" />
+              <path d="M5.7 5.7l12.6 12.6" />
+            </svg>
+            聊天室已关闭，暂时只能浏览历史消息。
+          </div>
+        )}
+
         {/* 消息区 */}
         <div
           ref={listRef}
-          className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-y-auto p-4 mb-3"
-          style={{ height: "56vh" }}
+          className="chat-scroll bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-y-auto p-4 mb-3"
+          style={{ height: "clamp(340px, 54vh, 640px)" }}
         >
           {!loaded ? (
             <div className="h-full flex items-center justify-center text-slate-400 text-[0.85rem]">加载中...</div>
@@ -189,7 +226,7 @@ export default function UserChatPage() {
                         {m.username.slice(0, 1).toUpperCase()}
                       </div>
                     )}
-                    <div className={`max-w-[76%] ${isSelf ? "items-end flex flex-col" : ""}`}>
+                    <div className={`chat-bubble-wrap max-w-[76%] ${isSelf ? "items-end flex flex-col" : ""}`}>
                       <div className={`flex items-center gap-2 mb-1 text-[0.74rem] ${isSelf ? "flex-row-reverse" : ""}`}>
                         <span className="text-slate-600 font-medium">{m.username}</span>
                         {m.role === "admin" && (
@@ -229,8 +266,12 @@ export default function UserChatPage() {
         {/* 输入区 */}
         {attached && (
           <div className="flex items-center gap-2 mb-2 text-[0.82rem] text-slate-600">
-            <span className="px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 truncate max-w-[240px]">
-              📎 {attached.name}（{(attached.size / 1024 / 1024).toFixed(2)}MB）
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 max-w-[280px]">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
+                <path d="m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+              </svg>
+              <span className="truncate">{attached.name}</span>
+              <span className="flex-shrink-0">（{(attached.size / 1024 / 1024).toFixed(2)}MB）</span>
             </span>
             <button
               type="button"
@@ -266,21 +307,22 @@ export default function UserChatPage() {
           </button>
           <textarea
             value={text}
-            onChange={(e) => setText(e.target.value.slice(0, 400))}
+            onChange={(e) => setText(e.target.value.slice(0, limits?.max_text ?? 400))}
             onKeyDown={(e) => {
               if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
                 e.preventDefault();
                 void send();
               }
             }}
-            placeholder="说点什么…（Enter 发送，Shift+Enter 换行，最多 400 字）"
+            placeholder={limits && !limits.enabled ? "聊天室已关闭，暂时无法发言" : `说点什么…（Enter 发送，Shift+Enter 换行，最多 ${limits?.max_text ?? 400} 字）`}
             rows={1}
-            className="flex-1 resize-none bg-transparent border-0 outline-none text-slate-800 placeholder:text-slate-400 text-[0.92rem] py-2.5 max-h-32"
+            disabled={!!limits && !limits.enabled}
+            className="flex-1 resize-none bg-transparent border-0 outline-none text-slate-800 placeholder:text-slate-400 text-[0.92rem] py-2.5 max-h-32 disabled:opacity-50"
           />
           <button
             type="button"
             onClick={() => void send()}
-            disabled={sending || (!text.trim() && !attached)}
+            disabled={sending || (!text.trim() && !attached) || (!!limits && !limits.enabled)}
             className="h-10 px-5 rounded-[10px] bg-emerald-500 text-white font-semibold text-[0.88rem] disabled:opacity-40 shrink-0 transition-colors hover:bg-emerald-600 cursor-pointer"
           >
             {sending ? "发送中" : "发送"}

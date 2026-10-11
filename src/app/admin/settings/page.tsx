@@ -70,6 +70,10 @@ export default function AdminSettingsPage() {
   });
   const [msBusy, setMsBusy] = useState(false);
 
+  const [chatCfg, setChatCfg] = useState<{ enabled: boolean; welcome: string; max_text: number; max_image_mb: number } | null>(null);
+  const [chatForm, setChatForm] = useState({ enabled: true, welcome: "", max_text: 400, max_image_mb: 4 });
+  const [chatBusy, setChatBusy] = useState(false);
+
   const load = useCallback(async () => {
     try {
       setList(await api<Setting[]>("/admin/settings"));
@@ -87,6 +91,13 @@ export default function AdminSettingsPage() {
       setMsForm((prev) => ({ ...prev, enabled: data.microsoft.enabled }));
     } catch {
       /* 接口预留状态加载失败不阻塞页面 */
+    }
+    try {
+      const chat = await api<{ enabled: boolean; welcome: string; max_text: number; max_image_mb: number }>("/admin/chat-config");
+      setChatCfg(chat);
+      setChatForm({ enabled: chat.enabled, welcome: chat.welcome, max_text: chat.max_text, max_image_mb: chat.max_image_mb });
+    } catch {
+      /* 聊天室配置加载失败不阻塞页面 */
     }
   }, []);
 
@@ -139,6 +150,24 @@ export default function AdminSettingsPage() {
       setError(err instanceof Error ? err.message : "微软配置保存失败");
     } finally {
       setMsBusy(false);
+    }
+  };
+
+  const saveChat = async () => {
+    setError("");
+    setSuccess("");
+    setChatBusy(true);
+    try {
+      const saved = await api<{ enabled: boolean; welcome: string; max_text: number; max_image_mb: number }>("/admin/chat-config", {
+        method: "POST",
+        body: JSON.stringify(chatForm),
+      });
+      setChatCfg(saved);
+      setSuccess("聊天室配置已保存");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "聊天室配置保存失败");
+    } finally {
+      setChatBusy(false);
     }
   };
 
@@ -301,6 +330,67 @@ export default function AdminSettingsPage() {
             <Btn type="submit" disabled={upopBusy}>{upopBusy ? "保存中..." : "保存 UPOP 配置"}</Btn>
           </div>
         </form>
+      </Card>
+
+      {/* 聊天室设置 */}
+      <Card className="mb-5">
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">聊天室设置</h3>
+        <p className="text-[0.82rem] text-slate-500 mb-4">用户中心「聊天室」的开关、欢迎公告与发送限制，保存后即时生效。</p>
+        {chatCfg === null ? (
+          <Empty text="加载中..." />
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void saveChat();
+            }}
+            className="flex flex-col gap-4"
+          >
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={chatForm.enabled}
+                  onChange={(e) => setChatForm((p) => ({ ...p, enabled: e.target.checked }))}
+                  className="w-4 h-4 accent-emerald-500"
+                />
+                启用聊天室
+              </label>
+              <StatusDot ok={chatCfg.enabled} label={chatCfg.enabled ? "当前已启用" : "当前已关闭（用户只能浏览）"} />
+            </div>
+            <Field label="欢迎公告" hint="显示在聊天室消息区顶部，留空不显示，最长 200 字">
+              <Input
+                value={chatForm.welcome}
+                onChange={(e) => setChatForm((p) => ({ ...p, welcome: e.target.value }))}
+                maxLength={200}
+                placeholder="如：欢迎来到聊天室！文明发言，禁止刷屏与广告。"
+              />
+            </Field>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <Field label="单条消息字数上限" hint="20 - 1000 字">
+                <Input
+                  type="number"
+                  min={20}
+                  max={1000}
+                  value={chatForm.max_text}
+                  onChange={(e) => setChatForm((p) => ({ ...p, max_text: Number(e.target.value) || 400 }))}
+                />
+              </Field>
+              <Field label="单张图片大小上限（MB）" hint="1 - 8 MB">
+                <Input
+                  type="number"
+                  min={1}
+                  max={8}
+                  value={chatForm.max_image_mb}
+                  onChange={(e) => setChatForm((p) => ({ ...p, max_image_mb: Number(e.target.value) || 4 }))}
+                />
+              </Field>
+            </div>
+            <div>
+              <Btn type="submit" disabled={chatBusy}>{chatBusy ? "保存中..." : "保存聊天室设置"}</Btn>
+            </div>
+          </form>
+        )}
       </Card>
 
         {/* 高级设置说明（图24） */}

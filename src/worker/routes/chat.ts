@@ -38,6 +38,31 @@ interface ChatRow {
   created_at: string;
 }
 
+/** 聊天室配置（后台可改，存 site_settings） */
+interface ChatConfig {
+  enabled: boolean;
+  welcome: string;
+  max_text: number;
+  max_image_mb: number;
+}
+
+async function getChatConfig(db: D1Database): Promise<ChatConfig> {
+  const def: ChatConfig = { enabled: true, welcome: "", max_text: MAX_TEXT, max_image_mb: 4 };
+  try {
+    const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'chat_config'").first<{ value: string }>();
+    if (!row) return def;
+    const parsed = JSON.parse(row.value) as Partial<ChatConfig>;
+    return {
+      enabled: parsed.enabled !== false,
+      welcome: String(parsed.welcome ?? "").slice(0, 200),
+      max_text: Math.min(1000, Math.max(20, Number(parsed.max_text) || MAX_TEXT)),
+      max_image_mb: Math.min(8, Math.max(1, Number(parsed.max_image_mb) || 4)),
+    };
+  } catch {
+    return def;
+  }
+}
+
 function shape(r: ChatRow) {
   return {
     id: r.id,
@@ -76,17 +101,20 @@ async function dailyCount(db: D1Database, userId: number, withImage: boolean): P
   return row?.n ?? 0;
 }
 
-// 限制说明（前端展示用）
-app.get("/limits", (c) =>
-  ok({
-    max_text: MAX_TEXT,
-    max_image_mb: 4,
+// 限制与配置（前端展示用；后台可改）
+app.get("/limits", async (c) => {
+  const cfg = await getChatConfig(c.env.DB);
+  return ok({
+    enabled: cfg.enabled,
+    welcome: cfg.welcome,
+    max_text: cfg.max_text,
+    max_image_mb: cfg.max_image_mb,
     min_interval_ms: MIN_INTERVAL_MS,
     daily_text: DAILY_TEXT,
     daily_image: DAILY_IMAGE,
     realtime: "polling_4s",
-  }),
-);
+  });
+});
 
 // 消息列表：after_id 增量；before_id 翻页；默认最新 50 条（升序返回）
 app.get("/messages", async (c) => {
@@ -118,19 +146,22 @@ app.get("/messages", async (c) => {
 // 发送文字
 app.post("/send", requireAuth, async (c) => {
   const user = c.get("user")!;
+  const cfg = await getChatConfig(c.env.DB);
+  if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发言");
+
   const body = await c.req.json().catch(() => ({}));
-  const content = str(body.content, MAX_TEXT).trim();
+  const content = str(body.content, cfg.max_text).trim();
   if (!content) return fail("消息不能为空");
-  if (content.length > MAX_TEXT) return fail(`消息需在 ${MAX_TEXT} 字以内`);
+  if (content.length > cfg.max_text) return fail(`消息需在 ${cfg.max_text} 字以内`);
 
   if (await tooFast(c.env.DB, user.id)) return fail("发送太快了，休息一下~");
   if ((await dailyCount(c.env.DB, user.id, false)) >= DAILY_TEXT) return fail("今日发言已达上限，明天再来聊吧");
 
-  const profile = await c.env.DB.prepare("SELECT avatar_url FROM users WHERE id = ?").bind(user.id).first<{ avatar_url: string | null }>();
+  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
   const result = await c.env.DB.prepare(
     "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, '')",
   )
-    .bind(user.id, user.username, profile?.avatar_url || "", user.role, content)
+    .bind(user.id, user.username, profile?.avatar || "", user.role, content)
     .run();
   await logUserAction(c.env.DB, user.id, "chat_send", "发送聊天消息", getClientIp(c));
 
@@ -138,7 +169,7 @@ app.post("/send", requireAuth, async (c) => {
     id: Number(result.meta.last_row_id),
     user_id: user.id,
     username: user.username,
-    avatar_url: profile?.avatar_url || "",
+    avatar_url: profile?.avatar || "",
     role: user.role,
     content,
     image_key: null,
@@ -149,11 +180,15 @@ app.post("/send", requireAuth, async (c) => {
 // 发送图片
 app.post("/image", requireAuth, async (c) => {
   const user = c.get("user")!;
+  const cfg = await getChatConfig(c.env.DB);
+  if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发图");
+
+  const maxImage = cfg.max_image_mb * 1024 * 1024;
   const form = await c.req.formData().catch(() => null);
   if (!form) return fail("无法解析上传内容");
   const file = form.get("file");
   if (!(file instanceof File)) return fail("缺少图片文件");
-  if (file.size === 0 || file.size > MAX_IMAGE) return fail("图片需小于 4MB");
+  if (file.size === 0 || file.size > maxImage) return fail(`图片需小于 ${cfg.max_image_mb}MB`);
   const ext = ALLOWED[file.type];
   if (!ext) return fail("仅支持 PNG / JPG / WEBP / GIF");
 
@@ -165,11 +200,11 @@ app.post("/image", requireAuth, async (c) => {
   const key = `uploads/chat/${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   await bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
 
-  const profile = await c.env.DB.prepare("SELECT avatar_url FROM users WHERE id = ?").bind(user.id).first<{ avatar_url: string | null }>();
+  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
   const result = await c.env.DB.prepare(
     "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, '', ?)",
   )
-    .bind(user.id, user.username, profile?.avatar_url || "", user.role, key)
+    .bind(user.id, user.username, profile?.avatar || "", user.role, key)
     .run();
   await logUserAction(c.env.DB, user.id, "chat_image", "发送聊天图片", getClientIp(c));
 
@@ -177,7 +212,7 @@ app.post("/image", requireAuth, async (c) => {
     id: Number(result.meta.last_row_id),
     user_id: user.id,
     username: user.username,
-    avatar_url: profile?.avatar_url || "",
+    avatar_url: profile?.avatar || "",
     role: user.role,
     content: "",
     image_key: key,
