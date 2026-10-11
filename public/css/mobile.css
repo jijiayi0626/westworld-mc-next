@@ -1,86 +1,14 @@
 /* ============================================================
-   移动端适配补充（mc-next 自建；原版 admin/user CSS 的补充）
-   mobile-topbar：移动端顶栏（汉堡按钮 + 标题）
+   移动端适配补充（通用微调）
+   后台/用户中心的侧栏、顶栏、折叠、抽屉布局统一由 shell.css 负责
+   （shell.css 在 admin.css/user.css/mobile.css 之后加载）
    ============================================================ */
 
-/* 移动端顶栏：默认隐藏，≤768px 显示 */
-.mobile-topbar {
-  display: flex;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 56px;
-  z-index: 60;
-  align-items: center;
-  gap: 12px;
-  padding: 0 16px;
-  background: #ffffff;
-  border-bottom: 1px solid #e2e8f0;
-  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
-}
-.mobile-topbar .mobile-menu-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 38px;
-  height: 38px;
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  color: #475569;
-  cursor: pointer;
-  padding: 0;
-}
-.mobile-topbar-title {
-  font-weight: 700;
-  font-size: 0.98rem;
-  color: #0f172a;
-}
-
-/* admin.css 的 .mobile-menu-btn 基线规则是 display:none，这里把它重新显示（否则顶栏汉堡点不到）。 */
-@media (max-width: 768px) {
-  .admin-shell .mobile-topbar .mobile-menu-btn,
-  .user-container .mobile-topbar .mobile-menu-btn {
-    display: inline-flex;
-  }
-  .mobile-topbar {
-    display: flex;
-  }
-  /* 容器顶部留出顶栏高度 */
-  .admin-shell,
-  .user-container {
-    padding-top: 56px;
-  }
-  .user-container {
-    padding-left: 16px;
-    padding-right: 16px;
-  }
-  /* 后台页面内容左右留白收窄 */
-  .admin-shell > .main-content {
-    padding-left: 0;
-    padding-right: 0;
-  }
-}
-
-/* 桌面端：顶栏靠内容区（侧栏右侧），内容顶部留出顶栏高度；移动端遮罩隐藏 */
+/* 桌面端隐藏移动抽屉遮罩（桌面用侧栏内折叠按钮，不需要遮罩） */
 @media (min-width: 769px) {
   .admin-shell .admin-sidebar-overlay,
   .user-container .sidebar-overlay {
     display: none !important;
-  }
-  .admin-shell .mobile-topbar,
-  .user-container .mobile-topbar {
-    left: var(--sidebar-w);
-  }
-  /* 内容区顶部给固定顶栏留位 */
-  .admin-shell > .main-content,
-  .user-container > .user-main {
-    padding-top: 56px;
-  }
-  /* 折叠时顶栏跟随收窄 */
-  .sidebar-collapsed .mobile-topbar {
-    left: 64px;
   }
 }
 
@@ -98,79 +26,4 @@
   .max-w-md {
     max-width: 100%;
   }
-}
-/* ============================================================
-   侧边栏收起（collapsed）：桌面端可手动折叠为图标条
-   ============================================================ */
-.sidebar-collapse-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border: 1px solid transparent;
-  border-radius: 8px;
-  background: transparent;
-  color: #94a3b8;
-  cursor: pointer;
-  transition: 0.2s;
-  flex-shrink: 0;
-}
-.sidebar-collapse-btn:hover {
-  background: #f1f5f9;
-  color: #0f172a;
-}
-
-/* 收起状态：侧栏变窄，仅图标可见。
- * 仅桌面端（≥769px）生效；移动端始终全宽抽屉，不受折叠影响 */
-@media (min-width: 769px) {
-  .sidebar-collapsed .sidebar,
-  .sidebar-collapsed .user-sidebar {
-    width: 64px;
-  }
-  .sidebar-collapsed .sidebar .sidebar-title,
-  .sidebar-collapsed .user-sidebar .sidebar-title,
-  .sidebar-collapsed .sidebar .nav-item span:not(.nav-item-icon),
-  .sidebar-collapsed .user-sidebar .nav-item span:not(.nav-item-icon),
-  .sidebar-collapsed .sidebar .sidebar-collapse-btn svg,
-  .sidebar-collapsed .user-sidebar .sidebar-collapse-btn svg {
-    display: none;
-  }
-  .sidebar-collapsed .sidebar .sidebar-header,
-  .sidebar-collapsed .user-sidebar .sidebar-header {
-    flex-direction: column;
-    gap: 8px;
-    padding: 14px 10px;
-    align-items: center;
-  }
-  .sidebar-collapsed .sidebar .nav-item,
-  .sidebar-collapsed .user-sidebar .nav-item {
-    justify-content: center;
-    padding: 12px 0;
-  }
-  .sidebar-collapsed .sidebar .nav-item-icon,
-  .sidebar-collapsed .user-sidebar .nav-item-icon {
-    margin: 0;
-  }
-  /* 折叠时隐藏分组子菜单（仅保留分组图标） */
-  .sidebar-collapsed .nav-submenu {
-    display: none;
-  }
-  .sidebar-collapsed .nav-group-arrow {
-    display: none;
-  }
-  /* 收起时主内容区跟随收窄 */
-  .sidebar-collapsed .main-content,
-  .sidebar-collapsed .user-main {
-    margin-left: 64px;
-  }
-}
-
-/* ============================================================
-   Material Icons 侧栏图标尺寸
-   ============================================================ */
-.nav-item-icon.material-icons {
-  font-size: 20px;
-  line-height: 1;
-  flex-shrink: 0;
 }

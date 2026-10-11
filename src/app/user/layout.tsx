@@ -11,6 +11,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     <>
       <link rel="stylesheet" href="/css/user.css" />
       <link rel="stylesheet" href="/css/mobile.css" />
+      <link rel="stylesheet" href="/css/shell.css" />
       <BodyClass cls="user-page" />
       {children}
     </>

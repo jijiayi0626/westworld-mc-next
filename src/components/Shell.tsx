@@ -28,6 +28,55 @@ interface AdminStyle {
   accent?: string;
 }
 
+/** 内联 SVG 图标（stroke 风格）：不依赖 Google Fonts，国内环境可正常渲染 */
+const ICONS: Record<string, string[]> = {
+  person: ["M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2", "M12 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8"],
+  edit_note: ["M12 20h9", "M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5"],
+  confirmation_number: ["M2 9a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v1a2 2 0 0 0 0 4v1a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2v-1a2 2 0 0 0 0-4V9", "M13 7v10"],
+  smart_toy: ["M12 2a4 4 0 0 1 4 4h1a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h1a4 4 0 0 1 4-4z", "M9 12v.01", "M15 12v.01", "M9.5 16h5"],
+  inventory_2: ["M3 9l9-6 9 6v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V9z", "M3 9l9 6 9-6", "M12 15v6"],
+  notifications: ["M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9", "M13.7 21a2 2 0 0 1-3.4 0"],
+  receipt_long: ["M6 2h12a1 1 0 0 1 1 1v19l-3-2-2 2-2-2-2 2-2-2-3 2V3a1 1 0 0 1 1-1z", "M9 7h6", "M9 11h6", "M9 15h4"],
+  lock: ["M5 11h14a1 1 0 0 1 1 1v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1v-8a1 1 0 0 1 1-1z", "M8 11V7a4 4 0 0 1 8 0v4"],
+  home: ["M3 10l9-7 9 7v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-9z", "M9 21v-8h6v8"],
+  analytics: ["M3 3v18h18", "M7 14l4-4 3 3 5-6"],
+  chat: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z"],
+  campaign: ["M3 11l18-5v12L3 13v-2z", "M11.6 16.8a3 3 0 1 1-5.8-1.6"],
+  history: ["M3 12a9 9 0 1 0 3-6.7L3 8", "M3 3v5h5", "M12 7v5l3 3"],
+  shield: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"],
+  group: ["M17 21v-2a4 4 0 0 0-4-4H7a4 4 0 0 0-4 4v2", "M10 3a4 4 0 1 0 0 8 4 4 0 0 0 0-8", "M21 21v-2a4 4 0 0 0-3-3.87", "M16 3.13a4 4 0 0 1 0 7.75"],
+  shopping_cart: ["M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6", "M9 21a0.5 0.5 0 1 0 0-1 0.5 0.5 0 0 0 0 1", "M19 21a0.5 0.5 0 1 0 0-1 0.5 0.5 0 0 0 0 1"],
+  image: ["M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z", "M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3", "M21 15l-5-5-11 11"],
+  monitoring: ["M3 3v18h18", "M7 15l4-5 3 2 5-7"],
+  palette: ["M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4h-1a1 1 0 0 1 0-2h4a4 4 0 0 0 4-4 8 8 0 0 0-8-8z", "M7.5 10.5v.01", "M10 7.5v.01", "M14 7.5v.01"],
+  description: ["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z", "M14 2v6h6", "M9 13h6", "M9 17h6"],
+  language: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M3 12h18", "M12 3a14 14 0 0 1 4 9 14 14 0 0 1-4 9 14 14 0 0 1-4-9 14 14 0 0 1 4-9z"],
+  tune: ["M4 21v-7", "M4 10V3", "M12 21v-9", "M12 8V3", "M20 21v-5", "M20 12V3", "M1 14h6", "M9 8h6", "M17 16h6"],
+  info: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M12 16v-4", "M12 8v.01"],
+};
+
+function NavIcon({ name }: { name: string }) {
+  const ds = ICONS[name] ?? ICONS.info;
+  return (
+    <svg
+      className="nav-item-icon"
+      viewBox="0 0 24 24"
+      width="18"
+      height="18"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="1.8"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden="true"
+    >
+      {ds.map((d, i) => (
+        <path key={i} d={d} />
+      ))}
+    </svg>
+  );
+}
+
 /** 应用后台样式设置（主题 + 主色）到根节点 */
 function applyAdminStyle(style: AdminStyle) {
   const root = document.documentElement;
@@ -182,7 +231,7 @@ function Shell({
                   onClick={() => toggleGroup(it.label)}
                   aria-expanded={groups[it.label]}
                 >
-                  {it.icon && <span className="nav-item-icon material-icons">{it.icon}</span>}
+                  {it.icon && <NavIcon name={it.icon} />}
                   <span>{it.label}</span>
                   <span className="nav-group-arrow" aria-hidden="true">▾</span>
                 </button>
@@ -193,7 +242,7 @@ function Shell({
                       href={sub.href}
                       className={`nav-subitem ${isActive(sub.href) ? "active" : ""}`}
                     >
-                      {sub.icon && <span className="nav-item-icon material-icons">{sub.icon}</span>}
+                      {sub.icon && <NavIcon name={sub.icon} />}
                       <span>{sub.label}</span>
                     </Link>
                   ))}
@@ -205,7 +254,7 @@ function Shell({
                 href={it.href}
                 className={`nav-item ${isActive(it.href) ? "active" : ""}`}
               >
-                {it.icon && <span className="nav-item-icon material-icons">{it.icon}</span>}
+                {it.icon && <NavIcon name={it.icon} />}
                 <span>{it.label}</span>
               </Link>
             ),
