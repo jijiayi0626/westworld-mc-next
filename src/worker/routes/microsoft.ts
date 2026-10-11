@@ -22,21 +22,55 @@ interface MsTokenResp {
   expires_in?: number;
 }
 
-// 构造授权链接（未配置 MS_* 时返回占位说明）
+interface MsConfig {
+  enabled: boolean;
+  clientId: string;
+  clientSecret: string;
+}
+
+/**
+ * 读取微软 OAuth 配置：优先 site_settings.ms_oauth_config（后台可视化配置），
+ * 回退环境变量 MICROSOFT_OAUTH_ENABLED / MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET。
+ */
+async function loadMsConfig(c: { env: AppEnv["Bindings"] }): Promise<MsConfig> {
+  const row = await c.env.DB.prepare(
+    "SELECT value FROM site_settings WHERE key = 'ms_oauth_config'",
+  ).first<{ value: string }>();
+  if (row?.value) {
+    try {
+      const j = JSON.parse(row.value) as Record<string, unknown>;
+      const clientId = typeof j.client_id === "string" ? j.client_id.trim() : "";
+      const clientSecret = typeof j.client_secret === "string" ? j.client_secret.trim() : "";
+      if (clientId || clientSecret) {
+        return { enabled: j.enabled === true, clientId, clientSecret };
+      }
+    } catch {
+      /* 配置损坏时走环境变量 */
+    }
+  }
+  return {
+    enabled: c.env.MICROSOFT_OAUTH_ENABLED === "true",
+    clientId: (c.env.MICROSOFT_CLIENT_ID as string) || "",
+    clientSecret: (c.env.MICROSOFT_CLIENT_SECRET as string) || "",
+  };
+}
+
+// 构造授权链接（未配置时返回占位说明）
 app.get("/authorize-url", requireAuth, async (c) => {
   const user = c.get("user")!;
+  const ms = await loadMsConfig(c);
 
-  if (c.env.MICROSOFT_OAUTH_ENABLED !== "true") {
+  if (!ms.enabled || !ms.clientId || !ms.clientSecret) {
     return ok({
       enabled: false,
-      message: "微软账号绑定未启用。请先在管理后台配置 MICROSOFT_CLIENT_ID / MICROSOFT_CLIENT_SECRET 与回调地址。",
+      message: "微软账号绑定未启用。请先在管理后台「网站设置 → 三方接口预留」中填写 Client ID / Secret 并启用。",
     });
   }
 
   const redirectUri = `${c.env.SITE_URL || ""}/api/microsoft/callback`;
   const state = await signToken({ sub: String(user.id), username: user.username, role: "oauth" }, getSecret(c));
   const url =
-    `${MS_AUTHORIZE}?client_id=${encodeURIComponent(c.env.MICROSOFT_CLIENT_ID as string)}` +
+    `${MS_AUTHORIZE}?client_id=${encodeURIComponent(ms.clientId)}` +
     `&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}` +
     `&scope=XboxLive.signin%20offline_access&state=${encodeURIComponent(state)}`;
 
@@ -60,7 +94,8 @@ app.get("/callback", async (c) => {
   ).bind(userId).first<{ id: number; username: string }>();
   if (!user) return fail("用户不存在", 404);
 
-  if (!c.env.MICROSOFT_CLIENT_ID || !c.env.MICROSOFT_CLIENT_SECRET) {
+  const ms = await loadMsConfig(c);
+  if (!ms.clientId || !ms.clientSecret) {
     return fail("微软 OAuth 未配置", 503);
   }
 
@@ -71,8 +106,8 @@ app.get("/callback", async (c) => {
     method: "POST",
     headers: { "Content-Type": "application/x-www-form-urlencoded" },
     body: new URLSearchParams({
-      client_id: c.env.MICROSOFT_CLIENT_ID as string,
-      client_secret: c.env.MICROSOFT_CLIENT_SECRET as string,
+      client_id: ms.clientId,
+      client_secret: ms.clientSecret,
       code,
       grant_type: "authorization_code",
       redirect_uri: redirectUri,
@@ -175,5 +210,17 @@ app.post("/unbind", requireAuth, async (c) => {
   await logUserAction(c.env.DB, user.id, "unbind_microsoft", "解绑微软账号", getClientIp(c), getUa(c));
   return ok({ unbound: true });
 });
+
+// 管理端状态（/admin/integrations、/admin/health 使用，密钥不外泄）
+export async function msAdminStatus(c: { env: AppEnv["Bindings"] }) {
+  const ms = await loadMsConfig(c);
+  const mask = (s: string) => (s ? `${s.slice(0, 4)}****` : "");
+  return {
+    enabled: ms.enabled && !!ms.clientId && !!ms.clientSecret,
+    client_id: ms.clientId ? mask(ms.clientId) : "",
+    client_secret_set: !!ms.clientSecret,
+    callback_url: `${c.env.SITE_URL || ""}/api/microsoft/callback`,
+  };
+}
 
 export default app;

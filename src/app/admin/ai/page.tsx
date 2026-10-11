@@ -141,7 +141,7 @@ export default function AdminAiPage() {
           {[
             { label: "使用用户数", value: list?.length ?? 0, bg: "#f0fdf4", color: "#15803d" },
             { label: "总调用次数", value: total, bg: "#eff6ff", color: "#1d4ed8" },
-            { label: "AI 功能", value: "关闭", bg: "#f1f5f9", color: "#475569" },
+            { label: "AI 功能", value: cfg?.enabled ? "开启" : "关闭", bg: "#f1f5f9", color: "#475569" },
             { label: "近 7 天", value: "-", bg: "#fef9c3", color: "#a16207" },
           ].map((c) => (
             <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
@@ -201,6 +201,16 @@ export default function AdminAiPage() {
             </div>
           )}
         </div>
+
+        {/* 总开关未开启警告 */}
+        {cfg && !cfg.enabled && (
+          <div className="mb-5 px-4 py-3 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.88rem] flex items-start gap-2">
+            <span className="mt-0.5">⚠️</span>
+            <span>
+              AI 总开关未开启，当前为<b>演示模式</b>：即使下方模板已配置并切换，聊天也不会真正调用接口。请先打开上方「启用 AI 功能总开关」并保存。
+            </span>
+          </div>
+        )}
 
         {/* 接口模板：多供应商一键切换 */}
         <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">

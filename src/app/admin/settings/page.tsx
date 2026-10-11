@@ -13,7 +13,7 @@ interface Setting {
 interface Integrations {
   microsoft: {
     enabled: boolean;
-    client_id_set: boolean;
+    client_id: string;
     client_secret_set: boolean;
     callback_url: string;
   };
@@ -63,6 +63,12 @@ export default function AdminSettingsPage() {
   const [integrations, setIntegrations] = useState<Integrations | null>(null);
   const [upopForm, setUpopForm] = useState<Record<string, string>>({});
   const [upopBusy, setUpopBusy] = useState(false);
+  const [msForm, setMsForm] = useState<{ enabled: boolean; client_id: string; client_secret: string }>({
+    enabled: false,
+    client_id: "",
+    client_secret: "",
+  });
+  const [msBusy, setMsBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -78,6 +84,7 @@ export default function AdminSettingsPage() {
         upop_enabled: data.upop.enabled ? "true" : "false",
         upop_scope: data.upop.scope || "openid profile",
       }));
+      setMsForm((prev) => ({ ...prev, enabled: data.microsoft.enabled }));
     } catch {
       /* 接口预留状态加载失败不阻塞页面 */
     }
@@ -113,6 +120,25 @@ export default function AdminSettingsPage() {
       setError(err instanceof Error ? err.message : "保存失败");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const saveMs = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setMsBusy(true);
+    try {
+      await api("/admin/integrations/microsoft", {
+        method: "POST",
+        body: JSON.stringify({ enabled: msForm.enabled, client_id: msForm.client_id, client_secret: msForm.client_secret }),
+      });
+      setSuccess("微软 OAuth 配置已保存");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "微软配置保存失败");
+    } finally {
+      setMsBusy(false);
     }
   };
 
@@ -191,23 +217,52 @@ export default function AdminSettingsPage() {
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
             {/* 微软 OAuth */}
-            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2">
+            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2.5">
               <div className="font-semibold text-slate-800 flex items-center gap-2">
                 <StatusDot ok={integrations.microsoft.enabled} label="微软 OAuth" />
               </div>
-              <StatusDot ok={integrations.microsoft.client_id_set} label="MICROSOFT_CLIENT_ID 已配置" />
-              <StatusDot ok={integrations.microsoft.client_secret_set} label="MICROSOFT_CLIENT_SECRET 已配置" />
+              <div className="text-[0.82rem] text-slate-500">
+                当前状态：Client ID {integrations.microsoft.client_id || "未配置"}
+                {integrations.microsoft.client_id && integrations.microsoft.client_secret_set ? " · Secret 已配置" : ""}
+              </div>
+              <form onSubmit={saveMs} className="flex flex-col gap-3 mt-1">
+                <label className="flex items-center gap-2 text-[0.85rem] text-slate-700 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={msForm.enabled}
+                    onChange={(e) => setMsForm((p) => ({ ...p, enabled: e.target.checked }))}
+                    className="w-4 h-4 accent-emerald-500"
+                  />
+                  启用微软账号绑定
+                </label>
+                <div className="grid grid-cols-1 gap-2.5">
+                  <input
+                    value={msForm.client_id}
+                    onChange={(e) => setMsForm((p) => ({ ...p, client_id: e.target.value }))}
+                    placeholder={integrations.microsoft.client_id ? `Client ID（已保存 ${integrations.microsoft.client_id}，留空保留）` : "Azure 应用 Client ID"}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[#10b981]"
+                  />
+                  <input
+                    type="password"
+                    value={msForm.client_secret}
+                    onChange={(e) => setMsForm((p) => ({ ...p, client_secret: e.target.value }))}
+                    placeholder={integrations.microsoft.client_secret_set ? "Client Secret（已保存，留空保留）" : "Azure 应用 Client Secret"}
+                    autoComplete="new-password"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[#10b981]"
+                  />
+                </div>
+                <div className="flex items-center gap-3">
+                  <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50 cursor-pointer">
+                    {msBusy ? "保存中..." : "保存微软配置"}
+                  </button>
+                </div>
+              </form>
               <div className="text-[0.8rem] text-slate-500 mt-1">
-                回调地址（填入微软应用注册）：
+                回调地址（填入 Azure 应用注册）：
                 <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
                   {integrations.microsoft.callback_url}
                 </code>
               </div>
-              <p className="text-[0.78rem] text-slate-400">
-                凭据通过 Wrangler Secrets 配置：<code className="font-mono">MICROSOFT_CLIENT_ID</code> /{" "}
-                <code className="font-mono">MICROSOFT_CLIENT_SECRET</code>，开关由环境变量{" "}
-                <code className="font-mono">MICROSOFT_OAUTH_ENABLED</code> 控制。
-              </p>
             </div>
 
             {/* UPOP */}
