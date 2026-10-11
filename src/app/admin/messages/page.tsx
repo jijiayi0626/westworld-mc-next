@@ -17,6 +17,30 @@ interface Message {
   reply: string | null;
 }
 
+interface ActionLog {
+  id: number;
+  user_id: number;
+  action: string;
+  detail: string;
+  ip: string;
+  created_at: string;
+  username: string | null;
+}
+
+interface ActionLogsResp {
+  logs: ActionLog[];
+  total: number;
+  page: number;
+  size: number;
+  types: string[];
+}
+
+const STATUS_TABS: { key: string; label: string }[] = [
+  { key: "all", label: "全部" },
+  { key: "pending", label: "待回复" },
+  { key: "replied", label: "已回复" },
+];
+
 export default function AdminMessagesPage() {
   const [list, setList] = useState<Message[] | null>(null);
   const [error, setError] = useState("");
@@ -27,6 +51,17 @@ export default function AdminMessagesPage() {
   const [openId, setOpenId] = useState<number | null>(null);
   const [reply, setReply] = useState("");
 
+  // 状态筛选
+  const [statusTab, setStatusTab] = useState("all");
+
+  // 行为日志（折叠面板，默认收起）
+  const [logsOpen, setLogsOpen] = useState(false);
+  const [logs, setLogs] = useState<ActionLogsResp | null>(null);
+  const [logType, setLogType] = useState("");
+  const [logUser, setLogUser] = useState("");
+  const [logPage, setLogPage] = useState(1);
+  const [logsBusy, setLogsBusy] = useState(false);
+
   const load = useCallback(async () => {
     try {
       setList(await api<Message[]>("/contact/admin/list"));
@@ -35,9 +70,28 @@ export default function AdminMessagesPage() {
     }
   }, []);
 
+  const loadLogs = useCallback(async (type: string, userId: string, page: number) => {
+    setLogsBusy(true);
+    try {
+      const qs = new URLSearchParams({ page: String(page) });
+      if (type) qs.set("action", type);
+      if (userId.trim()) qs.set("user_id", userId.trim());
+      setLogs(await api<ActionLogsResp>(`/admin/action-logs?${qs.toString()}`));
+    } catch {
+      setLogs(null);
+    } finally {
+      setLogsBusy(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  // 展开日志面板时按当前筛选加载
+  useEffect(() => {
+    if (logsOpen) void loadLogs(logType, logUser, logPage);
+  }, [logsOpen, loadLogs, logType, logUser, logPage]);
 
   const toggle = (id: number) => {
     setOpenId((v) => (v === id ? null : id));
@@ -74,24 +128,50 @@ export default function AdminMessagesPage() {
     }
   };
 
+  const filtered = (list ?? []).filter((m) =>
+    statusTab === "all" ? true : statusTab === "pending" ? !m.reply : !!m.reply,
+  );
+
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">消息通知
+        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-4">
+          消息通知
           <span className="ml-2 text-[0.82rem] font-normal text-slate-400">共 {(list ?? []).length} 条</span>
         </h1>
 
         <ErrorNote message={error} />
         <SuccessNote message={success} />
 
+        {/* 类型筛选 */}
+        <div className="flex items-center gap-2 mb-4">
+          {STATUS_TABS.map((t) => {
+            const n = (list ?? []).filter((m) => (t.key === "all" ? true : t.key === "pending" ? !m.reply : !!m.reply)).length;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setStatusTab(t.key)}
+                className={`px-3.5 py-1.5 rounded-full text-[0.82rem] font-medium border transition-colors cursor-pointer ${
+                  statusTab === t.key
+                    ? "bg-[#10b981] border-[#10b981] text-white"
+                    : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
+                }`}
+              >
+                {t.label}（{n}）
+              </button>
+            );
+          })}
+        </div>
+
         <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
           {list === null ? (
             <Empty text="加载中..." />
-          ) : list.length === 0 ? (
-            <Empty text="暂无消息" />
+          ) : filtered.length === 0 ? (
+            <Empty text={statusTab === "all" ? "暂无消息" : "该类型下暂无消息"} />
           ) : (
             <div className="flex flex-col divide-y divide-slate-100">
-              {list.map((m) => (
+              {filtered.map((m) => (
                 <div key={m.id} className="py-4 px-5">
                   <button type="button" onClick={() => toggle(m.id)} className="w-full text-left cursor-pointer">
                     <div className="flex items-center justify-between gap-3">
@@ -135,6 +215,114 @@ export default function AdminMessagesPage() {
                   )}
                 </div>
               ))}
+            </div>
+          )}
+        </div>
+
+        {/* 行为日志（折叠，默认收起） */}
+        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
+          <button
+            type="button"
+            onClick={() => setLogsOpen((v) => !v)}
+            className="w-full flex items-center justify-between gap-3 px-5 py-4 cursor-pointer"
+            aria-expanded={logsOpen}
+          >
+            <span className="flex items-center gap-2 font-semibold text-slate-800">
+              行为日志
+              <span className="text-[0.78rem] font-normal text-slate-400">用户注册 / 登录 / 绑定 / 聊天等操作记录</span>
+            </span>
+            <span className="text-slate-400 text-[0.8rem]">{logsOpen ? "收起 ▲" : "查看 ▼"}</span>
+          </button>
+
+          {logsOpen && (
+            <div className="px-5 pb-5 border-t border-slate-100 pt-4">
+              {/* 筛选器 */}
+              <div className="flex flex-wrap items-center gap-2.5 mb-4">
+                <select
+                  value={logType}
+                  onChange={(e) => {
+                    setLogType(e.target.value);
+                    setLogPage(1);
+                  }}
+                  className="bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] text-slate-700 cursor-pointer"
+                >
+                  <option value="">全部类型</option>
+                  {(logs?.types ?? []).map((t) => (
+                    <option key={t} value={t}>{t}</option>
+                  ))}
+                </select>
+                <input
+                  value={logUser}
+                  onChange={(e) => {
+                    setLogUser(e.target.value);
+                    setLogPage(1);
+                  }}
+                  placeholder="按用户 ID 筛选"
+                  className="w-40 bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem]"
+                />
+                <Btn size="sm" variant="ghost" onClick={() => void loadLogs(logType, logUser, logPage)} disabled={logsBusy}>
+                  {logsBusy ? "刷新中..." : "刷新"}
+                </Btn>
+                <span className="ml-auto text-[0.8rem] text-slate-400">
+                  {logs ? `共 ${logs.total} 条 · 第 ${logs.page} 页` : ""}
+                </span>
+              </div>
+
+              {logs === null ? (
+                <Empty text={logsBusy ? "加载中..." : "暂无日志"} />
+              ) : logs.logs.length === 0 ? (
+                <Empty text="当前筛选下暂无日志" />
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-[0.85rem]">
+                    <thead>
+                      <tr className="text-left text-slate-400 text-[0.78rem] border-b border-slate-100">
+                        <th className="py-2 pr-4 font-medium">#</th>
+                        <th className="py-2 pr-4 font-medium">用户</th>
+                        <th className="py-2 pr-4 font-medium">类型</th>
+                        <th className="py-2 pr-4 font-medium">详情</th>
+                        <th className="py-2 pr-4 font-medium">IP</th>
+                        <th className="py-2 font-medium">时间</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-50">
+                      {logs.logs.map((l) => (
+                        <tr key={l.id} className="text-slate-600">
+                          <td className="py-2.5 pr-4 font-mono text-[0.8rem]">{l.id}</td>
+                          <td className="py-2.5 pr-4 whitespace-nowrap">
+                            {l.username ? (
+                              <span className="text-slate-800">{l.username}</span>
+                            ) : (
+                              <span className="text-slate-400">#{l.user_id}</span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pr-4">
+                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[0.72rem] font-mono">{l.action}</span>
+                          </td>
+                          <td className="py-2.5 pr-4 text-slate-500 max-w-[280px] truncate" title={l.detail}>{l.detail || "-"}</td>
+                          <td className="py-2.5 pr-4 font-mono text-[0.78rem] text-slate-400">{l.ip || "-"}</td>
+                          <td className="py-2.5 whitespace-nowrap text-slate-500">{fmtTime(l.created_at)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+
+              {/* 分页 */}
+              {logs && logs.total > logs.size && (
+                <div className="flex items-center justify-end gap-2 mt-4">
+                  <Btn size="sm" variant="ghost" disabled={logs.page <= 1} onClick={() => setLogPage((p) => Math.max(1, p - 1))}>
+                    上一页
+                  </Btn>
+                  <span className="text-[0.8rem] text-slate-400">
+                    {logs.page} / {Math.ceil(logs.total / logs.size)}
+                  </span>
+                  <Btn size="sm" variant="ghost" disabled={logs.page >= Math.ceil(logs.total / logs.size)} onClick={() => setLogPage((p) => p + 1)}>
+                    下一页
+                  </Btn>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -17,6 +17,7 @@ const navItems = [
   { label: "规则", href: "/rules" },
   { label: "FAQ", href: "/faq" },
   { label: "社区", href: "/community" },
+  { label: "聊天", href: "/chat" },
   { label: "联系", href: "/contact" },
   { label: "关于", href: "/about" },
 ];
