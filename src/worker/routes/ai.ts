@@ -22,6 +22,33 @@ const DEFAULT_AI: AiConfig = {
   daily_limit: 5,
 };
 
+/** 归一化 OpenAI 兼容端点：base_url 已含 /chat/completions 时直接用，否则追加 */
+function chatUrl(baseUrl: string): string {
+  const b = baseUrl.replace(/\/+$/, "");
+  return b.endsWith("/chat/completions") ? b : `${b}/chat/completions`;
+}
+
+/** 提取上游错误摘要，便于排查密钥/模型/额度问题 */
+async function upstreamError(resp: Response): Promise<string> {
+  let detail = "";
+  try {
+    detail = (await resp.text()).slice(0, 180);
+  } catch {
+    /* ignore */
+  }
+  const map: Record<number, string> = {
+    401: "API 密钥无效或未授权（401）",
+    403: "无权访问该模型（403）",
+    404: "端点或模型不存在（404），请检查 Base URL 与模型名",
+    429: "额度用尽或请求过于频繁（429）",
+    500: "供应商服务异常（500）",
+    502: "供应商网关异常（502）",
+    503: "供应商服务不可用（503）",
+  };
+  const hint = map[resp.status] ? `${map[resp.status]}：` : `HTTP ${resp.status}：`;
+  return hint + detail;
+}
+
 /** 读取 AI 配置：优先数据库 site_settings.ai_config，回退环境变量；
  *  若配置了多接口模板（ai_providers）且选中了当前模板（ai_active_provider），则用模板的端点/模型/密钥覆盖。 */
 export async function loadAiConfig(db: D1Database, env: AppEnv["Bindings"]): Promise<AiConfig> {
@@ -159,7 +186,7 @@ app.post("/admin/providers/test", async (c) => {
   const model = p.model || "gpt-4o-mini";
   const started = Date.now();
   try {
-    const resp = await fetch(`${baseUrl}/chat/completions`, {
+    const resp = await fetch(chatUrl(baseUrl), {
       method: "POST",
       headers: { "Content-Type": "application/json", Authorization: `Bearer ${p.api_key}` },
       body: JSON.stringify({
@@ -171,8 +198,7 @@ app.post("/admin/providers/test", async (c) => {
     });
     const ms = Date.now() - started;
     if (!resp.ok) {
-      const text = (await resp.text()).slice(0, 200);
-      return ok({ ok: false, ms, message: `HTTP ${resp.status}: ${text}` });
+      return ok({ ok: false, ms, message: await upstreamError(resp) });
     }
     const data = (await resp.json()) as { choices?: unknown[] };
     if (!data.choices?.length) return ok({ ok: false, ms, message: "响应异常：无 choices" });
@@ -236,7 +262,7 @@ app.post("/chat", requireAuth, async (c) => {
       "SELECT role, content FROM ai_conversation_messages WHERE conversation_id = ? ORDER BY id ASC LIMIT 20",
     ).bind(convoId).all();
 
-    const resp = await fetch(`${baseUrl}/chat/completions`, {
+    const resp = await fetch(chatUrl(baseUrl), {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -249,10 +275,11 @@ app.post("/chat", requireAuth, async (c) => {
           ...history.map((m) => ({ role: m.role, content: m.content })),
         ],
       }),
+      signal: AbortSignal.timeout(30_000),
     });
 
     if (!resp.ok) {
-      return fail(`AI 服务错误: ${resp.status}`, 502);
+      return fail(`AI 服务异常：${await upstreamError(resp)}`, 502);
     }
     const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
     reply = data.choices?.[0]?.message?.content || "（无回复）";

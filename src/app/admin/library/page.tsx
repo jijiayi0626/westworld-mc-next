@@ -10,6 +10,8 @@ interface LibItem {
   url: string;
   size: number;
   uploaded: string | null;
+  system?: boolean;
+  in_use?: boolean;
 }
 
 
@@ -54,20 +56,16 @@ export default function AdminLibraryPage() {
     }
   };
 
-  const remove = async (key: string) => {
-    const isSystem = key.startsWith("assets/");
-    if (
-      !confirm(
-        isSystem
-          ? "这是系统默认图片，删除后引用它的页面将显示不出来（重新部署可恢复）。确定删除？"
-          : "确定删除这张图片？此操作不可撤销。",
-      )
-    )
+  const remove = async (item: LibItem) => {
+    if (item.system) {
+      setError("系统默认图片不可删除（页面引用它，删除会导致显示异常）");
       return;
+    }
+    if (!confirm("确定删除这张图片？此操作不可撤销。")) return;
     setError("");
     setSuccess("");
     try {
-      await api("/upload/admin/library/delete", { method: "POST", body: JSON.stringify({ key }) });
+      await api("/upload/admin/library/delete", { method: "POST", body: JSON.stringify({ key: item.key }) });
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除失败");
@@ -144,9 +142,17 @@ export default function AdminLibraryPage() {
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {filtered.map((i) => (
-              <div key={i.key} className="bg-white border border-slate-200 rounded-[12px] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <div key={i.key} className="relative bg-white border border-slate-200 rounded-[12px] overflow-hidden shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src={i.url} alt={i.key} className="w-full h-32 object-cover" loading="lazy" />
+                <div className="absolute top-1.5 left-1.5 flex gap-1">
+                  {i.system && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-slate-900/70 text-white text-[0.62rem] font-medium backdrop-blur-sm">系统</span>
+                  )}
+                  {i.in_use && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/85 text-white text-[0.62rem] font-medium">使用中</span>
+                  )}
+                </div>
                 <div className="p-2.5">
                   <div className="font-mono text-[0.68rem] text-slate-500 truncate" title={i.key}>{i.key.split("/").pop()}</div>
                   <div className="flex items-center justify-between gap-2 mt-2">
@@ -157,13 +163,22 @@ export default function AdminLibraryPage() {
                     >
                       {copied === i.url ? "已复制" : "复制链接"}
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => remove(i.key)}
-                      className="px-2 py-1 rounded-[6px] bg-red-50 border border-red-200 text-[0.72rem] text-red-600 hover:bg-red-100 cursor-pointer"
-                    >
-                      删除
-                    </button>
+                    {i.system ? (
+                      <span
+                        className="px-2 py-1 rounded-[6px] bg-slate-50 border border-slate-200 text-[0.72rem] text-slate-300 select-none"
+                        title="系统默认图片不可删除"
+                      >
+                        受保护
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => remove(i)}
+                        className="px-2 py-1 rounded-[6px] bg-red-50 border border-red-200 text-[0.72rem] text-red-600 hover:bg-red-100 cursor-pointer"
+                      >
+                        删除
+                      </button>
+                    )}
                   </div>
                 </div>
               </div>

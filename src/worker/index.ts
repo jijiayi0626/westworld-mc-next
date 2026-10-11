@@ -78,6 +78,12 @@ export default {
     ctx.waitUntil(
       (async () => {
         try {
+          // 心跳：每次 cron 触发都记录时间（后台「系统健康」据此判断巡检是否存活）
+          await env.DB.prepare(
+            `INSERT INTO site_settings (key, value, updated_at) VALUES ('last_cron_run', datetime('now'), datetime('now'))
+             ON CONFLICT(key) DO UPDATE SET value = datetime('now'), updated_at = datetime('now')`,
+          ).run();
+
           const intervalRow = await env.DB.prepare(
             "SELECT value FROM site_settings WHERE key = 'monitor_interval_minutes'",
           ).first<{ value: string }>();
