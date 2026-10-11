@@ -56,12 +56,45 @@
 }
 .sidebar-collapsed .mobile-topbar { margin-left: var(--sb-w-c); }
 .mobile-topbar-title {
+  flex: 1;
   font-size: 1.05rem;
   font-weight: 600;
   color: var(--sb-text-strong);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+/* 顶栏快捷切换（首页 / 用户中心 / 管理后台） */
+.topbar-quick {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.topbar-quick-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--sb-text);
+  background: var(--sb-hover);
+  border: 1px solid var(--sb-border);
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+}
+.topbar-quick-btn:hover {
+  color: var(--sb-accent);
+  border-color: var(--sb-accent);
+  background: var(--sb-accent-bg);
+}
+@media (max-width: 600px) {
+  .topbar-quick-btn { padding: 7px 9px; }
+  .topbar-quick-btn span { display: none; }
 }
 .mobile-menu-btn {
   flex: 0 0 auto;
