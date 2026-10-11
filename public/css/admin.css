@@ -6384,3 +6384,32 @@ textarea.form-input { resize: vertical; min-height: 100px; }
 .alert { padding: 16px; border-radius: 12px; margin: 24px 32px 0; font-weight: 500; display: flex; align-items: center; gap: 12px; }
 .alert.success { background: #ecfdf5; color: var(--green-dark); border: 1px solid #a7f3d0; }
 .alert.error { background: #fef2f2; color: var(--red); border: 1px solid #fecaca; }
+
+/* ============ 鸿蒙风打磨层（admin） ============ */
+/* 卡片：大圆角 + 分层柔和阴影 */
+.admin-card, .card, .stat-card {
+  border-radius: 18px;
+}
+/* 输入控件：鸿蒙风圆角与焦点色 */
+input[type="text"], input[type="password"], input[type="number"],
+input[type="email"], input[type="date"], select, textarea {
+  border-radius: 12px;
+  transition: border-color var(--tr-soft), box-shadow var(--tr-soft), background var(--tr-soft);
+}
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(10, 89, 247, 0.14);
+  outline: none;
+}
+/* 按钮按压反馈 */
+.btn, button[class*="btn"] {
+  transition: transform var(--tr-fast), box-shadow var(--tr-soft), background var(--tr-soft), opacity var(--tr-soft);
+}
+.btn:active { transform: scale(0.97); }
+/* 表格行 hover 更顺滑 */
+tbody tr { transition: background var(--tr-fast); }
+/* 开关/圆点组件阴影 */
+.toggle-dot, [class*="switch"] { transition: all var(--tr-soft); }
+/* 滚动条 */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(100,116,139,.35); border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(100,116,139,.55); }

@@ -5,6 +5,8 @@ import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp } from "../lib/log";
 import { upopAdminStatus } from "./upop";
+import { msAdminStatus } from "./microsoft";
+import { loadAiConfig } from "./ai";
 
 const app = new Hono<AppEnv>();
 
@@ -12,15 +14,132 @@ app.use("*", requireAuth, requireAdmin);
 
 // 三方接口预留状态（微软 OAuth / UPOP）
 app.get("/integrations", async (c) => {
-  const env = c.env as unknown as Record<string, unknown>;
   const site = (c.env.SITE_URL as string) || "";
-  const ms = {
-    enabled: env.MICROSOFT_OAUTH_ENABLED === "true",
-    client_id_set: !!env.MICROSOFT_CLIENT_ID,
-    client_secret_set: !!env.MICROSOFT_CLIENT_SECRET,
-    callback_url: `${site}/api/microsoft/callback`,
-  };
-  return ok({ microsoft: ms, upop: await upopAdminStatus(c) });
+  const upop = await upopAdminStatus(c);
+  return ok({
+    microsoft: await msAdminStatus(c),
+    upop: { ...upop, callback_url: `${site}/api/upop/callback` },
+  });
+});
+
+// 保存微软 OAuth 配置（client_id / client_secret 留空表示保留原值）
+app.post("/integrations/microsoft", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const row = await c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'ms_oauth_config'").first<{ value: string }>();
+  let cur: Record<string, unknown> = {};
+  if (row?.value) {
+    try {
+      cur = JSON.parse(row.value) as Record<string, unknown>;
+    } catch {
+      /* ignore */
+    }
+  }
+  const clientId = str(body.client_id, 200).trim() || (typeof cur.client_id === "string" ? cur.client_id : "");
+  const clientSecret = str(body.client_secret, 300).trim() || (typeof cur.client_secret === "string" ? cur.client_secret : "");
+  if (!clientId || !clientSecret) return fail("Client ID 与 Client Secret 均需完整保存过一次（留空表示保留原值）");
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES ('ms_oauth_config', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(JSON.stringify({ enabled: body.enabled === true, client_id: clientId, client_secret: clientSecret }))
+    .run();
+  await logOp(c.env.DB, c, admin.id, "setting_update", "ms_oauth_config");
+  return ok({ saved: true });
+});
+
+// 系统健康自检：自动发现不可用的组件并给出提示
+app.get("/health", async (c) => {
+  type Item = { id: string; label: string; ok: boolean; detail: string };
+  const items: Item[] = [];
+
+  // 1. 数据库
+  let dbOk = false;
+  try {
+    await c.env.DB.prepare("SELECT 1").first();
+    dbOk = true;
+  } catch {
+    /* ignore */
+  }
+  items.push({ id: "db", label: "数据库 (D1)", ok: dbOk, detail: dbOk ? "连接正常" : "无法连接数据库，请检查 D1 绑定" });
+
+  // 2. 对象存储
+  let r2Ok = false;
+  try {
+    await c.env.ASSETS?.list({ limit: 1 });
+    r2Ok = !!c.env.ASSETS;
+  } catch {
+    /* ignore */
+  }
+  items.push({ id: "r2", label: "对象存储 (R2)", ok: r2Ok, detail: r2Ok ? "连接正常" : "R2 未绑定或不可访问，图片上传不可用" });
+
+  // 3. AI 配置
+  try {
+    const ai = await loadAiConfig(c.env.DB, c.env);
+    const probs: string[] = [];
+    if (!ai.enabled) probs.push("总开关未开启（演示模式）");
+    if (!ai.api_key) probs.push("未配置 API 密钥");
+    if (!ai.model) probs.push("未配置模型");
+    items.push({
+      id: "ai",
+      label: "AI 助手",
+      ok: ai.enabled && !!ai.api_key && !!ai.model,
+      detail: probs.length ? probs.join("；") : `已启用（${ai.model}）`,
+    });
+  } catch {
+    items.push({ id: "ai", label: "AI 助手", ok: false, detail: "配置读取失败" });
+  }
+
+  // 4. 微软 OAuth
+  const ms = await msAdminStatus(c);
+  items.push({
+    id: "microsoft",
+    label: "微软 OAuth 绑定",
+    ok: ms.enabled,
+    detail: ms.enabled ? "已启用" : "未启用（后台「网站设置 → 三方接口预留」可配置，非必选）",
+  });
+
+  // 5. UPOP
+  const upop = await upopAdminStatus(c);
+  items.push({
+    id: "upop",
+    label: "UPOP 统一认证",
+    ok: upop.enabled,
+    detail: upop.enabled ? "已启用" : "预留中（后台可配置，非必选）",
+  });
+
+  // 6. 定时巡检（cron）
+  try {
+    const [cronRow, intervalRow] = await Promise.all([
+      c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'last_cron_run'").first<{ value: string }>(),
+      c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'monitor_interval_minutes'").first<{ value: string }>(),
+    ]);
+    const interval = Math.max(5, Math.min(1440, Number(intervalRow?.value) || 15));
+    const last = cronRow?.value ? new Date(cronRow.value.replace(" ", "T") + "Z").getTime() : 0;
+    const fresh = last && Date.now() - last < (interval + 10) * 60_000;
+    items.push({
+      id: "cron",
+      label: "定时巡检",
+      ok: !!fresh,
+      detail: fresh
+        ? `运行正常（间隔 ${interval} 分钟，上次 ${cronRow?.value} UTC）`
+        : "超过 1 个周期未运行，请检查 Worker Cron 触发器",
+    });
+  } catch {
+    items.push({ id: "cron", label: "定时巡检", ok: false, detail: "状态读取失败" });
+  }
+
+  // 7. RCON
+  const rconEnabled = (c.env as unknown as Record<string, unknown>).RCON_ENABLED === "true";
+  items.push({
+    id: "rcon",
+    label: "RCON 白名单同步",
+    ok: !rconEnabled,
+    detail: rconEnabled ? "已启用" : "未启用（手动复制命令同步，非故障）",
+  });
+
+  const allOk = items.every((i) => i.ok);
+  return ok({ all_ok: allOk, checked_at: new Date().toISOString(), items });
 });
 
 

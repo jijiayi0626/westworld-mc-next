@@ -5193,3 +5193,15 @@ body.auth-page--video::before {
     .ticket-attachment-image { min-width: 0; max-width: 148px; }
 }
 
+
+/* ============ 鸿蒙风打磨层（user） ============ */
+.card { border-radius: 18px; }
+input[type="text"], input[type="password"], input[type="number"],
+input[type="email"], select, textarea { border-radius: 12px; }
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(10, 89, 247, 0.14);
+  outline: none;
+}
+.btn:active { transform: scale(0.97); }
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: rgba(100,116,139,.35); border-radius: 8px; }

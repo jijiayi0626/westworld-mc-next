@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
@@ -17,13 +17,40 @@ interface Stats {
   new_messages: number;
 }
 
+interface HealthItem {
+  id: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+}
+
+interface Health {
+  all_ok: boolean;
+  checked_at: string;
+  items: HealthItem[];
+}
+
 export default function AdminHomePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
+  const [health, setHealth] = useState<Health | null>(null);
+  const [healthBusy, setHealthBusy] = useState(false);
+
+  const loadHealth = useCallback(async () => {
+    setHealthBusy(true);
+    try {
+      setHealth(await api<Health>("/admin/health"));
+    } catch {
+      setHealth(null);
+    } finally {
+      setHealthBusy(false);
+    }
+  }, []);
 
   useEffect(() => {
     api<Stats>("/admin/stats").then(setStats).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
-  }, []);
+    void loadHealth();
+  }, [loadHealth]);
 
   // 统计卡片（图5：今日新增注册绿底 / 今日新增申请浅绿 / 待审核浅黄 / 已通过未同步浅蓝）
   const statCards = [
@@ -91,6 +118,43 @@ export default function AdminHomePage() {
               <div className="text-[2rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value ?? "—"}</div>
             </Link>
           ))}
+        </div>
+
+        {/* 系统健康自检：自动发现不可用组件 */}
+        <div className="bg-white border border-slate-200 rounded-[14px] p-5 mb-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-3 mb-3">
+            <div className="flex items-center gap-2.5">
+              <h3 className="text-[1.02rem] font-bold text-slate-900">系统健康</h3>
+              {health && (
+                <span className={`px-2 py-0.5 rounded-full text-[0.72rem] font-medium ${health.all_ok ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                  {health.all_ok ? "全部正常" : health.items.filter((i) => !i.ok).length + " 项待处理"}
+                </span>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => void loadHealth()}
+              disabled={healthBusy}
+              className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+            >
+              {healthBusy ? "检测中..." : "重新检测"}
+            </button>
+          </div>
+          {health === null ? (
+            <p className="text-slate-400 text-[0.88rem]">{healthBusy ? "自动检测中..." : "健康状态加载失败"}</p>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5">
+              {health.items.map((i) => (
+                <div key={i.id} className="flex items-start gap-2.5">
+                  <span className={`mt-[7px] w-2 h-2 rounded-full shrink-0 ${i.ok ? "bg-emerald-500" : "bg-red-500"}`} />
+                  <div className="min-w-0">
+                    <div className={`text-[0.88rem] font-medium ${i.ok ? "text-slate-700" : "text-red-600"}`}>{i.label}</div>
+                    <div className={`text-[0.78rem] mt-0.5 leading-relaxed ${i.ok ? "text-slate-400" : "text-red-500"}`}>{i.detail}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 功能卡片区 */}

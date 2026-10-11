@@ -67,10 +67,17 @@ app.post("/image", requireAuth, async (c) => {
 app.use("/admin/*", requireAuth, requireAdmin);
 
 // 列出图库图片（tab=mine 仅上传的；tab=system 含系统默认图片 assets/img/*；tab=all 两者）
+// 每项带 in_use 标记：检查图片 key 是否被站点内容（site_content）引用
 app.get("/admin/library", async (c) => {
   const bucket = c.env.ASSETS;
   if (!bucket) return fail("R2 未绑定", 503);
   const tab = c.req.query("tab") === "system" ? "system" : c.req.query("tab") === "all" ? "all" : "mine";
+
+  // 使用中检测：站点内容 JSON 中出现的 key 都算被引用
+  const contentRow = await c.env.DB.prepare(
+    "SELECT value FROM site_settings WHERE key = 'site_content'",
+  ).first<{ value: string }>();
+  const contentBlob = contentRow?.value ?? "";
 
   const listPrefix = async (prefix: string, limit: number) => {
     const listed = await bucket.list({ prefix, limit });
@@ -79,27 +86,31 @@ app.get("/admin/library", async (c) => {
       url: `/static/${o.key}`,
       size: o.size,
       uploaded: o.uploaded?.toISOString() ?? null,
+      system: o.key.startsWith("assets/img/"),
+      in_use: contentBlob.includes(o.key),
     }));
   };
 
   if (tab === "system") {
-    return ok(await listPrefix("assets/img/", 200));
+    return ok(await listPrefix("assets/img/", 300));
   }
 
   const uploads = await listPrefix("uploads/library/", 200);
   if (tab === "all") {
-    const system = await listPrefix("assets/img/", 200);
+    const system = await listPrefix("assets/img/", 300);
     return ok([...system, ...uploads]);
   }
   return ok(uploads);
 });
 
-// 删除图片（仅限 uploads/ 与 assets/img/ 前缀，防目录穿越）
+// 删除图片（仅限 uploads/ 前缀；assets/img/ 为系统级资源，禁止删除）
 app.post("/admin/library/delete", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const key = String(body.key || "");
-  const allowed = key.startsWith("uploads/") || key.startsWith("assets/img/");
-  if (!allowed) return fail("非法路径");
+  if (key.startsWith("assets/img/")) {
+    return fail("系统默认图片不可删除。如需调整请更新部署包中的 public 图片资源。");
+  }
+  if (!key.startsWith("uploads/")) return fail("非法路径");
   const bucket = c.env.ASSETS;
   if (!bucket) return fail("R2 未绑定", 503);
   await bucket.delete(key);
