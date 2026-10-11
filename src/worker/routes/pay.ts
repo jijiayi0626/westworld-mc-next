@@ -1,8 +1,9 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/auth";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
+import { logOp } from "../lib/log";
 
 const app = new Hono<AppEnv>();
 
@@ -57,32 +58,45 @@ app.post("/create", requireAuth, async (c) => {
   return ok({ order_no: order.order_no, provider, pay_url: payUrl });
 });
 
-// 支付回调（Creem/Stripe webhook 占位；本地演示时用 cancel/verify 模拟）
+// 支付回调（Creem webhook）
+// 安全：必须校验 x-api-key 与 CREEM_API_KEY 一致，否则任何人都能伪造回调白嫖订单。
+// 未配置 CREEM_API_KEY 时直接拒绝（避免裸奔）。
 app.post("/webhook", async (c) => {
-  // 生产环境需校验签名（x-api-key / stripe-signature）
-  const body = await c.req.json().catch(() => ({}));
+  const apiKey = c.env.CREEM_API_KEY as string | undefined;
+  if (!apiKey) return fail("支付回调未配置", 503);
 
-  // 占位：识别 order_no 并标记已支付
+  // Creem 回调以 x-api-key 鉴权；兼容读取 Authorization: Bearer
+  const headerKey =
+    c.req.header("x-api-key") ||
+    (c.req.header("authorization")?.startsWith("Bearer ")
+      ? c.req.header("authorization")!.slice(7)
+      : "");
+  if (!headerKey || headerKey !== apiKey) return fail("回调签名无效", 401);
+
+  const body = await c.req.json().catch(() => ({}));
   const orderNo = str(body.request_id || body.order_no || body.metadata?.order_no, 60);
-  if (orderNo) {
-    await c.env.DB.prepare(
-      "UPDATE shop_orders SET status = 'paid', paid_at = datetime('now') WHERE order_no = ? AND status = 'pending'",
-    ).bind(orderNo).run();
-  }
+  if (!orderNo) return fail("缺少订单号", 400);
+
+  const result = await c.env.DB.prepare(
+    "UPDATE shop_orders SET status = 'paid', paid_at = datetime('now'), provider = 'creem' WHERE order_no = ? AND status = 'pending'",
+  ).bind(orderNo).run();
+  await logOp(c.env.DB, c, null, "pay_webhook", orderNo, `changes=${result.meta.changes}`);
   return ok({ received: true });
 });
 
-// 模拟支付成功（演示用，生产应移除或加管理员鉴权）
-app.post("/verify", requireAuth, async (c) => {
-  const user = c.get("user")!;
+// 手动确认收款（仅管理员：用于手动转账等线下收款场景）
+// 原实现允许任意登录用户把自己的订单标记为已支付（白嫖漏洞），已改为仅管理员可操作。
+app.post("/verify", requireAuth, requireAdmin, async (c) => {
+  const admin = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const orderNo = str(body.order_no, 60).trim();
   if (!orderNo) return fail("缺少订单号");
 
   const result = await c.env.DB.prepare(
-    "UPDATE shop_orders SET status = 'paid', paid_at = datetime('now') WHERE order_no = ? AND user_id = ? AND status = 'pending'",
-  ).bind(orderNo, user.id).run();
+    "UPDATE shop_orders SET status = 'paid', paid_at = datetime('now'), provider = CASE WHEN provider = '' THEN 'manual' ELSE provider END WHERE order_no = ? AND status = 'pending'",
+  ).bind(orderNo).run();
   if (result.meta.changes === 0) return fail("订单不存在或已处理", 400);
+  await logOp(c.env.DB, c, admin.id, "pay_manual_confirm", orderNo);
   return ok({ paid: true });
 });
 
