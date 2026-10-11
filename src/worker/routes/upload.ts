@@ -66,25 +66,40 @@ app.post("/image", requireAuth, async (c) => {
 
 app.use("/admin/*", requireAuth, requireAdmin);
 
-// 列出图库图片
+// 列出图库图片（tab=mine 仅上传的；tab=system 含系统默认图片 assets/img/*；tab=all 两者）
 app.get("/admin/library", async (c) => {
   const bucket = c.env.ASSETS;
   if (!bucket) return fail("R2 未绑定", 503);
-  const listed = await bucket.list({ prefix: "uploads/library/", limit: 200 });
-  const items = listed.objects.map((o) => ({
-    key: o.key,
-    url: `/static/${o.key}`,
-    size: o.size,
-    uploaded: o.uploaded?.toISOString() ?? null,
-  }));
-  return ok(items);
+  const tab = c.req.query("tab") === "system" ? "system" : c.req.query("tab") === "all" ? "all" : "mine";
+
+  const listPrefix = async (prefix: string, limit: number) => {
+    const listed = await bucket.list({ prefix, limit });
+    return listed.objects.map((o) => ({
+      key: o.key,
+      url: `/static/${o.key}`,
+      size: o.size,
+      uploaded: o.uploaded?.toISOString() ?? null,
+    }));
+  };
+
+  if (tab === "system") {
+    return ok(await listPrefix("assets/img/", 200));
+  }
+
+  const uploads = await listPrefix("uploads/library/", 200);
+  if (tab === "all") {
+    const system = await listPrefix("assets/img/", 200);
+    return ok([...system, ...uploads]);
+  }
+  return ok(uploads);
 });
 
-// 删除图片（仅限 uploads/ 前缀，防目录穿越）
+// 删除图片（仅限 uploads/ 与 assets/img/ 前缀，防目录穿越）
 app.post("/admin/library/delete", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const key = String(body.key || "");
-  if (!key.startsWith("uploads/")) return fail("非法路径");
+  const allowed = key.startsWith("uploads/") || key.startsWith("assets/img/");
+  if (!allowed) return fail("非法路径");
   const bucket = c.env.ASSETS;
   if (!bucket) return fail("R2 未绑定", 503);
   await bucket.delete(key);

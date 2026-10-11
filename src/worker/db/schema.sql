@@ -257,3 +257,14 @@ CREATE TABLE IF NOT EXISTS microsoft_bindings (
 );
 CREATE INDEX IF NOT EXISTS idx_ms_bindings_uuid ON microsoft_bindings(mc_uuid);
 CREATE INDEX IF NOT EXISTS idx_ms_bindings_ms ON microsoft_bindings(ms_account_id);
+
+-- UPOP 统一认证绑定（预留接口）
+CREATE TABLE IF NOT EXISTS upop_bindings (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  external_id TEXT NOT NULL,                   -- UPOP 用户唯一 ID
+  upop_username TEXT NOT NULL,
+  userinfo TEXT DEFAULT '',                    -- 用户信息 JSON（截断存储）
+  bound_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_upop_bindings_ext ON upop_bindings(external_id);

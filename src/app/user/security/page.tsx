@@ -12,6 +12,19 @@ interface Binding {
   mc_uuid: string;
 }
 
+interface UpopBinding {
+  id: number;
+  upop_username: string;
+  external_id: string;
+  bound_at: string;
+}
+
+interface UpopStatus {
+  enabled: boolean;
+  missing: string[];
+  callback_url: string;
+}
+
 export default function UserSecurityPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -20,18 +33,40 @@ export default function UserSecurityPage() {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
   const [bindings, setBindings] = useState<Binding[] | null>(null);
+  const [upopBinding, setUpopBinding] = useState<UpopBinding | null>(null);
+  const [upopStatus, setUpopStatus] = useState<UpopStatus | null>(null);
 
   const loadBindings = useCallback(async () => {
     try {
-      setBindings(await api<Binding[]>("/user/bindings"));
+      // 后端返回单个绑定对象或 null，统一转为数组
+      const data = await api<Binding | Binding[] | null>("/user/bindings");
+      setBindings(Array.isArray(data) ? data : data ? [data] : []);
     } catch {
       setBindings([]);
     }
   }, []);
 
+  const loadUpop = useCallback(async () => {
+    try {
+      setUpopStatus(await api<UpopStatus>("/upop/status"));
+    } catch {
+      setUpopStatus(null);
+    }
+    try {
+      setUpopBinding(await api<UpopBinding | null>("/upop/bindings"));
+    } catch {
+      setUpopBinding(null);
+    }
+  }, []);
+
   useEffect(() => {
     void loadBindings();
-  }, [loadBindings]);
+    void loadUpop();
+    if (window.location.search.includes("upop_bound=1")) {
+      setSuccess("UPOP 账号绑定成功");
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }, [loadBindings, loadUpop]);
 
   const changePassword = async (e: FormEvent) => {
     e.preventDefault();
@@ -86,6 +121,30 @@ export default function UserSecurityPage() {
     }
   };
 
+  const bindUpop = async () => {
+    setError("");
+    setSuccess("");
+    try {
+      const data = await api<{ url: string }>("/upop/authorize-url");
+      window.location.href = data.url;
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "UPOP 绑定未启用（需管理员在后台配置 upop_* 参数）");
+    }
+  };
+
+  const unbindUpop = async () => {
+    if (!confirm("确定解绑 UPOP 账号？")) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api("/upop/unbind", { method: "POST", body: JSON.stringify({}) });
+      setSuccess("已解绑 UPOP 账号");
+      await loadUpop();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "解绑失败");
+    }
+  };
+
   return (
     <UserShell>
       <div className="px-4 py-6">
@@ -135,6 +194,32 @@ export default function UserSecurityPage() {
                   <Btn size="sm" variant="danger" onClick={() => unbind(b.id)}>解绑</Btn>
                 </div>
               ))}
+            </div>
+          )}
+        </Card>
+
+        {/* UPOP 统一认证绑定（预留接口） */}
+        <Card className="mt-5">
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">UPOP 统一认证绑定</h3>
+          <p className="text-[0.85rem] text-slate-500 mb-4 leading-relaxed">
+            UPOP 统一认证绑定接口已预留。启用后可通过 UPOP 账号快速关联站内身份（需管理员在后台「网站设置 → 三方接口预留」中完成配置）。
+          </p>
+          {upopBinding ? (
+            <div className="flex items-center justify-between gap-3 py-1">
+              <div>
+                <div className="text-slate-800 font-medium">{upopBinding.upop_username}</div>
+                <div className="mt-1 text-[0.78rem] text-slate-500 font-mono">ID: {upopBinding.external_id}</div>
+              </div>
+              <Btn size="sm" variant="danger" onClick={unbindUpop}>解绑</Btn>
+            </div>
+          ) : upopStatus?.enabled ? (
+            <Btn variant="ghost" onClick={bindUpop}>绑定 UPOP 账号</Btn>
+          ) : (
+            <div className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3 text-[0.85rem] text-slate-500">
+              UPOP 绑定暂未启用
+              {upopStatus?.missing?.length ? (
+                <span className="text-slate-400">（待配置：{upopStatus.missing.join("、")}）</span>
+              ) : null}
             </div>
           )}
         </Card>

@@ -105,7 +105,8 @@
   padding: 0 14px 0 18px;
   border-bottom: 1px solid var(--sb-border);
 }
-.sidebar-logo { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; }
+.sidebar-logo { flex: 1 1 auto; min-width: 0; display: flex; align-items: center; gap: 9px; }
+.sidebar-logo-mark { flex: 0 0 auto; display: inline-block; width: 26px; height: 26px; }
 .sidebar-title {
   font-weight: 700;
   font-size: 1.02rem;
@@ -165,6 +166,23 @@
   text-overflow: ellipsis;
 }
 
+/* 未读徽标 */
+.nav-item-badge {
+  margin-left: auto;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: #ef4444;
+  color: #fff;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+.nav-item.active .nav-item-badge { background: var(--sb-accent-strong); }
+
 /* 分组 */
 .nav-group { position: relative; }
 .nav-group-toggle {
@@ -209,7 +227,8 @@
 /* ---------- 折叠态（仅桌面端；≤768px 在媒体查询里还原） ---------- */
 .sidebar-collapsed .sidebar,
 .sidebar-collapsed .user-sidebar { width: var(--sb-w-c); }
-.sidebar-collapsed .sidebar-header { padding: 0 8px; flex-direction: column; justify-content: center; gap: 8px; height: auto; min-height: var(--sb-h); padding-top: 10px; padding-bottom: 10px; }
+.sidebar-collapsed .sidebar-header { padding: 10px 8px; flex-direction: column; justify-content: center; gap: 8px; height: auto; min-height: var(--sb-h); }
+.sidebar-collapsed .sidebar-logo { justify-content: center; }
 .sidebar-collapsed .sidebar-title,
 .sidebar-collapsed .nav-item > span:not(.nav-item-icon),
 .sidebar-collapsed .nav-group-arrow { display: none; }

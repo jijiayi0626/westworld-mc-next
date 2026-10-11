@@ -22,7 +22,8 @@ const DEFAULT_AI: AiConfig = {
   daily_limit: 5,
 };
 
-/** 读取 AI 配置：优先数据库 site_settings.ai_config，回退环境变量 */
+/** 读取 AI 配置：优先数据库 site_settings.ai_config，回退环境变量；
+ *  若配置了多接口模板（ai_providers）且选中了当前模板（ai_active_provider），则用模板的端点/模型/密钥覆盖。 */
 export async function loadAiConfig(db: D1Database, env: AppEnv["Bindings"]): Promise<AiConfig> {
   const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'ai_config'").first<{ value: string }>();
   let cfg: AiConfig = { ...DEFAULT_AI };
@@ -41,8 +42,146 @@ export async function loadAiConfig(db: D1Database, env: AppEnv["Bindings"]): Pro
   if (envKey) cfg.api_key = cfg.api_key || envKey;
   if (envBase) cfg.base_url = cfg.base_url || envBase;
   if (envModel) cfg.model = cfg.model || envModel;
+
+  // 多接口模板：当前选中的模板优先级最高
+  try {
+    const [activeRow, listRow] = await Promise.all([
+      db.prepare("SELECT value FROM site_settings WHERE key = 'ai_active_provider'").first<{ value: string }>(),
+      db.prepare("SELECT value FROM site_settings WHERE key = 'ai_providers'").first<{ value: string }>(),
+    ]);
+    if (activeRow?.value && listRow?.value) {
+      const providers = JSON.parse(listRow.value) as AiProvider[];
+      const p = providers.find((x) => x.id === activeRow.value);
+      if (p) {
+        if (p.base_url) cfg.base_url = p.base_url;
+        if (p.model) cfg.model = p.model;
+        if (p.api_key) cfg.api_key = p.api_key;
+      }
+    }
+  } catch {
+    /* 模板配置损坏时按通用配置走 */
+  }
   return cfg;
 }
+
+// —— AI 接口模板（多供应商一键切换） ——
+
+export interface AiProvider {
+  id: string;
+  name: string;
+  base_url: string;
+  model: string;
+  api_key: string;
+}
+
+function maskKey(key: string): string {
+  if (!key) return "";
+  if (key.length <= 8) return "••••";
+  return `${key.slice(0, 4)}••••${key.slice(-4)}`;
+}
+
+async function readProviders(db: D1Database): Promise<AiProvider[]> {
+  const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'ai_providers'").first<{ value: string }>();
+  if (!row?.value) return [];
+  try {
+    const list = JSON.parse(row.value) as AiProvider[];
+    return Array.isArray(list) ? list : [];
+  } catch {
+    return [];
+  }
+}
+
+async function writeSetting(db: D1Database, key: string, value: string) {
+  await db
+    .prepare(
+      `INSERT INTO site_settings (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value`,
+    )
+    .bind(key, value)
+    .run();
+}
+
+app.use("/admin/*", requireAuth, requireAdmin);
+
+/** 模板列表（密钥脱敏）+ 当前选中 id */
+app.get("/admin/providers", async (c) => {
+  const [providers, activeRow] = await Promise.all([
+    readProviders(c.env.DB),
+    c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'ai_active_provider'").first<{ value: string }>(),
+  ]);
+  return ok({
+    providers: providers.map((p) => ({ ...p, api_key: maskKey(p.api_key) })),
+    active_id: activeRow?.value ?? "",
+  });
+});
+
+/** 保存模板列表：api_key 为空或为脱敏格式时保留原密钥 */
+app.post("/admin/providers/save", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const incoming = Array.isArray(body.providers) ? body.providers : [];
+  if (incoming.length > 20) return fail("模板最多 20 个");
+  const old = await readProviders(c.env.DB);
+  const providers: AiProvider[] = [];
+  for (const p of incoming) {
+    const id = str(p.id, 64);
+    const name = str(p.name, 60);
+    const base_url = str(p.base_url, 300).replace(/\/$/, "");
+    const model = str(p.model, 120);
+    const rawKey = str(p.api_key, 300);
+    if (!id || !name) return fail("模板缺少 ID 或名称");
+    const prev = old.find((o) => o.id === id);
+    const keepKey = !rawKey || rawKey.includes("••••") ? prev?.api_key ?? "" : rawKey;
+    providers.push({ id, name, base_url, model, api_key: keepKey });
+  }
+  await writeSetting(c.env.DB, "ai_providers", JSON.stringify(providers));
+  return ok({ providers: providers.map((p) => ({ ...p, api_key: maskKey(p.api_key) })) });
+});
+
+/** 一键切换当前使用的模板 */
+app.post("/admin/providers/activate", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const id = str(body.id, 64);
+  const providers = await readProviders(c.env.DB);
+  if (!providers.some((p) => p.id === id)) return fail("模板不存在");
+  await writeSetting(c.env.DB, "ai_active_provider", id);
+  return ok({ active_id: id });
+});
+
+/** 连通性测试：向模板端点发一次最小补全请求 */
+app.post("/admin/providers/test", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const id = str(body.id, 64);
+  const providers = await readProviders(c.env.DB);
+  const p = providers.find((x) => x.id === id);
+  if (!p) return fail("模板不存在");
+  if (!p.api_key) return fail("该模板未配置 API 密钥");
+  const baseUrl = p.base_url || "https://api.openai.com/v1";
+  const model = p.model || "gpt-4o-mini";
+  const started = Date.now();
+  try {
+    const resp = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${p.api_key}` },
+      body: JSON.stringify({
+        model,
+        max_tokens: 4,
+        messages: [{ role: "user", content: "hi" }],
+      }),
+      signal: AbortSignal.timeout(15_000),
+    });
+    const ms = Date.now() - started;
+    if (!resp.ok) {
+      const text = (await resp.text()).slice(0, 200);
+      return ok({ ok: false, ms, message: `HTTP ${resp.status}: ${text}` });
+    }
+    const data = (await resp.json()) as { choices?: unknown[] };
+    if (!data.choices?.length) return ok({ ok: false, ms, message: "响应异常：无 choices" });
+    return ok({ ok: true, ms, message: `连接正常（${ms}ms，模型 ${model}）` });
+  } catch (e) {
+    const ms = Date.now() - started;
+    return ok({ ok: false, ms, message: e instanceof Error ? e.message : "连接失败" });
+  }
+});
 
 // 会话限额（AI_ENABLED=false 时每用户每日 5 条；启用后由真实计费控制）
 const DAILY_LIMIT_DISABLED = 5;

@@ -4,10 +4,25 @@ import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp } from "../lib/log";
+import { upopAdminStatus } from "./upop";
 
 const app = new Hono<AppEnv>();
 
 app.use("*", requireAuth, requireAdmin);
+
+// 三方接口预留状态（微软 OAuth / UPOP）
+app.get("/integrations", async (c) => {
+  const env = c.env as unknown as Record<string, unknown>;
+  const site = (c.env.SITE_URL as string) || "";
+  const ms = {
+    enabled: env.MICROSOFT_OAUTH_ENABLED === "true",
+    client_id_set: !!env.MICROSOFT_CLIENT_ID,
+    client_secret_set: !!env.MICROSOFT_CLIENT_SECRET,
+    callback_url: `${site}/api/microsoft/callback`,
+  };
+  return ok({ microsoft: ms, upop: await upopAdminStatus(c) });
+});
+
 
 // 管理面板概览统计
 app.get("/stats", async (c) => {
