@@ -48,6 +48,40 @@ app.post("/integrations/microsoft", async (c) => {
   return ok({ saved: true });
 });
 
+// 聊天室配置：开关 / 欢迎公告 / 限制
+app.get("/chat-config", async (c) => {
+  const row = await c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'chat_config'").first<{ value: string }>();
+  const def = { enabled: true, welcome: "", max_text: 400, max_image_mb: 4 };
+  let cfg = def;
+  if (row) {
+    try {
+      cfg = { ...def, ...(JSON.parse(row.value) as Record<string, unknown>) };
+    } catch {
+      /* 用默认配置 */
+    }
+  }
+  return ok(cfg);
+});
+
+app.post("/chat-config", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const cfg = {
+    enabled: body.enabled !== false,
+    welcome: String(body.welcome ?? "").slice(0, 200),
+    max_text: Math.min(1000, Math.max(20, Number(body.max_text) || 400)),
+    max_image_mb: Math.min(8, Math.max(1, Number(body.max_image_mb) || 4)),
+  };
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES ('chat_config', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(JSON.stringify(cfg))
+    .run();
+  await logOp(c.env.DB, c, admin.id, "setting_update", "chat_config");
+  return ok(cfg);
+});
+
 // 行为日志（user_logs）：按类型 / 用户筛选，分页 50 条
 app.get("/action-logs", async (c) => {
   const action = (c.req.query("action") || "").slice(0, 60);

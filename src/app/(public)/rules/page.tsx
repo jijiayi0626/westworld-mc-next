@@ -6,44 +6,64 @@ export const metadata: Metadata = {
   description: "西域之光服务器玩家守则：请文明游戏，共同维护和谐社区。",
 };
 
+/** 内联 SVG 图标（stroke 风格）：替代 emoji，全站风格统一且不依赖外部字体 */
+function RuleIcon({ name }: { name: string }) {
+  const paths: Record<string, string[]> = {
+    ban: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M5.7 5.7l12.6 12.6"],
+    sword: ["M14.5 17.5 3 6V3h3l11.5 11.5", "M13 19l6-6", "M16 16l4 4", "M19 21l2-2"],
+    build: ["m15 12-8.4 8.4a1 1 0 1 1-3-3L12 9", "m18 15 4-4", "m21.5 11.5-1.9-1.9A2 2 0 0 1 19 8.2V7l-2.3-2.3a6 6 0 0 0-4.2-1.7L9 3l.9.8A6.2 6.2 0 0 1 12 8.4V10l2 2h1.2a2 2 0 0 1 1.4.6l1.9 1.9"],
+    chat: ["M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10z", "M8 9h8", "M8 12.5h5"],
+    bug: ["M9 7.1v-1a3 3 0 1 1 6 0v1", "M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6z", "M12 20v-9", "M6.5 9C4.6 8.8 3 7.1 3 5", "M6 13H2", "M17.5 9c1.9-.2 3.5-1.9 3.5-4", "M22 13h-4"],
+    refresh: ["M3 12a9 9 0 0 1 9-9 9.7 9.7 0 0 1 6.7 2.7L21 8", "M21 3v5h-5", "M21 12a9 9 0 0 1-9 9 9.7 9.7 0 0 1-6.7-2.7L3 16", "M8 16H3v5"],
+    trash: ["M3 6h18", "M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6", "M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2", "M10 11v6", "M14 11v6"],
+    shield: ["M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z", "m9 12 2 2 4-4"],
+  };
+  const ds = paths[name] ?? paths.ban;
+  return (
+    <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      {ds.map((d, i) => <path key={i} d={d} />)}
+    </svg>
+  );
+}
+
 const rules: { icon: string; title: string; desc: string }[] = [
   {
-    icon: "🚫",
+    icon: "ban",
     title: "禁止作弊与外挂",
     desc: "严禁使用任何形式的作弊、外挂、X-Ray、自动脚本等第三方辅助工具，一经发现永久封禁。",
   },
   {
-    icon: "⚔️",
+    icon: "sword",
     title: "禁止恶意攻击玩家",
     desc: "严禁恶意击杀、偷盗、欺诈、破坏他人建筑等侵害其他玩家的行为。PVP 请基于双方自愿。",
   },
   {
-    icon: "🏗️",
+    icon: "build",
     title: "建筑与红石规范",
     desc: "请勿在出生点及他人建筑附近擅自建造；大型红石机器注意卡顿影响，超过承载时管理员有权要求拆除。",
   },
   {
-    icon: "💬",
+    icon: "chat",
     title: "文明聊天",
     desc: "请勿在聊天频道辱骂、刷屏、宣传广告或发布任何违规内容，营造和谐交流环境。",
   },
   {
-    icon: "🎣",
+    icon: "bug",
     title: "禁止利用漏洞",
     desc: "发现游戏漏洞或 Bug 请通过工单提交反馈，严禁利用漏洞获取利益，恶意利用将严肃处理。",
   },
   {
-    icon: "🔄",
+    icon: "refresh",
     title: "账号规范",
     desc: "禁止共享账号、代练代打或使用他人账号进行操作，账号本人对名下一切行为负责。",
   },
   {
-    icon: "🗑️",
+    icon: "trash",
     title: "垃圾与红名清理",
     desc: "请勿在服务器内随意丢弃大量垃圾物品，长时间离线的建筑区域将被定期清理，重要建筑请提前报备。",
   },
   {
-    icon: "🤝",
+    icon: "shield",
     title: "尊重管理团队",
     desc: "请配合管理员的管理与调查。对处理结果有异议可提交申诉工单，勿在频道中干扰管理。",
   },
@@ -73,8 +93,8 @@ export default function RulesPage() {
               <div className="group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:bg-white/[0.08] hover:border-accent-emerald/40 hover:shadow-[0_20px_45px_rgba(0,0,0,0.4)]">
                 <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-accent-emerald/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/10 flex items-center justify-center text-[1.4rem] flex-shrink-0">
-                    {rule.icon}
+                  <div className="w-12 h-12 rounded-xl bg-accent-emerald/10 border border-accent-emerald/25 flex items-center justify-center text-accent-emerald flex-shrink-0 transition-colors group-hover:bg-accent-emerald/15">
+                    <RuleIcon name={rule.icon} />
                   </div>
                   <div>
                     <h2 className="text-[1.15rem] font-bold text-white mb-1.5">{rule.title}</h2>
@@ -89,8 +109,13 @@ export default function RulesPage() {
         <div className="mt-14 max-w-[1000px] mx-auto">
           <ScrollFadeUp>
             <div className="bg-[rgba(239,68,68,0.08)] border border-red-500/30 rounded-2xl p-6 text-center">
-              <p className="text-red-300 text-[0.95rem]">
-                ⚠️ 违反以上规则将视情节轻重给予警告、临时封禁或永久封禁处理，最终解释权归管理团队所有。
+              <p className="text-red-300 text-[0.95rem] flex items-center justify-center gap-2">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
+                  <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+                  <path d="M12 9v4" />
+                  <path d="M12 17h.01" />
+                </svg>
+                违反以上规则将视情节轻重给予警告、临时封禁或永久封禁处理，最终解释权归管理团队所有。
               </p>
             </div>
           </ScrollFadeUp>

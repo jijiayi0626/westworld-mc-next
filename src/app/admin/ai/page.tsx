@@ -204,8 +204,12 @@ export default function AdminAiPage() {
 
         {/* 总开关未开启警告 */}
         {cfg && !cfg.enabled && (
-          <div className="mb-5 px-4 py-3 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.88rem] flex items-start gap-2">
-            <span className="mt-0.5">⚠️</span>
+          <div className="mb-5 px-4 py-3 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.88rem] flex items-start gap-2.5">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0" aria-hidden="true">
+              <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+              <path d="M12 9v4" />
+              <path d="M12 17h.01" />
+            </svg>
             <span>
               AI 总开关未开启，当前为<b>演示模式</b>：即使下方模板已配置并切换，聊天也不会真正调用接口。请先打开上方「启用 AI 功能总开关」并保存。
             </span>
