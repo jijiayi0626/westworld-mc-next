@@ -36,7 +36,7 @@ export function Btn({
 }: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: BtnSize }) {
   const styles: Record<BtnVariant, string> = {
     primary:
-      "bg-[#10b981] text-white hover:bg-[#059669] shadow-[0_4px_6px_-1px_rgba(16,185,129,0.3)]",
+      "bg-[color:var(--green,#10b981)] text-white hover:bg-[color:var(--green-dark,#059669)] shadow-[0_4px_6px_-1px_rgba(16,185,129,0.3)]",
     danger: "bg-[#ef4444] text-white hover:bg-[#dc2626]",
     ghost:
       "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
@@ -107,7 +107,7 @@ export function Badge({ color = "gray", children }: { color?: "green" | "red" | 
 export function Spinner({ text = "加载中..." }: { text?: string }) {
   return (
     <div className="py-14 text-center text-slate-500 text-sm flex flex-col items-center gap-3">
-      <span className="inline-block w-6 h-6 rounded-full border-2 border-slate-200 border-t-[#10b981] animate-spin" />
+      <span className="inline-block w-6 h-6 rounded-full border-2 border-slate-200 border-t-[color:var(--green,#10b981)] animate-spin" />
       {text}
     </div>
   );

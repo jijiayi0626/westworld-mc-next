@@ -154,7 +154,7 @@ export default function AdminMessagesPage() {
                 onClick={() => setStatusTab(t.key)}
                 className={`px-3.5 py-1.5 rounded-full text-[0.82rem] font-medium border transition-colors cursor-pointer ${
                   statusTab === t.key
-                    ? "bg-[#10b981] border-[#10b981] text-white"
+                    ? "bg-[color:var(--green,#10b981)] border-[color:var(--green,#10b981)] text-white"
                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
                 }`}
               >

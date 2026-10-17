@@ -71,7 +71,7 @@ export default function UserHomePage() {
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border-2 border-accent-emerald/40" />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center text-3xl font-extrabold text-white">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[color:var(--green,#10b981)] to-[color:var(--green-dark,#059669)] flex items-center justify-center text-3xl font-extrabold text-white">
                 {user.username.slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -132,7 +132,7 @@ export default function UserHomePage() {
                         e.target.value = "";
                       }}
                     />
-                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors">
+                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">
                       {uploading ? "上传中..." : "上传头像"}
                     </span>
                   </label>
