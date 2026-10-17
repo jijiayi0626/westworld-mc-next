@@ -67,6 +67,14 @@ export default function AdminUsersPage() {
   const [newPwd, setNewPwd] = useState("");
   const [detailMsg, setDetailMsg] = useState<{ err: string; ok: string }>({ err: "", ok: "" });
 
+  // 批量通知（邮件投递）
+  const [notifyOpen, setNotifyOpen] = useState(false);
+  const [notifySubject, setNotifySubject] = useState("");
+  const [notifyContent, setNotifyContent] = useState("");
+  const [notifyOnlyActive, setNotifyOnlyActive] = useState(true);
+  const [notifyBusy, setNotifyBusy] = useState(false);
+  const [notifyResult, setNotifyResult] = useState<string>("");
+
   const load = useCallback(async () => {
     try {
       const [users, st] = await Promise.all([
@@ -91,6 +99,27 @@ export default function AdminUsersPage() {
     setNewEmail(u.email);
     setNewPwd("");
     setDetailMsg({ err: "", ok: "" });
+  };
+
+  const sendNotify = async () => {
+    setError("");
+    setNotifyResult("");
+    if (!notifySubject.trim() || !notifyContent.trim()) {
+      setNotifyResult("标题和内容不能为空");
+      return;
+    }
+    setNotifyBusy(true);
+    try {
+      const r = await api<{ total: number; sent: number; failed: number; errors: string[] }>("/admin/users/notify", {
+        method: "POST",
+        body: JSON.stringify({ subject: notifySubject.trim(), content: notifyContent.trim(), only_active: notifyOnlyActive }),
+      });
+      setNotifyResult(`发送完成：成功 ${r.sent} / 共 ${r.total}${r.failed ? `，失败 ${r.failed}${r.errors.length ? `（如 ${r.errors[0]}）` : ""}` : ""}`);
+    } catch (e) {
+      setNotifyResult(e instanceof Error ? e.message : "发送失败");
+    } finally {
+      setNotifyBusy(false);
+    }
   };
 
   const change = async (id: number, body: { status?: string; role?: string }) => {
@@ -147,10 +176,10 @@ export default function AdminUsersPage() {
   });
 
   const statCards = [
-    { label: "总用户数", value: stats?.total, bg: "#f0fdf4", color: "#15803d" },
-    { label: "待审核申请", value: stats?.pending_applications, bg: "#fef9c3", color: "#a16207" },
-    { label: "已封禁", value: stats?.banned, bg: "#fdf2f8", color: "#be185d" },
-    { label: "本周新增", value: stats?.week_new, bg: "#e0f2fe", color: "#1d4ed8" },
+    { label: "总用户数", value: stats?.total, tone: "green" },
+    { label: "待审核申请", value: stats?.pending_applications, tone: "amber" },
+    { label: "已封禁", value: stats?.banned, tone: "pink" },
+    { label: "本周新增", value: stats?.week_new, tone: "blue" },
   ];
 
   const detailUa = detail ? parseUa(detail.last_login_ua) : null;
@@ -185,17 +214,17 @@ export default function AdminUsersPage() {
             <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
           </div>
           <div className="mt-3 flex items-center gap-2">
-            <button type="button" className="px-3.5 py-1.5 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">批量通知</button>
-            <span className="text-slate-400 text-[0.78rem]">按当前搜索和状态筛选发送，单次最多 500 人（邮件服务未配置时仅记录）</span>
+            <button type="button" onClick={() => { setNotifyOpen(true); setNotifyResult(""); }} className="px-3.5 py-1.5 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors cursor-pointer">批量通知</button>
+            <span className="text-slate-400 text-[0.78rem]">通过邮件通知用户，单次最多 500 人；需先在「网站设置 → 邮件服务」完成配置</span>
           </div>
         </div>
 
         {/* 统计卡片 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           {statCards.map((c) => (
-            <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
-              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
-              <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value ?? "—"}</div>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+              <div className="text-[0.82rem] font-medium">{c.label}</div>
+              <div className="text-[1.8rem] font-extrabold mt-1">{c.value ?? "—"}</div>
             </div>
           ))}
         </div>
@@ -351,6 +380,52 @@ export default function AdminUsersPage() {
 
               {detailMsg.err && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{detailMsg.err}</div>}
               {detailMsg.ok && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{detailMsg.ok}</div>}
+            </div>
+          </div>
+        )}
+        {/* 批量通知弹窗 */}
+        {notifyOpen && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setNotifyOpen(false)}>
+            <div className="bg-white rounded-[16px] p-6 w-full max-w-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-[1.05rem] font-bold text-slate-800">批量通知（邮件）</h3>
+                <button type="button" onClick={() => setNotifyOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer" aria-label="关闭">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
+                </button>
+              </div>
+              <div className="flex flex-col gap-3">
+                <input
+                  value={notifySubject}
+                  onChange={(e) => setNotifySubject(e.target.value)}
+                  placeholder="邮件标题"
+                  maxLength={200}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]"
+                />
+                <textarea
+                  value={notifyContent}
+                  onChange={(e) => setNotifyContent(e.target.value)}
+                  placeholder="邮件正文（支持换行）"
+                  rows={6}
+                  maxLength={5000}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] resize-y focus:outline-none focus:border-[#3b82f6]"
+                />
+                <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
+                  <input type="checkbox" checked={notifyOnlyActive} onChange={(e) => setNotifyOnlyActive(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
+                  仅发送给正常状态用户（取消勾选则包含已封禁用户）
+                </label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => void sendNotify()}
+                    disabled={notifyBusy}
+                    className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-50"
+                  >
+                    {notifyBusy ? "发送中..." : "发送"}
+                  </button>
+                  <button type="button" onClick={() => setNotifyOpen(false)} className="px-4 py-2 rounded-[10px] bg-slate-100 text-slate-600 text-[0.85rem] font-semibold hover:bg-slate-200 cursor-pointer">关闭</button>
+                </div>
+                {notifyResult && <div className="px-3.5 py-2.5 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-700 text-[0.85rem] break-all">{notifyResult}</div>}
+              </div>
             </div>
           </div>
         )}

@@ -139,14 +139,14 @@ export default function AdminAiPage() {
         {/* 统计卡（图20） */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           {[
-            { label: "使用用户数", value: list?.length ?? 0, bg: "#f0fdf4", color: "#15803d" },
-            { label: "总调用次数", value: total, bg: "#eff6ff", color: "#1d4ed8" },
-            { label: "AI 功能", value: cfg?.enabled ? "开启" : "关闭", bg: "#f1f5f9", color: "#475569" },
-            { label: "近 7 天", value: "-", bg: "#fef9c3", color: "#a16207" },
+            { label: "使用用户数", value: list?.length ?? 0, tone: "green" },
+            { label: "总调用次数", value: total, tone: "blue" },
+            { label: "AI 功能", value: cfg?.enabled ? "开启" : "关闭", tone: "slate" },
+            { label: "近 7 天", value: "-", tone: "amber" },
           ].map((c) => (
-            <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
-              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
-              <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value}</div>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+              <div className="text-[0.82rem] font-medium">{c.label}</div>
+              <div className="text-[1.8rem] font-extrabold mt-1">{c.value}</div>
             </div>
           ))}
         </div>
@@ -280,7 +280,7 @@ export default function AdminAiPage() {
                 const isActive = activeId === p.id;
                 const tr = testResult[p.id];
                 return (
-                  <div key={p.id} className={`border rounded-[12px] p-4 ${isActive ? "border-[color:var(--green,#10b981)] bg-[#f0fdf4]" : "border-slate-200 bg-white"}`}>
+                  <div key={p.id} className={`border rounded-[12px] p-4 ${isActive ? "border-[color:var(--green,#10b981)] bg-[color:var(--green-light,#f0fdf4)]" : "border-slate-200 bg-white"}`}>
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="font-semibold text-slate-800 text-[0.95rem]">{p.name}</span>
                       {isActive && <span className="px-2 py-0.5 rounded-full bg-[color:var(--green,#10b981)] text-white text-[0.7rem] font-medium">使用中</span>}

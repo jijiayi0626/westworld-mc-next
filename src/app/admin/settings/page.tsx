@@ -41,11 +41,12 @@ const UPOP_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "upop_username_field", label: "用户名字段", hint: "默认 username" },
 ];
 
-type Tab = "basic" | "forum" | "integrations";
+type Tab = "basic" | "forum" | "mail" | "integrations";
 
 const TABS: { key: Tab; label: string; desc: string }[] = [
   { key: "basic", label: "基础配置", desc: "站点键值配置的新增与编辑（维护模式、功能开关等）" },
   { key: "forum", label: "论坛与聊天", desc: "论坛 Tab 显隐、聊天室开关、欢迎公告与发送限制" },
+  { key: "mail", label: "邮件服务", desc: "接入 Resend 或 SMTP，用于找回密码验证码与批量通知投递" },
   { key: "integrations", label: "三方集成", desc: "微软 OAuth 与 UPOP 统一认证的凭据配置" },
 ];
 
@@ -84,6 +85,32 @@ export default function AdminSettingsPage() {
   const [chatForm, setChatForm] = useState({ enabled: true, welcome: "", max_text: 400, max_image_mb: 4, show_announcements: true, show_chat: true });
   const [chatBusy, setChatBusy] = useState(false);
 
+  // 邮件服务配置
+  interface MailConfigView {
+    provider: string;
+    from: string;
+    resend_key_set: boolean;
+    smtp_host: string;
+    smtp_port: number;
+    smtp_user: string;
+    smtp_pass_set: boolean;
+    smtp_ssl: boolean;
+  }
+  const [mailCfg, setMailCfg] = useState<MailConfigView | null>(null);
+  const [mailForm, setMailForm] = useState({
+    provider: "none",
+    from: "",
+    resend_key: "",
+    smtp_host: "",
+    smtp_port: 587,
+    smtp_user: "",
+    smtp_pass: "",
+    smtp_ssl: false,
+  });
+  const [mailBusy, setMailBusy] = useState(false);
+  const [testTo, setTestTo] = useState("");
+  const [testMsg, setTestMsg] = useState<{ err: string; ok: string }>({ err: "", ok: "" });
+
   const load = useCallback(async () => {
     try {
       setList(await api<Setting[]>("/admin/settings"));
@@ -115,6 +142,21 @@ export default function AdminSettingsPage() {
       });
     } catch {
       /* 聊天室配置加载失败不阻塞页面 */
+    }
+    try {
+      const mail = await api<MailConfigView>("/admin/mail-config");
+      setMailCfg(mail);
+      setMailForm((prev) => ({
+        ...prev,
+        provider: mail.provider,
+        from: mail.from,
+        smtp_host: mail.smtp_host,
+        smtp_port: mail.smtp_port,
+        smtp_user: mail.smtp_user,
+        smtp_ssl: mail.smtp_ssl,
+      }));
+    } catch {
+      /* 邮件配置加载失败不阻塞页面 */
     }
   }, []);
 
@@ -205,6 +247,53 @@ export default function AdminSettingsPage() {
       setError(err instanceof Error ? err.message : "UPOP 配置保存失败");
     } finally {
       setUpopBusy(false);
+    }
+  };
+
+  const saveMail = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setMailBusy(true);
+    try {
+      await api("/admin/mail-config", {
+        method: "POST",
+        body: JSON.stringify({
+          provider: mailForm.provider,
+          from: mailForm.from.trim(),
+          resend_key: mailForm.resend_key.trim(),
+          smtp_host: mailForm.smtp_host.trim(),
+          smtp_port: mailForm.smtp_port,
+          smtp_user: mailForm.smtp_user.trim(),
+          smtp_pass: mailForm.smtp_pass.trim(),
+          smtp_ssl: mailForm.smtp_ssl,
+        }),
+      });
+      // 清空密钥输入，避免下次误覆盖
+      setMailForm((p) => ({ ...p, resend_key: "", smtp_pass: "" }));
+      setSuccess("邮件服务配置已保存");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "邮件配置保存失败");
+    } finally {
+      setMailBusy(false);
+    }
+  };
+
+  const sendTest = async () => {
+    setTestMsg({ err: "", ok: "" });
+    if (!testTo.trim()) {
+      setTestMsg({ err: "请填写收件邮箱", ok: "" });
+      return;
+    }
+    setMailBusy(true);
+    try {
+      await api("/admin/mail-test", { method: "POST", body: JSON.stringify({ to: testTo.trim() }) });
+      setTestMsg({ err: "", ok: "测试邮件已发送，请查收（若未收到请检查垃圾箱）" });
+    } catch (err) {
+      setTestMsg({ err: err instanceof Error ? err.message : "发送失败", ok: "" });
+    } finally {
+      setMailBusy(false);
     }
   };
 
@@ -362,6 +451,97 @@ export default function AdminSettingsPage() {
                 <Btn type="submit" disabled={chatBusy}>{chatBusy ? "保存中..." : "保存设置"}</Btn>
               </div>
             </form>
+          )}
+        </Card>
+      ) : tab === "mail" ? (
+        <Card>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-[1.05rem] font-bold text-slate-800">邮件服务</h3>
+            {mailCfg && <Badge color={mailCfg.provider !== "none" ? "green" : "gray"}>{mailCfg.provider === "none" ? "未启用" : mailCfg.provider === "resend" ? "Resend API" : "SMTP"}</Badge>}
+          </div>
+          <p className="text-[0.82rem] text-slate-500 mb-4">
+            用于找回密码验证码与后台批量通知的邮件投递。支持 Resend API（推荐，无需开端口）或自有 SMTP 邮箱（587 STARTTLS / 465 SSL）。
+          </p>
+          {mailCfg === null ? (
+            <Empty text="加载中..." />
+          ) : (
+            <>
+              <form onSubmit={saveMail} className="flex flex-col gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="投递方式">
+                    <select
+                      value={mailForm.provider}
+                      onChange={(e) => setMailForm((p) => ({ ...p, provider: e.target.value }))}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.88rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    >
+                      <option value="none">关闭（不发送邮件）</option>
+                      <option value="resend">Resend API</option>
+                      <option value="smtp">SMTP 邮箱</option>
+                    </select>
+                  </Field>
+                  <Field label="发件人地址" hint="如 noreply@yourdomain.com，需与邮箱服务商已验证域名一致">
+                    <Input value={mailForm.from} onChange={(e) => setMailForm((p) => ({ ...p, from: e.target.value }))} placeholder="noreply@yourdomain.com" />
+                  </Field>
+                </div>
+
+                {mailForm.provider === "resend" && (
+                  <Field label="Resend API Key" hint={mailCfg.resend_key_set ? "已保存，留空保留原值" : "在 resend.com/api-keys 创建，re_ 开头"}>
+                    <Input type="password" value={mailForm.resend_key} onChange={(e) => setMailForm((p) => ({ ...p, resend_key: e.target.value }))} placeholder={mailCfg.resend_key_set ? "••••••（留空保留）" : "re_..."} autoComplete="new-password" />
+                  </Field>
+                )}
+
+                {mailForm.provider === "smtp" && (
+                  <>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <Field label="SMTP 服务器" hint="如 smtp.qq.com / smtp.163.com">
+                        <Input value={mailForm.smtp_host} onChange={(e) => setMailForm((p) => ({ ...p, smtp_host: e.target.value }))} placeholder="smtp.qq.com" />
+                      </Field>
+                      <Field label="端口" hint="465 = SSL 直连；587 = STARTTLS">
+                        <Input type="number" min={1} max={65535} value={mailForm.smtp_port} onChange={(e) => setMailForm((p) => ({ ...p, smtp_port: Number(e.target.value) || 587 }))} />
+                      </Field>
+                      <Field label="SMTP 用户名" hint="通常为邮箱地址">
+                        <Input value={mailForm.smtp_user} onChange={(e) => setMailForm((p) => ({ ...p, smtp_user: e.target.value }))} placeholder="you@qq.com" />
+                      </Field>
+                      <Field label="SMTP 密码 / 授权码" hint={mailCfg.smtp_pass_set ? "已保存，留空保留原值" : "QQ/163 等需使用授权码，非登录密码"}>
+                        <Input type="password" value={mailForm.smtp_pass} onChange={(e) => setMailForm((p) => ({ ...p, smtp_pass: e.target.value }))} placeholder={mailCfg.smtp_pass_set ? "••••••（留空保留）" : "授权码"} autoComplete="new-password" />
+                      </Field>
+                    </div>
+                    <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
+                      <input type="checkbox" checked={mailForm.smtp_ssl} onChange={(e) => setMailForm((p) => ({ ...p, smtp_ssl: e.target.checked }))} className="w-4 h-4 accent-emerald-500" />
+                      使用 SSL 直连（465 端口勾选）
+                    </label>
+                  </>
+                )}
+
+                <div>
+                  <Btn type="submit" disabled={mailBusy}>{mailBusy ? "保存中..." : "保存邮件配置"}</Btn>
+                </div>
+              </form>
+
+              {/* 测试发送 */}
+              <div className="mt-5 pt-4 border-t border-slate-100">
+                <h4 className="font-semibold text-slate-800 mb-3 text-[0.95rem]">发送测试邮件</h4>
+                <div className="flex flex-wrap gap-2">
+                  <input
+                    type="email"
+                    value={testTo}
+                    onChange={(e) => setTestTo(e.target.value)}
+                    placeholder="你的收件邮箱"
+                    className="flex-1 min-w-[220px] max-w-[320px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void sendTest()}
+                    disabled={mailBusy}
+                    className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer"
+                  >
+                    {mailBusy ? "发送中..." : "发送测试"}
+                  </button>
+                </div>
+                {testMsg.err && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem] break-all">{testMsg.err}</div>}
+                {testMsg.ok && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{testMsg.ok}</div>}
+              </div>
+            </>
           )}
         </Card>
       ) : (

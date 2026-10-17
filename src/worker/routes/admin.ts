@@ -3,6 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str, isEmail } from "../lib/validate";
+import { loadMailConfig, mailEnabled, sendMail, renderEmail, MAIL_SENSITIVE_KEYS } from "../lib/mail";
 import { logOp } from "../lib/log";
 import { upopAdminStatus } from "./upop";
 import { msAdminStatus } from "./microsoft";
@@ -394,8 +395,9 @@ app.post("/users/:id/update-email", async (c) => {
 app.get("/settings", async (c) => {
   const { results } = await c.env.DB.prepare(
     "SELECT key, value FROM site_settings WHERE key NOT LIKE 'reset_code:%' ORDER BY key ASC",
-  ).all();
-  return ok(results);
+  ).all<{ key: string; value: string }>();
+  // 邮件密钥类配置脱敏返回（改用专用 /mail-config 接口管理，留空保留原值）
+  return ok(results.map((r) => (MAIL_SENSITIVE_KEYS.has(r.key) ? { ...r, value: "••••••" } : r)));
 });
 
 app.post("/settings", async (c) => {
@@ -410,6 +412,110 @@ app.post("/settings", async (c) => {
   ).bind(key, value).run();
   await logOp(c.env.DB, c, admin.id, "setting_update", key);
   return ok({ updated: true });
+});
+
+// —— 邮件服务（Resend / SMTP） ——
+
+app.get("/mail-config", async (c) => {
+  const cfg = await loadMailConfig(c.env.DB);
+  return ok({
+    provider: cfg.provider,
+    from: cfg.from,
+    resend_key_set: !!cfg.resend_key,
+    smtp_host: cfg.smtp_host,
+    smtp_port: cfg.smtp_port,
+    smtp_user: cfg.smtp_user,
+    smtp_pass_set: !!cfg.smtp_pass,
+    smtp_ssl: cfg.smtp_ssl,
+  });
+});
+
+app.post("/mail-config", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const provider = str(body.provider, 10);
+  if (!["none", "resend", "smtp"].includes(provider)) return fail("无效的邮件服务商");
+  const from = str(body.from, 200).trim();
+  if (provider !== "none" && !isEmail(from)) return fail("发件人地址格式不正确");
+
+  const entries: [string, string][] = [
+    ["mail_provider", provider],
+    ["mail_from", from],
+    ["mail_smtp_host", str(body.smtp_host, 200).trim()],
+    ["mail_smtp_port", String(Math.max(1, Math.min(65535, Number(body.smtp_port) || 587)))],
+    ["mail_smtp_user", str(body.smtp_user, 200).trim()],
+    ["mail_smtp_ssl", body.smtp_ssl ? "true" : "false"],
+  ];
+  // 密钥留空 = 保留原值
+  const resendKey = str(body.resend_key, 300).trim();
+  if (resendKey) entries.push(["mail_resend_key", resendKey]);
+  const smtpPass = str(body.smtp_pass, 300).trim();
+  if (smtpPass) entries.push(["mail_smtp_pass", smtpPass]);
+
+  for (const [key, value] of entries) {
+    await c.env.DB.prepare(
+      `INSERT INTO site_settings (key, value) VALUES (?, ?)
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+    ).bind(key, value).run();
+  }
+  await logOp(c.env.DB, c, admin.id, "mail_config_update", provider);
+  return ok({ updated: true });
+});
+
+// 发送测试邮件
+app.post("/mail-test", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const to = str(body.to, 200).trim();
+  if (!isEmail(to)) return fail("收件邮箱格式不正确");
+  const cfg = await loadMailConfig(c.env.DB);
+  if (!mailEnabled(cfg)) return fail("请先选择服务商并保存配置", 400);
+  try {
+    await sendMail(cfg, {
+      to,
+      subject: "【Westworld西域之光】邮件服务测试",
+      html: renderEmail("邮件服务配置成功", "<p>这是一封测试邮件，说明当前邮件投递配置可用。</p>"),
+    });
+    return ok({ sent: true });
+  } catch (e) {
+    return fail(e instanceof Error ? e.message : "发送失败", 502);
+  }
+});
+
+// 批量通知（邮件投递给注册用户）
+app.post("/users/notify", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const subject = str(body.subject, 200).trim();
+  const content = str(body.content, 5000).trim();
+  const onlyActive = body.only_active !== false;
+  if (!subject || !content) return fail("标题和内容不能为空");
+
+  const cfg = await loadMailConfig(c.env.DB);
+  if (!mailEnabled(cfg)) return fail("邮件服务未配置，请先到「网站设置 → 邮件服务」完成配置", 400);
+
+  const { results } = await c.env.DB.prepare(
+    `SELECT email FROM users WHERE email != '' AND email IS NOT NULL ${onlyActive ? "AND status = 'active'" : ""} LIMIT 500`,
+  ).all<{ email: string }>();
+  if (results.length === 0) return fail("没有符合条件且带邮箱的用户", 400);
+
+  const html = renderEmail(subject, content.replace(/\n/g, "<br>"));
+  let sent = 0;
+  let failed = 0;
+  const errors: string[] = [];
+  for (let i = 0; i < results.length; i += 10) {
+    const batch = results.slice(i, i + 10);
+    const settled = await Promise.allSettled(batch.map((u) => sendMail(cfg, { to: u.email, subject, html })));
+    for (let j = 0; j < settled.length; j++) {
+      const s = settled[j];
+      if (s.status === "fulfilled") sent++;
+      else {
+        failed++;
+        if (errors.length < 3) errors.push(`${batch[j].email}: ${s.reason instanceof Error ? s.reason.message : String(s.reason)}`);
+      }
+    }
+  }
+  await logOp(c.env.DB, c, admin.id, "users_notify", `${sent}/${results.length}`, subject);
+  return ok({ total: results.length, sent, failed, errors });
 });
 
 // —— 操作日志 ——
