@@ -111,35 +111,38 @@ async function getMotdApiBase(db: D1Database): Promise<string> {
   return "https://motd.minebbs.com";
 }
 
-// MOTD 查询（公开只读）：代理外部 MOTD API，避免浏览器跨域
-// 返回 { motd, icon, version, players: { online, max }, type }
+// MOTD 查询（公开只读）：代理外部 MOTD API（MineBBS /api/status），避免浏览器跨域
+// 返回 { status, type, motd, icon, version, players: { online, max } }
 app.get("/motd", async (c) => {
   const host = String(c.req.query("host") || "").trim().slice(0, 120);
   if (!host || !/^[a-zA-Z0-9.\-_:]+$/.test(host)) return fail("请输入有效的服务器地址", 400);
+  const stypeRaw = String(c.req.query("stype") || "auto");
+  const stype = ["auto", "je", "be"].includes(stypeRaw) ? stypeRaw : "auto";
 
   const base = await getMotdApiBase(c.env.DB);
-  const address = host.includes(":") ? host : `${host}:25565`;
   try {
-    const resp = await fetch(`${base}/api/motd/be/${encodeURIComponent(address)}`, {
+    const resp = await fetch(`${base}/api/status?host=${encodeURIComponent(host)}&stype=${stype}`, {
       signal: AbortSignal.timeout(8000),
     });
     if (!resp.ok) return fail(`MOTD 查询失败（上游 HTTP ${resp.status}）`, 502);
     const data = (await resp.json()) as {
-      motd?: { clean?: string[] } | string;
+      status?: string;
+      type?: string;
+      pureMotd?: string;
+      motd?: { text?: string };
       icon?: string;
       version?: string;
       players?: { online?: number; max?: number };
-      type?: string;
     };
-    const motdText = Array.isArray((data.motd as { clean?: string[] })?.clean)
-      ? ((data.motd as { clean?: string[] }).clean ?? []).join("\n")
-      : String(data.motd ?? "");
+    const online = data.status !== "offline";
+    const motdText = online ? String(data.pureMotd ?? data.motd?.text ?? "") : "";
     return ok({
+      status: online ? "online" : "offline",
+      type: String(data.type ?? "").slice(0, 20),
       motd: motdText.slice(0, 500),
-      icon: typeof data.icon === "string" && data.icon.startsWith("data:image") ? data.icon : "",
-      version: String(data.version ?? "").slice(0, 60),
+      icon: online && typeof data.icon === "string" && data.icon.startsWith("data:image") ? data.icon : "",
+      version: online ? String(data.version ?? "").slice(0, 60) : "",
       players: { online: Number(data.players?.online) || 0, max: Number(data.players?.max) || 0 },
-      type: String(data.type ?? ""),
     });
   } catch {
     return fail("MOTD 查询超时或上游不可用", 502);

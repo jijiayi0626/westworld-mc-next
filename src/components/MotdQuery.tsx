@@ -3,6 +3,8 @@
 import { useState } from "react";
 
 interface MotdResult {
+  status?: string;
+  type?: string;
   motd: string;
   icon: string;
   version: string;
@@ -67,12 +69,17 @@ export default function MotdQuery({ defaultHost }: { defaultHost?: string }) {
             <div className="w-16 h-16 rounded-[4px] bg-white/10 flex items-center justify-center text-[0.6rem] text-white/40 flex-shrink-0">无图标</div>
           )}
           <div className="min-w-0 flex-1">
-            <div
-              className="font-mono text-[0.85rem] text-white/90 whitespace-pre-wrap break-words leading-relaxed max-h-24 overflow-y-auto"
-            >
-              {result.motd || "（该服务器未设置 MOTD）"}
-            </div>
+            {result.status === "offline" ? (
+              <div className="text-[0.9rem] text-red-400 font-medium">服务器离线或无法连接</div>
+            ) : (
+              <div
+                className="font-mono text-[0.85rem] text-white/90 whitespace-pre-wrap break-words leading-relaxed max-h-24 overflow-y-auto"
+              >
+                {result.motd || "（该服务器未设置 MOTD）"}
+              </div>
+            )}
             <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-[0.78rem] text-white/50">
+              {result.type && <span>类型：{result.type === "Java" ? "Java 版" : result.type === "Bedrock" ? "基岩版" : result.type}</span>}
               <span>版本：{result.version || "未知"}</span>
               <span>在线：{result.players.online} / {result.players.max}</span>
             </div>
