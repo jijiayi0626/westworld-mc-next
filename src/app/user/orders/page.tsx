@@ -34,14 +34,28 @@ export default function OrdersPage() {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
 
+  // 经济支付
+  const [ecoEnabled, setEcoEnabled] = useState(false);
+  const [ecoCurrency, setEcoCurrency] = useState("金币");
+  const [mcName, setMcName] = useState("");
+  const [balance, setBalance] = useState<number | null>(null);
+  const [balanceLoading, setBalanceLoading] = useState(false);
+  const [payEconomy, setPayEconomy] = useState(true);
+
   const load = useCallback(async () => {
     try {
-      const [p, o] = await Promise.all([
+      const [p, o, info] = await Promise.all([
         api<Product[]>("/shop/products"),
         api<Order[]>("/shop/orders"),
+        api<{ enabled: boolean; currency_name?: string; mc_name?: string }>("/shop/economy-info"),
       ]);
       setProducts(p);
       setOrders(o);
+      if (info.enabled) {
+        setEcoEnabled(true);
+        setEcoCurrency(info.currency_name || "金币");
+        setMcName(info.mc_name || "");
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     }
@@ -51,16 +65,37 @@ export default function OrdersPage() {
     void load();
   }, [load]);
 
+  const refreshBalance = useCallback(async () => {
+    setBalanceLoading(true);
+    try {
+      const r = await api<{ balance: number }>("/shop/balance");
+      setBalance(r.balance);
+    } catch {
+      setBalance(null);
+    } finally {
+      setBalanceLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (ecoEnabled) void refreshBalance();
+  }, [ecoEnabled, refreshBalance]);
+
   const buy = async (productId: number, qty = 1) => {
     setError("");
     setSuccess("");
     setBusy(true);
     try {
-      const data = await api<{ order_id: number; order_no: string; total: number; currency: string }>("/shop/order", {
+      const data = await api<{ order_no: string; total: number; currency: string; status: string; economy_paid: boolean }>("/shop/order", {
         method: "POST",
-        body: JSON.stringify({ product_id: productId, qty }),
+        body: JSON.stringify({ product_id: productId, qty, payment_method: payEconomy && ecoEnabled ? "economy" : "manual" }),
       });
-      setSuccess(`订单已创建：${data.order_no}，应付 ${data.total} ${data.currency}。请按商品说明联系管理员转账，管理员确认收款后订单状态会更新为「已支付」。`);
+      if (data.economy_paid) {
+        setSuccess(`支付成功！订单 ${data.order_no} 已扣除 ${data.total} ${data.currency}，等待管理员发货。`);
+        void refreshBalance();
+      } else {
+        setSuccess(`订单已创建：${data.order_no}，应付 ${data.total} ${data.currency}。请按商品说明联系管理员转账，管理员确认收款后订单状态会更新为「已支付」。`);
+      }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "下单失败");
@@ -78,7 +113,42 @@ export default function OrdersPage() {
 
       {/* 商城商品 */}
       <Card className="mt-4 mb-5">
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">商城商品</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h3 className="text-[1.05rem] font-bold text-slate-800">商城商品</h3>
+          {ecoEnabled && (
+            <div className="flex items-center gap-2 text-[0.82rem]">
+              <span className="text-slate-500">
+                {mcName ? `游戏币余额（${mcName}）：` : "游戏币余额："}
+              </span>
+              <span className="font-bold text-accent-emerald">
+                {balanceLoading ? "查询中..." : balance !== null ? `${balance} ${ecoCurrency}` : "获取失败"}
+              </span>
+              <Btn size="sm" variant="ghost" onClick={refreshBalance} disabled={balanceLoading}>刷新</Btn>
+            </div>
+          )}
+        </div>
+        {ecoEnabled && (
+          <div className="flex flex-wrap gap-2 mb-4">
+            <button
+              type="button"
+              onClick={() => setPayEconomy(true)}
+              className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
+                payEconomy ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              游戏币支付（{ecoCurrency}）
+            </button>
+            <button
+              type="button"
+              onClick={() => setPayEconomy(false)}
+              className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
+                !payEconomy ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+              }`}
+            >
+              转账支付（联系管理员）
+            </button>
+          </div>
+        )}
         {products === null ? (
           <Empty text="加载中..." />
         ) : products.length === 0 ? (
@@ -101,7 +171,9 @@ export default function OrdersPage() {
           </div>
         )}
         <p className="mt-4 text-[0.78rem] text-slate-500">
-          说明：下单后请联系管理员完成转账，管理员在后台确认收款后订单才会标记为「已支付」。
+          {ecoEnabled
+            ? `选择「游戏币支付」下单即自动扣款（按服务器内经济插件实时结算）；选择「转账支付」则联系管理员确认收款后订单标记为「已支付」。`
+            : "说明：下单后请联系管理员完成转账，管理员在后台确认收款后订单才会标记为「已支付」。"}
         </p>
       </Card>
 

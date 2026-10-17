@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useState, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
@@ -28,6 +28,67 @@ interface AdminStyle {
   sidebarCollapsed?: boolean;
   theme?: "light" | "dark" | "system";
   accent?: string;
+}
+
+/** 前端外观偏好（localStorage site_appearance_v1）：优先级高于后台样式设置 */
+interface AppearancePrefs {
+  theme?: "light" | "dark" | "system";
+  template?: "modern" | "classic";
+}
+
+const APPEARANCE_KEY = "site_appearance_v1";
+
+function readAppearance(): AppearancePrefs {
+  try {
+    return (JSON.parse(localStorage.getItem(APPEARANCE_KEY) || "null") as AppearancePrefs | null) ?? {};
+  } catch {
+    return {};
+  }
+}
+
+function saveAppearance(p: AppearancePrefs) {
+  try {
+    localStorage.setItem(APPEARANCE_KEY, JSON.stringify(p));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+function systemDark(): boolean {
+  return window.matchMedia("(prefers-color-scheme: dark)").matches;
+}
+
+/**
+ * 应用外观（主题 + 模板）到根节点：prefs.theme 缺省时回退 adminTheme，再回退系统偏好。
+ * 返回清理函数（跟随系统时监听系统主题变化）。
+ */
+function applyAppearance(prefs: AppearancePrefs, adminTheme?: string): () => void {
+  const root = document.documentElement;
+  const theme = prefs.theme ?? adminTheme;
+  root.setAttribute("data-theme", theme === "dark" || theme === "light" ? theme : systemDark() ? "dark" : "light");
+  if (prefs.template && prefs.template !== "modern") root.setAttribute("data-template", prefs.template);
+  else root.removeAttribute("data-template");
+
+  const media = window.matchMedia("(prefers-color-scheme: dark)");
+  const onChange = () => {
+    if (!prefs.theme || prefs.theme === "system") {
+      root.setAttribute("data-theme", systemDark() ? "dark" : "light");
+    }
+  };
+  media.addEventListener("change", onChange);
+  return () => media.removeEventListener("change", onChange);
+}
+
+/** 应用完整外观：主题/模板 + 后台主色（经典模板下主色由模板接管） */
+function applyFullAppearance(prefs: AppearancePrefs, style: AdminStyle): (() => void) | undefined {
+  const root = document.documentElement;
+  const cleanup = applyAppearance(prefs, style.theme);
+  if (style.accent && prefs.template !== "classic") {
+    root.style.setProperty("--green", style.accent);
+  } else {
+    root.style.removeProperty("--green");
+  }
+  return cleanup;
 }
 
 /** 内联 SVG 图标（stroke 风格）：不依赖 Google Fonts，国内环境可正常渲染 */
@@ -80,31 +141,6 @@ function NavIcon({ name }: { name: string }) {
   );
 }
 
-/** 应用后台样式设置（主题 + 主色）到根节点 */
-function applyAdminStyle(style: AdminStyle) {
-  const root = document.documentElement;
-  let removeMedia: (() => void) | undefined;
-  if (style.theme) {
-    const media = window.matchMedia("(prefers-color-scheme: dark)");
-    const resolve = () =>
-      root.setAttribute("data-theme", style.theme === "system" ? (media.matches ? "dark" : "light") : style.theme!);
-    resolve();
-    if (style.theme === "system") {
-      media.addEventListener("change", resolve);
-      removeMedia = () => media.removeEventListener("change", resolve);
-    }
-  }
-  if (style.accent) {
-    root.style.setProperty("--green", style.accent);
-  }
-  // 卸载时恢复主题，避免深色泄漏到登录页/公开站（登录页是浅色设计）
-  return () => {
-    removeMedia?.();
-    root.removeAttribute("data-theme");
-    root.style.removeProperty("--green");
-  };
-}
-
 /** 站点 Logo 标记：展开/折叠态均显示，折叠后作为侧栏唯一标识 */
 function LogoMark() {
   return (
@@ -151,49 +187,64 @@ function Shell({
     return () => document.body.classList.remove("sidebar-open");
   }, [open]);
 
-  // 读取后台样式设置（admin 会话可读，其它场景忽略）：主题/主色/侧栏默认折叠
-  // 先应用 localStorage 缓存（同步、无闪烁），再用最新值覆盖并写回缓存
+  // 外观系统：用户本地偏好（主题/模板）优先，后台样式设置（主题/主色）作为回退。
+  // prefs 变化（用户在侧栏切换）时立即重新应用；admin_style 仅在挂载时拉取一次。
+  const [prefs, setPrefs] = useState<AppearancePrefs>({});
+  const adminStyleRef = useRef<AdminStyle>({});
+
   useEffect(() => {
     let cancelled = false;
     let cleanup: (() => void) | undefined;
+    const run = () => {
+      cleanup?.();
+      cleanup = applyFullAppearance(prefs, adminStyleRef.current);
+    };
+    // 先用缓存同步应用（无闪烁）
+    try {
+      const cached = localStorage.getItem("admin_style_v1");
+      if (cached) adminStyleRef.current = JSON.parse(cached) as AdminStyle;
+    } catch {
+      /* 缓存损坏，忽略 */
+    }
+    run();
     (async () => {
       try {
-        let style: AdminStyle | undefined;
-        const cached = localStorage.getItem("admin_style_v1");
-        if (cached) {
-          try {
-            style = JSON.parse(cached) as AdminStyle;
-          } catch {
-            /* 缓存损坏，忽略 */
-          }
-        }
         const res = await fetch("/api/admin/settings");
         const body = (await res.json()) as { code: number; data?: { key: string; value: string }[] };
         if (cancelled || body.code !== 0 || !Array.isArray(body.data)) return;
         const row = body.data.find((s) => s.key === "admin_style");
         if (row?.value) {
           try {
-            style = JSON.parse(row.value) as AdminStyle;
+            adminStyleRef.current = JSON.parse(row.value) as AdminStyle;
             localStorage.setItem("admin_style_v1", row.value);
           } catch {
             /* 忽略非法配置 */
           }
-        }
-        if (!style) return;
-        cleanup = applyAdminStyle(style);
-        // 侧栏默认折叠只对桌面生效；窄屏由下方 resize 逻辑强制展开
-        if (typeof style.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
-          setCollapsed(style.sidebarCollapsed);
+          if (!cancelled) run();
+          // 侧栏默认折叠只对桌面生效；窄屏由下方 resize 逻辑强制展开
+          if (typeof adminStyleRef.current.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
+            setCollapsed(adminStyleRef.current.sidebarCollapsed);
+          }
         }
       } catch {
-        // 读取失败时保持默认
+        // 读取失败时保持缓存值
       }
     })();
+    // 卸载时清理监听并还原属性，避免深色泄漏到登录页/公开站（登录页是浅色设计）
     return () => {
       cancelled = true;
       cleanup?.();
+      document.documentElement.removeAttribute("data-theme");
+      document.documentElement.removeAttribute("data-template");
+      document.documentElement.style.removeProperty("--green");
     };
-  }, []);
+  }, [prefs]);
+
+  const updatePrefs = (patch: Partial<AppearancePrefs>) => {
+    const next = { ...prefs, ...patch };
+    setPrefs(next);
+    saveAppearance(next);
+  };
 
   // 窄屏（≤768px）永远不折叠：移动端走汉堡 + 全宽抽屉；只有桌面端可手动折叠
   // 断点与 CSS `@media (min-width:769px)` 对齐（mobile.css 的收起规则）
@@ -319,6 +370,52 @@ function Shell({
             ),
           )}
           {extra}
+          {/* 外观设置：深浅主题 + 模板切换（本地记忆） */}
+          <div className="appearance-block">
+            <div className="appearance-title">外观设置</div>
+            <div className="appearance-row" role="group" aria-label="主题模式">
+              {([
+                ["light", "浅色", <circle key="s" cx="12" cy="12" r="4" />, "M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"],
+                ["dark", "深色", <path key="m" d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />, null],
+                ["system", "跟随系统", null, "M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5zM8 21h8"],
+              ] as const).map(([val, label, icon, path]) => (
+                <button
+                  key={val}
+                  type="button"
+                  className={`appearance-btn ${(prefs.theme ?? "system") === val ? "active" : ""}`}
+                  onClick={() => updatePrefs({ theme: val })}
+                  title={label}
+                  aria-pressed={(prefs.theme ?? "system") === val}
+                >
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    {icon}
+                    {path && <path d={path} />}
+                  </svg>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+            <div className="appearance-row" role="group" aria-label="模板风格">
+              {([
+                ["modern", "现代"],
+                ["classic", "经典"],
+              ] as const).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  className={`appearance-btn ${(prefs.template ?? "modern") === val ? "active" : ""}`}
+                  onClick={() => updatePrefs({ template: val })}
+                  title={label}
+                  aria-pressed={(prefs.template ?? "modern") === val}
+                >
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    {val === "modern" ? <path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5" /> : <path d="M4 4h16v16H4zM4 9h16M9 9v11" />}
+                  </svg>
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
         </nav>
       </aside>
 
@@ -368,7 +465,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     { href: "/user", label: "个人中心", icon: "person" },
     { href: "/user/application", label: "入服申请", icon: "edit_note" },
     { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
-    { href: "/user/chat", label: "聊天室", icon: "forum" },
+    { href: "/user/forum", label: "论坛", icon: "forum" },
     { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
     { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
     { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },
@@ -399,6 +496,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       icon: "analytics",
       children: [
         { href: "/admin/messages", label: "消息通知", icon: "chat" },
+        { href: "/admin/forum", label: "论坛管理", icon: "forum" },
         { href: "/admin/announcements", label: "公告管理", icon: "campaign" },
         { href: "/admin/tickets", label: "工单管理", icon: "confirmation_number" },
         { href: "/admin/oplogs", label: "行为日志", icon: "history" },

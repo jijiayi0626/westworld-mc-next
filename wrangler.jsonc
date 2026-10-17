@@ -20,6 +20,11 @@
       "binding": "DB",
       "database_name": "mc-next",
       "database_id": "14b029a2-cd97-4337-a0a7-3dc319f9c35d"
+    },
+    {
+      "binding": "FORUM_DB",
+      "database_name": "westworld-forum",
+      "database_id": "5b95f1aa-241c-4fe6-8532-1d8f6a8551b5"
     }
   ],
   "r2_buckets": [

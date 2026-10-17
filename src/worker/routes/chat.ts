@@ -63,6 +63,20 @@ async function getChatConfig(db: D1Database): Promise<ChatConfig> {
   }
 }
 
+/** 论坛 Tab 显隐配置（与聊天配置同存一个 JSON） */
+async function getForumShowConfig(db: D1Database): Promise<{ show_announcements: boolean; show_chat: boolean }> {
+  try {
+    const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'chat_config'").first<{ value: string }>();
+    if (row) {
+      const parsed = JSON.parse(row.value) as { show_announcements?: boolean; show_chat?: boolean };
+      return { show_announcements: parsed.show_announcements !== false, show_chat: parsed.show_chat !== false };
+    }
+  } catch {
+    /* 默认全显示 */
+  }
+  return { show_announcements: true, show_chat: true };
+}
+
 function shape(r: ChatRow) {
   return {
     id: r.id,
@@ -77,6 +91,11 @@ function shape(r: ChatRow) {
 }
 
 const app = new Hono<AppEnv>();
+
+/** 论坛数据统一存独立 D1（FORUM_DB）；未绑定时回退主库，保证兼容 */
+function fdb(c: { env: AppEnv["Bindings"] }): D1Database {
+  return c.env.FORUM_DB ?? c.env.DB;
+}
 
 // 频控：距上次发言不足 MIN_INTERVAL_MS 则拒绝
 async function tooFast(db: D1Database, userId: number): Promise<boolean> {
@@ -103,7 +122,8 @@ async function dailyCount(db: D1Database, userId: number, withImage: boolean): P
 
 // 限制与配置（前端展示用；后台可改）
 app.get("/limits", async (c) => {
-  const cfg = await getChatConfig(c.env.DB);
+  const cfg = await getChatConfig(fdb(c));
+  const show = await getForumShowConfig(c.env.DB);
   return ok({
     enabled: cfg.enabled,
     welcome: cfg.welcome,
@@ -113,6 +133,7 @@ app.get("/limits", async (c) => {
     daily_text: DAILY_TEXT,
     daily_image: DAILY_IMAGE,
     realtime: "polling_4s",
+    ...show,
   });
 });
 
@@ -123,12 +144,12 @@ app.get("/messages", async (c) => {
 
   let rows: ChatRow[];
   if (afterId > 0) {
-    ({ results: rows } = await c.env.DB.prepare(
+    ({ results: rows } = await fdb(c).prepare(
       `SELECT id, user_id, username, avatar_url, role, content, image_key, created_at
        FROM chat_messages WHERE id > ? ORDER BY id ASC LIMIT 50`,
     ).bind(afterId).all<ChatRow>());
   } else {
-    ({ results: rows } = await c.env.DB.prepare(
+    ({ results: rows } = await fdb(c).prepare(
       `SELECT id, user_id, username, avatar_url, role, content, image_key, created_at
        FROM chat_messages WHERE (?1 = 0 OR id < ?1) ORDER BY id DESC LIMIT 50`,
     ).bind(beforeId).all<ChatRow>());
@@ -136,7 +157,7 @@ app.get("/messages", async (c) => {
   }
 
   // 近 5 分钟活跃人数（粗略在线估计，避免每用户心跳表）
-  const online = await c.env.DB.prepare(
+  const online = await fdb(c).prepare(
     "SELECT COUNT(DISTINCT user_id) AS n FROM chat_messages WHERE created_at >= datetime('now', '-5 minutes')",
   ).first<{ n: number }>();
 
@@ -146,7 +167,7 @@ app.get("/messages", async (c) => {
 // 发送文字
 app.post("/send", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const cfg = await getChatConfig(c.env.DB);
+  const cfg = await getChatConfig(fdb(c));
   if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发言");
 
   const body = await c.req.json().catch(() => ({}));
@@ -154,16 +175,16 @@ app.post("/send", requireAuth, async (c) => {
   if (!content) return fail("消息不能为空");
   if (content.length > cfg.max_text) return fail(`消息需在 ${cfg.max_text} 字以内`);
 
-  if (await tooFast(c.env.DB, user.id)) return fail("发送太快了，休息一下~");
-  if ((await dailyCount(c.env.DB, user.id, false)) >= DAILY_TEXT) return fail("今日发言已达上限，明天再来聊吧");
+  if (await tooFast(fdb(c), user.id)) return fail("发送太快了，休息一下~");
+  if ((await dailyCount(fdb(c), user.id, false)) >= DAILY_TEXT) return fail("今日发言已达上限，明天再来聊吧");
 
-  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
-  const result = await c.env.DB.prepare(
+  const profile = await fdb(c).prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
+  const result = await fdb(c).prepare(
     "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, '')",
   )
     .bind(user.id, user.username, profile?.avatar || "", user.role, content)
     .run();
-  await logUserAction(c.env.DB, user.id, "chat_send", "发送聊天消息", getClientIp(c));
+  await logUserAction(fdb(c), user.id, "chat_send", "发送聊天消息", getClientIp(c));
 
   return ok(shape({
     id: Number(result.meta.last_row_id),
@@ -180,7 +201,7 @@ app.post("/send", requireAuth, async (c) => {
 // 发送图片
 app.post("/image", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const cfg = await getChatConfig(c.env.DB);
+  const cfg = await getChatConfig(fdb(c));
   if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发图");
 
   const maxImage = cfg.max_image_mb * 1024 * 1024;
@@ -192,21 +213,21 @@ app.post("/image", requireAuth, async (c) => {
   const ext = ALLOWED[file.type];
   if (!ext) return fail("仅支持 PNG / JPG / WEBP / GIF");
 
-  if (await tooFast(c.env.DB, user.id)) return fail("发送太快了，休息一下~");
-  if ((await dailyCount(c.env.DB, user.id, true)) >= DAILY_IMAGE) return fail("今日图片已达上限（30 张）");
+  if (await tooFast(fdb(c), user.id)) return fail("发送太快了，休息一下~");
+  if ((await dailyCount(fdb(c), user.id, true)) >= DAILY_IMAGE) return fail("今日图片已达上限（30 张）");
 
   const bucket = c.env.ASSETS;
   if (!bucket) return fail("R2 未绑定", 503);
   const key = `uploads/chat/${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   await bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
 
-  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
-  const result = await c.env.DB.prepare(
+  const profile = await fdb(c).prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
+  const result = await fdb(c).prepare(
     "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, '', ?)",
   )
     .bind(user.id, user.username, profile?.avatar || "", user.role, key)
     .run();
-  await logUserAction(c.env.DB, user.id, "chat_image", "发送聊天图片", getClientIp(c));
+  await logUserAction(fdb(c), user.id, "chat_image", "发送聊天图片", getClientIp(c));
 
   return ok(shape({
     id: Number(result.meta.last_row_id),
@@ -229,13 +250,13 @@ app.post("/admin/delete", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const id = Number(body.id) || 0;
   if (!id) return fail("缺少消息 ID");
-  const row = await c.env.DB.prepare("SELECT id, image_key FROM chat_messages WHERE id = ?").bind(id).first<{ id: number; image_key: string | null }>();
+  const row = await fdb(c).prepare("SELECT id, image_key FROM chat_messages WHERE id = ?").bind(id).first<{ id: number; image_key: string | null }>();
   if (!row) return fail("消息不存在", 404);
   if (row.image_key?.startsWith("uploads/chat/")) {
     await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
   }
-  await c.env.DB.prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
-  await logOp(c.env.DB, c, admin.id, "chat_delete", `#${id}`);
+  await fdb(c).prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
+  await logOp(fdb(c), c, admin.id, "chat_delete", `#${id}`);
   return ok({ deleted: true });
 });
 

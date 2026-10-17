@@ -4,8 +4,66 @@ import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp } from "../lib/log";
+import { runRconCommand } from "./rcon";
 
 const app = new Hono<AppEnv>();
+
+// —— 经济插件对接（RCON 指令模板） ——
+
+export interface EconomyConfig {
+  enabled: boolean;
+  currency_name: string;      // 游戏币名称，如「金币」
+  balance_cmd: string;        // 查询余额，如 eco get {player} / balance {player}
+  deduct_cmd: string;         // 扣款，如 eco take {player} {amount}
+}
+
+const DEFAULT_ECONOMY: EconomyConfig = {
+  enabled: false,
+  currency_name: "金币",
+  balance_cmd: "eco get {player}",
+  deduct_cmd: "eco take {player} {amount}",
+};
+
+export async function loadEconomyConfig(db: D1Database): Promise<EconomyConfig> {
+  const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'shop_economy'").first<{ value: string }>();
+  if (!row) return { ...DEFAULT_ECONOMY };
+  try {
+    return { ...DEFAULT_ECONOMY, ...(JSON.parse(row.value) as Partial<EconomyConfig>) };
+  } catch {
+    return { ...DEFAULT_ECONOMY };
+  }
+}
+
+function fillTemplate(tpl: string, player: string, amount: string): string {
+  return tpl.replace(/\{player\}/g, player).replace(/\{amount\}/g, amount).replace(/\{mc_name\}/g, player);
+}
+
+/** 用户绑定的 MC 玩家名：优先已通过的入服申请，其次微软绑定，最后用户名 */
+async function resolveMcName(db: D1Database, userId: number, fallback: string): Promise<string> {
+  const app1 = await db.prepare(
+    "SELECT mc_name FROM whitelist_applications WHERE user_id = ? AND status = 'approved' ORDER BY id DESC LIMIT 1",
+  ).bind(userId).first<{ mc_name: string }>();
+  if (app1?.mc_name) return app1.mc_name;
+  const ms = await db.prepare("SELECT mc_username FROM microsoft_bindings WHERE user_id = ? LIMIT 1").bind(userId).first<{ mc_username: string }>();
+  if (ms?.mc_username) return ms.mc_username;
+  return fallback;
+}
+
+/** 取第一台配置了 RCON 密码的服务器 */
+async function getRconServer(db: D1Database): Promise<{ host: string; port: number; password: string } | null> {
+  const row = await db.prepare(
+    "SELECT host, port, password FROM game_servers WHERE password != '' ORDER BY id ASC LIMIT 1",
+  ).first<{ host: string; port: number; password: string }>();
+  return row ?? null;
+}
+
+/** 从 RCON 输出中提取余额数字 */
+function parseBalance(output: string): number | null {
+  const m = output.replace(/,/g, "").match(/-?\d+(\.\d+)?/);
+  if (!m) return null;
+  const n = Number(m[0]);
+  return Number.isFinite(n) ? n : null;
+}
 
 // —— 商品（公开） ——
 
@@ -25,6 +83,42 @@ app.get("/products/:id", async (c) => {
   return ok(row);
 });
 
+// —— 用户端：经济信息与余额 ——
+
+function publicEconomy(cfg: EconomyConfig) {
+  return {
+    enabled: cfg.enabled,
+    currency_name: cfg.currency_name,
+    balance_cmd: cfg.balance_cmd,
+    deduct_cmd: cfg.deduct_cmd,
+  };
+}
+
+/** 经济支付开通信息（登录用户）：是否启用 + 游戏币名称 + 绑定的 MC 玩家名 */
+app.get("/economy-info", requireAuth, async (c) => {
+  const cfg = await loadEconomyConfig(c.env.DB);
+  if (!cfg.enabled) return ok({ enabled: false });
+  const user = c.get("user")!;
+  const mcName = await resolveMcName(c.env.DB, user.id, user.username);
+  return ok({ enabled: true, currency_name: cfg.currency_name, mc_name: mcName });
+});
+
+/** 查询我的游戏余额（通过 RCON） */
+app.get("/balance", requireAuth, async (c) => {
+  const cfg = await loadEconomyConfig(c.env.DB);
+  if (!cfg.enabled) return fail("经济支付未启用", 400);
+  const user = c.get("user")!;
+  const mcName = await resolveMcName(c.env.DB, user.id, user.username);
+  const server = await getRconServer(c.env.DB);
+  if (!server) return fail("未配置 RCON 服务器，无法查询余额", 502);
+
+  const data = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(cfg.balance_cmd, mcName, "0"), 8);
+  if (!data.ok) return fail(data.message || "余额查询失败", 502);
+  const balance = parseBalance(data.output || "");
+  if (balance === null) return fail("无法从服务器输出中解析余额，请联系管理员调整解析配置", 502);
+  return ok({ balance, currency_name: cfg.currency_name, mc_name: mcName });
+});
+
 // —— 用户端：创建订单 ——
 
 app.use("/order", requireAuth);
@@ -34,6 +128,7 @@ app.post("/order", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const productId = Number(body.product_id);
   const qty = Math.min(Math.max(Number(body.qty) || 1, 1), 99);
+  const payEconomy = body.payment_method === "economy";
 
   const product = await c.env.DB.prepare(
     "SELECT id, name, price, currency, active FROM shop_products WHERE id = ? AND active = 1",
@@ -43,14 +138,49 @@ app.post("/order", async (c) => {
   const orderNo = `SO${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const total = Math.round(product.price * qty * 100) / 100;
 
+  // 经济支付：查余额 → 扣款 → 直接标记已支付
+  let status = "pending";
+  let currency = product.currency;
+  if (payEconomy) {
+    const cfg = await loadEconomyConfig(c.env.DB);
+    if (!cfg.enabled) return fail("经济支付未启用", 400);
+    const server = await getRconServer(c.env.DB);
+    if (!server) return fail("未配置 RCON 服务器，暂无法使用游戏币支付", 502);
+    const mcName = await resolveMcName(c.env.DB, user.id, user.username);
+    const amount = String(total);
+
+    const balRes = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(cfg.balance_cmd, mcName, amount), 8);
+    if (!balRes.ok) return fail(balRes.message || "余额查询失败", 502);
+    const balance = parseBalance(balRes.output || "");
+    if (balance === null) return fail("无法解析服务器余额输出，请联系管理员", 502);
+    if (balance < total) return fail(`余额不足：当前 ${balance} ${cfg.currency_name}，本次需支付 ${total} ${cfg.currency_name}`, 400);
+
+    const deductRes = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(cfg.deduct_cmd, mcName, amount), 8);
+    if (!deductRes.ok) return fail(deductRes.message || "扣款失败，请稍后重试", 502);
+
+    status = "paid";
+    currency = cfg.currency_name;
+  }
+
   const result = await c.env.DB.prepare(
-    `INSERT INTO shop_orders (order_no, user_id, product_id, product_name, price, qty, total, currency, status)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'pending')`,
+    `INSERT INTO shop_orders (order_no, user_id, product_id, product_name, price, qty, total, currency, status, provider, paid_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CASE WHEN ? = 'paid' THEN datetime('now') ELSE NULL END)`,
   )
-    .bind(orderNo, user.id, product.id, product.name, product.price, qty, total, product.currency)
+    .bind(orderNo, user.id, product.id, product.name, product.price, qty, total, currency, status, payEconomy ? "economy" : "manual", status)
     .run();
 
-  return ok({ order_id: Number(result.meta.last_row_id), order_no: orderNo, total, currency: product.currency });
+  if (payEconomy) {
+    await logOp(c.env.DB, c, user.id, "shop_order_economy_paid", `${orderNo} ${total}${currency}`);
+  }
+
+  return ok({
+    order_id: Number(result.meta.last_row_id),
+    order_no: orderNo,
+    total,
+    currency,
+    status,
+    economy_paid: payEconomy,
+  });
 });
 
 // 我的订单
@@ -66,6 +196,55 @@ app.get("/orders", requireAuth, async (c) => {
 // —— 管理端 ——
 
 app.use("/admin/*", requireAuth, requireAdmin);
+
+// —— 经济插件配置 ——
+
+app.get("/admin/economy", async (c) => {
+  const cfg = await loadEconomyConfig(c.env.DB);
+  return ok(publicEconomy(cfg));
+});
+
+app.post("/admin/economy", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const cfg: EconomyConfig = {
+    enabled: body.enabled === true,
+    currency_name: str(body.currency_name, 20).trim() || "金币",
+    balance_cmd: str(body.balance_cmd, 200).trim() || DEFAULT_ECONOMY.balance_cmd,
+    deduct_cmd: str(body.deduct_cmd, 200).trim() || DEFAULT_ECONOMY.deduct_cmd,
+  };
+  if (!cfg.balance_cmd.includes("{player}")) return fail("余额查询指令必须包含 {player} 占位符");
+  if (!cfg.deduct_cmd.includes("{player}") || !cfg.deduct_cmd.includes("{amount}")) {
+    return fail("扣款指令必须包含 {player} 和 {amount} 占位符");
+  }
+
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at)
+     VALUES ('shop_economy', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  ).bind(JSON.stringify(cfg)).run();
+
+  await logOp(c.env.DB, c, c.get("user")!.id, "shop_economy_update", cfg.enabled ? "enabled" : "disabled");
+  return ok(publicEconomy(cfg));
+});
+
+/** 测试经济配置：用表单中的余额指令对指定玩家实际执行一次 RCON 查询 */
+app.post("/admin/economy/test", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const balanceCmd = str(body.balance_cmd, 200).trim();
+  const player = str(body.player, 40).trim();
+  if (!balanceCmd) return fail("请填写余额查询指令");
+  if (!balanceCmd.includes("{player}")) return fail("余额查询指令必须包含 {player} 占位符");
+  if (!player) return fail("请填写测试玩家名（需在线）");
+
+  const server = await getRconServer(c.env.DB);
+  if (!server) return fail("没有配置了 RCON 密码的服务器，请先在「服务器监控」中为服务器填写 RCON 密码", 400);
+
+  const data = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(balanceCmd, player, "0"), 8);
+  if (!data.ok) return fail(data.message || "RCON 执行失败", 502);
+  const output = data.output || "";
+  const balance = parseBalance(output);
+  return ok({ output, balance, parsed: balance !== null });
+});
 
 app.get("/admin/products", async (c) => {
   const { results } = await c.env.DB.prepare(
