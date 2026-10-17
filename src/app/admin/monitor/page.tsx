@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
+import MotdQuery from "@/components/MotdQuery";
 import { api } from "@/lib/api";
 import { Btn, Card, Empty, ErrorNote, Field, Input, PageHeader, Select, SuccessNote, StatusBadge, fmtTime } from "@/components/ui";
 
@@ -151,6 +152,12 @@ export default function AdminMonitorPage() {
           </Field>
           <Btn onClick={saveInterval} disabled={!intervalLoaded}>保存间隔</Btn>
         </div>
+      </Card>
+
+      <Card className="mb-5">
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">MOTD 在线查询</h3>
+        <p className="text-[0.8rem] text-slate-400 mb-3">通过 MineBBS MOTD API 查询任意服务器的图标、MOTD、版本与在线人数；前台「帮助」页也提供同款查询。</p>
+        <MotdQuery defaultHost={servers?.[0] ? `${servers[0].host}:${servers[0].port}` : undefined} />
       </Card>
 
       <div className="flex flex-col gap-4 mb-5">

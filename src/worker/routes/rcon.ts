@@ -56,8 +56,8 @@ function publicConfig(cfg: RconWhitelistConfig) {
   };
 }
 
-/** 通过 RconDO 执行命令：host/port/password/command/timeout */
-async function runRconCommand(
+/** 通过 RconDO 执行命令：host/port/password/command/timeout（供商城经济插件等模块复用） */
+export async function runRconCommand(
   c: { env: AppEnv["Bindings"] },
   host: string,
   port: number,

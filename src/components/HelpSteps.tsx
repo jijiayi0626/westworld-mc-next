@@ -1,6 +1,7 @@
 "use client";
 
 import ScrollFadeUp from "./ScrollFadeUp";
+import MotdQuery from "./MotdQuery";
 import { useSiteContent } from "./SiteContentProvider";
 
 export default function HelpSteps() {
@@ -114,6 +115,21 @@ export default function HelpSteps() {
       </div>
           ))}
     </div>
+
+        {/* 服务器 MOTD 在线查询 */}
+        <div className="relative z-[2] mt-14 max-w-[640px] mx-auto text-left">
+          <ScrollFadeUp>
+            <h3 className="text-[clamp(1.3rem,3vw,1.6rem)] font-bold text-white mb-2 text-center text-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+              服务器状态在线查询
+            </h3>
+            <p className="text-[0.95rem] text-white/70 mb-5 text-center">
+              输入任意服务器地址即可查询 MOTD、版本与在线人数（由 MineBBS MOTD API 提供）
+            </p>
+            <div className="[&_input]:bg-white/10 [&_input]:border [&_input]:border-white/15 [&_input]:rounded-[10px] [&_input]:px-3.5 [&_input]:py-2.5 [&_input]:text-white [&_input]:placeholder:text-white/40 [&_input]:text-[0.9rem] [&_input]:focus:outline-none [&_input]:focus:border-accent-emerald/60 [&_button]:bg-accent-emerald [&_button]:text-white [&_button]:border-0 [&_button]:rounded-[10px] [&_button]:px-5 [&_button]:py-2.5 [&_button]:font-semibold [&_button]:cursor-pointer [&_button]:hover:bg-[#00c464] [&_button]:transition-colors [&_button]:disabled:opacity-50">
+              <MotdQuery defaultHost={site.server_ip} />
+            </div>
+          </ScrollFadeUp>
+        </div>
 
         <div className="launcher-section relative z-[2] mt-20">
           <ScrollFadeUp>

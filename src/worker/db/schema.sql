@@ -282,3 +282,10 @@ CREATE TABLE IF NOT EXISTS chat_messages (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_messages_id ON chat_messages(id);
 CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages(user_id, created_at);
+
+-- 图片命名（图库管理重命名用，key 对应 R2 对象）
+CREATE TABLE IF NOT EXISTS image_meta (
+  key TEXT PRIMARY KEY,
+  name TEXT DEFAULT '',
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);

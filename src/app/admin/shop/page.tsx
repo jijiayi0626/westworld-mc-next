@@ -31,7 +31,14 @@ interface Order {
   username: string;
 }
 
-type Tab = "products" | "orders";
+type Tab = "products" | "orders" | "economy";
+
+interface EconomyConfigView {
+  enabled: boolean;
+  currency_name: string;
+  balance_cmd: string;
+  deduct_cmd: string;
+}
 
 export default function AdminShopPage() {
   const [tab, setTab] = useState<Tab>("products");
@@ -55,6 +62,20 @@ export default function AdminShopPage() {
   const [deliverOrderId, setDeliverOrderId] = useState<number | null>(null);
   const [delivery, setDelivery] = useState("");
 
+  // 经济插件配置
+  const [eco, setEco] = useState<EconomyConfigView | null>(null);
+  const [ecoPlayer, setEcoPlayer] = useState("");
+  const [ecoTestOut, setEcoTestOut] = useState<string | null>(null);
+  const [ecoBusy, setEcoBusy] = useState(false);
+
+  const loadEconomy = useCallback(async () => {
+    try {
+      setEco(await api<EconomyConfigView>("/shop/admin/economy"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "经济配置加载失败");
+    }
+  }, []);
+
   const loadProducts = useCallback(async () => {
     try {
       setProducts(await api<Product[]>("/shop/admin/products"));
@@ -74,7 +95,8 @@ export default function AdminShopPage() {
   useEffect(() => {
     void loadProducts();
     void loadOrders();
-  }, [loadProducts, loadOrders]);
+    void loadEconomy();
+  }, [loadProducts, loadOrders, loadEconomy]);
 
   const startCreate = () => {
     setEditingId(null);
@@ -175,9 +197,52 @@ export default function AdminShopPage() {
 
   const [productKeyword, setProductKeyword] = useState("");
 
+  const saveEconomy = async () => {
+    if (!eco) return;
+    setError("");
+    setSuccess("");
+    setEcoBusy(true);
+    try {
+      const saved = await api<EconomyConfigView>("/shop/admin/economy", {
+        method: "POST",
+        body: JSON.stringify({
+          enabled: eco.enabled,
+          currency_name: eco.currency_name,
+          balance_cmd: eco.balance_cmd,
+          deduct_cmd: eco.deduct_cmd,
+        }),
+      });
+      setEco(saved);
+      setSuccess("经济插件配置已保存");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "保存失败");
+    } finally {
+      setEcoBusy(false);
+    }
+  };
+
+  const testEconomy = async () => {
+    if (!eco) return;
+    setError("");
+    setEcoTestOut(null);
+    setEcoBusy(true);
+    try {
+      const r = await api<{ output: string; balance: number | null; parsed: boolean }>("/shop/admin/economy/test", {
+        method: "POST",
+        body: JSON.stringify({ balance_cmd: eco.balance_cmd, player: ecoPlayer.trim() }),
+      });
+      setEcoTestOut(r.parsed ? `解析成功：余额 = ${r.balance} ${eco.currency_name}\n原始输出：${r.output}` : `已执行但无法解析余额数字\n原始输出：${r.output}`);
+    } catch (err) {
+      setEcoTestOut(`测试失败：${err instanceof Error ? err.message : "未知错误"}`);
+    } finally {
+      setEcoBusy(false);
+    }
+  };
+
   const tabs: { key: Tab; label: string }[] = [
     { key: "products", label: "商品管理" },
     { key: "orders", label: "订单管理" },
+    { key: "economy", label: "经济插件" },
   ];
 
   return (
@@ -331,6 +396,59 @@ export default function AdminShopPage() {
             )}
           </Card>
         </>
+      ) : tab === "economy" ? (
+        <Card>
+          <div className="flex items-center justify-between mb-1">
+            <h3 className="text-[1.05rem] font-bold text-slate-800">经济插件对接</h3>
+            {eco?.enabled ? <Badge color="green">已启用</Badge> : <Badge color="gray">未启用</Badge>}
+          </div>
+          <p className="text-[0.82rem] text-slate-500 mb-4">
+            通过 RCON 对接服务器内任意经济插件（EssentialsX / PlayerPoints / Vault 等）。玩家下单时自动查询余额并扣款，订单直接进入「已支付」。
+          </p>
+          {eco === null ? (
+            <Empty text="加载中..." />
+          ) : (
+            <div className="flex flex-col gap-4">
+              <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+                <input
+                  type="checkbox"
+                  checked={eco.enabled}
+                  onChange={(e) => setEco({ ...eco, enabled: e.target.checked })}
+                  className="w-4 h-4 accent-emerald-600"
+                />
+                <span className="text-[0.9rem] font-medium text-slate-700">启用游戏币支付</span>
+              </label>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="游戏币名称" hint="展示给用户，如：金币 / 点券">
+                  <Input value={eco.currency_name} onChange={(e) => setEco({ ...eco, currency_name: e.target.value })} maxLength={20} />
+                </Field>
+              </div>
+              <Field label="余额查询指令" hint="必须包含 {player} 占位符。示例：eco get {player}（EssentialsX）/ points me（PlayerPoints）">
+                <Input value={eco.balance_cmd} onChange={(e) => setEco({ ...eco, balance_cmd: e.target.value })} maxLength={200} placeholder="eco get {player}" />
+              </Field>
+              <Field label="扣款指令" hint="必须包含 {player} 和 {amount}。示例：eco take {player} {amount} / points take {player} {amount}">
+                <Input value={eco.deduct_cmd} onChange={(e) => setEco({ ...eco, deduct_cmd: e.target.value })} maxLength={200} placeholder="eco take {player} {amount}" />
+              </Field>
+              <div className="border-t border-slate-200 pt-4">
+                <Field label="连通性测试" hint="对指定在线玩家执行一次余额查询，验证指令与输出解析是否正常">
+                  <div className="flex gap-2">
+                    <Input value={ecoPlayer} onChange={(e) => setEcoPlayer(e.target.value)} placeholder="测试玩家名（需在线）" maxLength={40} />
+                    <Btn type="button" variant="ghost" onClick={testEconomy} disabled={ecoBusy || !ecoPlayer.trim()}>测试</Btn>
+                  </div>
+                </Field>
+                {ecoTestOut && (
+                  <pre className="mt-3 p-3 bg-slate-50 rounded-[10px] text-[0.78rem] text-slate-600 whitespace-pre-wrap break-all max-h-[180px] overflow-auto">{ecoTestOut}</pre>
+                )}
+              </div>
+              <div className="flex gap-2">
+                <Btn onClick={saveEconomy} disabled={ecoBusy}>{ecoBusy ? "保存中..." : "保存配置"}</Btn>
+              </div>
+              <p className="text-[0.78rem] text-slate-500">
+                前提：在「服务器监控」中为服务器填写 RCON 地址与密码（页面使用第一台已配置 RCON 密码的服务器）；玩家通过入服申请或微软绑定关联游戏 ID。
+              </p>
+            </div>
+          )}
+        </Card>
       ) : (
         <Card>
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">订单列表</h3>
