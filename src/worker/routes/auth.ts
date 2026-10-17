@@ -8,6 +8,7 @@ import { getClientIp, getUa, uaFingerprint, genCsrfToken, genCode } from "../lib
 import { rateLimit, isBlacklisted } from "../lib/ratelimit";
 import { logUserAction } from "../lib/log";
 import { getSecret } from "../lib/auth";
+import { loadMailConfig, mailEnabled, sendMail, renderEmail } from "../lib/mail";
 
 const app = new Hono<AppEnv>();
 
@@ -155,6 +156,26 @@ app.post("/forgot", async (c) => {
 
   // 重置码仅记录到后台日志（用户/管理员可见），不再返回给前端，防止账号接管
   await logUserAction(c.env.DB, user.id, "forgot_password", `重置码已生成: ${code}`, getClientIp(c), getUa(c));
+
+  // 邮件服务已配置时同步投递验证码邮件；失败仅记录，不影响日志兜底流程
+  try {
+    const cfg = await loadMailConfig(c.env.DB);
+    if (mailEnabled(cfg)) {
+      await sendMail(cfg, {
+        to: email,
+        subject: `【${c.env.APP_NAME || "Westworld西域之光"}】密码重置验证码`,
+        html: renderEmail(
+          "密码重置验证码",
+          `<p>您好，<b>${user.username}</b>：</p><p>您正在重置账号密码，验证码为：</p>` +
+            `<p style="font-size:28px;font-weight:800;letter-spacing:6px;color:#059669;margin:18px 0;">${code}</p>` +
+            `<p>验证码 30 分钟内有效。如非本人操作，请忽略本邮件并建议尽快修改密码。</p>`,
+        ),
+      });
+      await logUserAction(c.env.DB, user.id, "forgot_password", "重置码已通过邮件投递", getClientIp(c), getUa(c));
+    }
+  } catch (e) {
+    console.log("[mail] forgot 投递失败:", e instanceof Error ? e.message : e);
+  }
 
   return ok({ sent: true });
 });

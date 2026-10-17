@@ -52,12 +52,12 @@ export default function AdminHomePage() {
     void loadHealth();
   }, [loadHealth]);
 
-  // 统计卡片（图5：今日新增注册绿底 / 今日新增申请浅绿 / 待审核浅黄 / 已通过未同步浅蓝）
+  // 统计卡片（深浅模式自适应：tone 映射到 admin.css 的 .stat-card.sc-*）
   const statCards = [
-    { label: "今日新增注册", value: stats?.today_users, bg: "#dcfce7", color: "#15803d", href: "/admin/users" },
-    { label: "今日新增申请", value: stats?.today_applications, bg: "#ecfdf5", color: "#047857", href: "/admin/applications" },
-    { label: "待审核申请", value: stats?.pending_applications, bg: "#fef9c3", color: "#a16207", href: "/admin/applications" },
-    { label: "已通过未同步", value: stats?.approved_unsynced, bg: "#e0f2fe", color: "#1d4ed8", href: "/admin/applications" },
+    { label: "今日新增注册", value: stats?.today_users, tone: "green", href: "/admin/users" },
+    { label: "今日新增申请", value: stats?.today_applications, tone: "green", href: "/admin/applications" },
+    { label: "待审核申请", value: stats?.pending_applications, tone: "amber", href: "/admin/applications" },
+    { label: "已通过未同步", value: stats?.approved_unsynced, tone: "blue", href: "/admin/applications" },
   ];
 
   // 功能卡片（图5：申请审核 / 白名单同步 / 待跟进 / 待处理工单）
@@ -68,7 +68,7 @@ export default function AdminHomePage() {
       num: stats?.pending_applications,
       btn: "去审核",
       href: "/admin/applications",
-      btnColor: "#10b981",
+      tone: "green",
     },
     {
       title: "白名单同步",
@@ -76,7 +76,7 @@ export default function AdminHomePage() {
       num: stats?.approved_unsynced,
       btn: "去同步",
       href: "/admin/applications",
-      btnColor: "#10b981",
+      tone: "green",
     },
     {
       title: "待跟进申请",
@@ -84,7 +84,7 @@ export default function AdminHomePage() {
       num: stats?.need_info_applications,
       btn: "查看申请",
       href: "/admin/applications",
-      btnColor: "#f59e0b",
+      tone: "amber",
     },
     {
       title: "待处理工单",
@@ -92,7 +92,7 @@ export default function AdminHomePage() {
       num: stats?.open_tickets,
       btn: "处理工单",
       href: "/admin/tickets",
-      btnColor: "#ef4444",
+      tone: "red",
     },
   ];
 
@@ -106,16 +106,16 @@ export default function AdminHomePage() {
         {error && <div className="mb-4 px-4 py-3 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]">{error}</div>}
 
         {/* 运营待办概览 */}
-        <div className="bg-[#eff6ff] border border-blue-200 rounded-[12px] px-4 py-3 mb-5 text-[#1e40af] text-[0.92rem] font-semibold">
+        <div className="stat-card sc-blue rounded-[12px] px-4 py-3 mb-5 text-[0.92rem] font-semibold">
           运营待办概览
         </div>
 
         {/* 统计卡片区 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {statCards.map((c) => (
-            <Link key={c.label} href={c.href} className="block rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: c.bg }}>
-              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
-              <div className="text-[2rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value ?? "—"}</div>
+            <Link key={c.label} href={c.href} className={`stat-card block rounded-[14px] p-4 transition-all hover:shadow-md hover:-translate-y-0.5 sc-${c.tone}`}>
+              <div className="text-[0.82rem] font-medium">{c.label}</div>
+              <div className="text-[2rem] font-extrabold mt-1">{c.value ?? "—"}</div>
             </Link>
           ))}
         </div>
@@ -169,8 +169,7 @@ export default function AdminHomePage() {
                 <span className="text-[1.5rem] font-extrabold text-slate-800">{c.num ?? "0"}</span>
                 <Link
                   href={c.href}
-                  className="px-4 py-2 rounded-[8px] text-slate-800 text-[0.85rem] font-semibold transition-all hover:opacity-90"
-                  style={{ background: c.btnColor }}
+                  className={`stat-btn sc-${c.tone} px-4 py-2 rounded-[8px] text-[0.85rem] font-semibold transition-all`}
                 >
                   {c.btn}
                 </Link>
