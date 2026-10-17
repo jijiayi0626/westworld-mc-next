@@ -268,28 +268,28 @@ export default function AdminShopPage() {
       {tab === "products" ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           {[
-            { label: "商品总数", value: products?.length ?? 0, bg: "#f0fdf4", color: "#15803d" },
-            { label: "已上架", value: (products ?? []).filter((p) => p.active === 1).length, bg: "#eff6ff", color: "#1d4ed8" },
-            { label: "已下架", value: (products ?? []).filter((p) => p.active === 0).length, bg: "#f1f5f9", color: "#475569" },
-            { label: "总订单", value: orders?.length ?? 0, bg: "#fef9c3", color: "#a16207" },
+            { label: "商品总数", value: products?.length ?? 0, tone: "green" },
+            { label: "已上架", value: (products ?? []).filter((p) => p.active === 1).length, tone: "blue" },
+            { label: "已下架", value: (products ?? []).filter((p) => p.active === 0).length, tone: "slate" },
+            { label: "总订单", value: orders?.length ?? 0, tone: "amber" },
           ].map((c) => (
-            <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
-              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
-              <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value}</div>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+              <div className="text-[0.82rem] font-medium">{c.label}</div>
+              <div className="text-[1.8rem] font-extrabold mt-1">{c.value}</div>
             </div>
           ))}
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
           {[
-            { label: "全部订单", value: orders?.length ?? 0, bg: "#f0fdf4", color: "#15803d" },
-            { label: "待支付", value: (orders ?? []).filter((o) => o.status === "pending").length, bg: "#fef9c3", color: "#a16207" },
-            { label: "已完成", value: (orders ?? []).filter((o) => o.status === "completed").length, bg: "#eff6ff", color: "#1d4ed8" },
-            { label: "待发货", value: (orders ?? []).filter((o) => o.status === "paid").length, bg: "#fdf2f8", color: "#be185d" },
+            { label: "全部订单", value: orders?.length ?? 0, tone: "green" },
+            { label: "待支付", value: (orders ?? []).filter((o) => o.status === "pending").length, tone: "amber" },
+            { label: "已完成", value: (orders ?? []).filter((o) => o.status === "completed").length, tone: "blue" },
+            { label: "待发货", value: (orders ?? []).filter((o) => o.status === "paid").length, tone: "pink" },
           ].map((c) => (
-            <div key={c.label} className="rounded-[14px] border border-slate-100 p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]" style={{ background: c.bg }}>
-              <div className="text-[0.82rem] font-medium" style={{ color: c.color }}>{c.label}</div>
-              <div className="text-[1.8rem] font-extrabold mt-1" style={{ color: c.color }}>{c.value}</div>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+              <div className="text-[0.82rem] font-medium">{c.label}</div>
+              <div className="text-[1.8rem] font-extrabold mt-1">{c.value}</div>
             </div>
           ))}
         </div>
