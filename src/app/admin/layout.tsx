@@ -13,7 +13,6 @@ export default function AdminLayout({ children }: { children: ReactNode }) {
     <>
       <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT }} />
       <link rel="stylesheet" href="/css/admin.css" />
-      <link rel="stylesheet" href="/css/theme-classic.css" />
       <link rel="stylesheet" href="/css/mobile.css" />
       <link rel="stylesheet" href="/css/shell.css" />
       <BodyClass cls="admin-page" />

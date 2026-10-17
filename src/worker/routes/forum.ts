@@ -24,8 +24,8 @@ interface ForumPost {
   updated_at: string;
 }
 
-// 公告列表（用户中心论坛页；需登录）
-app.get("/announcements", requireAuth, async (c) => {
+// 公告列表（公开：无需登录；官网「论坛」页与用户中心共用）
+app.get("/announcements", async (c) => {
   const { results } = await fdb(c)
     .prepare(
       "SELECT id, title, content, author_name, pinned, created_at, updated_at FROM forum_posts WHERE board = 'announcement' ORDER BY pinned DESC, id DESC LIMIT 100",

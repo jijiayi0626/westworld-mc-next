@@ -59,7 +59,7 @@ export default function CommunitySection() {
                   className={`community-btn px-8 py-3 rounded-full font-semibold no-underline transition-all duration-300 inline-block ${
                     group.btn_class === "qq-btn"
                       ? "bg-accent-blue text-white shadow-[0_4px_15px_rgba(59,130,246,0.3)] hover:bg-[#2563eb] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(59,130,246,0.5)]"
-                      : "bg-accent-emerald text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:bg-[#059669] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(16,185,129,0.5)]"
+                      : "bg-accent-emerald text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)] hover:bg-[color:var(--green-dark,#059669)] hover:-translate-y-0.5 hover:shadow-[0_8px_25px_rgba(16,185,129,0.5)]"
                   }`}
                 >
                   {group.btn_text}

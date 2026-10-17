@@ -33,7 +33,6 @@ interface AdminStyle {
 /** 前端外观偏好（localStorage site_appearance_v1）：优先级高于后台样式设置 */
 interface AppearancePrefs {
   theme?: "light" | "dark" | "system";
-  template?: "modern" | "classic";
 }
 
 const APPEARANCE_KEY = "site_appearance_v1";
@@ -59,15 +58,13 @@ function systemDark(): boolean {
 }
 
 /**
- * 应用外观（主题 + 模板）到根节点：prefs.theme 缺省时回退 adminTheme，再回退系统偏好。
+ * 应用外观（主题）到根节点：prefs.theme 缺省时回退 adminTheme，再回退系统偏好。
  * 返回清理函数（跟随系统时监听系统主题变化）。
  */
 function applyAppearance(prefs: AppearancePrefs, adminTheme?: string): () => void {
   const root = document.documentElement;
   const theme = prefs.theme ?? adminTheme;
   root.setAttribute("data-theme", theme === "dark" || theme === "light" ? theme : systemDark() ? "dark" : "light");
-  if (prefs.template && prefs.template !== "modern") root.setAttribute("data-template", prefs.template);
-  else root.removeAttribute("data-template");
 
   const media = window.matchMedia("(prefers-color-scheme: dark)");
   const onChange = () => {
@@ -79,11 +76,11 @@ function applyAppearance(prefs: AppearancePrefs, adminTheme?: string): () => voi
   return () => media.removeEventListener("change", onChange);
 }
 
-/** 应用完整外观：主题/模板 + 后台主色（经典模板下主色由模板接管） */
+/** 应用完整外观：主题 + 后台主色 */
 function applyFullAppearance(prefs: AppearancePrefs, style: AdminStyle): (() => void) | undefined {
   const root = document.documentElement;
   const cleanup = applyAppearance(prefs, style.theme);
-  if (style.accent && prefs.template !== "classic") {
+  if (style.accent) {
     root.style.setProperty("--green", style.accent);
   } else {
     root.style.removeProperty("--green");
@@ -235,7 +232,6 @@ function Shell({
       cancelled = true;
       cleanup?.();
       document.documentElement.removeAttribute("data-theme");
-      document.documentElement.removeAttribute("data-template");
       document.documentElement.style.removeProperty("--green");
     };
   }, [prefs]);
@@ -370,7 +366,7 @@ function Shell({
             ),
           )}
           {extra}
-          {/* 外观设置：深浅主题 + 模板切换（本地记忆） */}
+          {/* 外观设置：深浅主题切换（本地记忆） */}
           <div className="appearance-block">
             <div className="appearance-title">外观设置</div>
             <div className="appearance-row" role="group" aria-label="主题模式">
@@ -390,26 +386,6 @@ function Shell({
                   <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     {icon}
                     {path && <path d={path} />}
-                  </svg>
-                  <span>{label}</span>
-                </button>
-              ))}
-            </div>
-            <div className="appearance-row" role="group" aria-label="模板风格">
-              {([
-                ["modern", "现代"],
-                ["classic", "经典"],
-              ] as const).map(([val, label]) => (
-                <button
-                  key={val}
-                  type="button"
-                  className={`appearance-btn ${(prefs.template ?? "modern") === val ? "active" : ""}`}
-                  onClick={() => updatePrefs({ template: val })}
-                  title={label}
-                  aria-pressed={(prefs.template ?? "modern") === val}
-                >
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    {val === "modern" ? <path d="M12 3l9 5-9 5-9-5 9-5zM3 13l9 5 9-5" /> : <path d="M4 4h16v16H4zM4 9h16M9 9v11" />}
                   </svg>
                   <span>{label}</span>
                 </button>
@@ -496,8 +472,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       icon: "analytics",
       children: [
         { href: "/admin/messages", label: "消息通知", icon: "chat" },
-        { href: "/admin/forum", label: "论坛管理", icon: "forum" },
-        { href: "/admin/announcements", label: "公告管理", icon: "campaign" },
+        { href: "/admin/forum", label: "公告与论坛", icon: "campaign" },
         { href: "/admin/tickets", label: "工单管理", icon: "confirmation_number" },
         { href: "/admin/oplogs", label: "行为日志", icon: "history" },
         { href: "/admin/blacklist", label: "风控分析", icon: "shield" },

@@ -44,9 +44,9 @@ app.post("/register", async (c) => {
   const csrf = genCsrfToken();
 
   const result = await c.env.DB.prepare(
-    "INSERT INTO users (username, email, password_hash, ua_fingerprint, csrf_token, last_login_ip, last_login_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))",
+    "INSERT INTO users (username, email, password_hash, ua_fingerprint, csrf_token, register_ip, last_login_ip, last_login_ua, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
   )
-    .bind(username, email, passwordHash, fingerprint, csrf, getClientIp(c))
+    .bind(username, email, passwordHash, fingerprint, csrf, getClientIp(c), getClientIp(c), getUa(c))
     .run();
 
   const userId = Number(result.meta.last_row_id);
@@ -96,9 +96,9 @@ app.post("/login", async (c) => {
   );
 
   await c.env.DB.prepare(
-    "UPDATE users SET last_login_ip = ?, last_login_at = datetime('now'), ua_fingerprint = ? WHERE id = ?",
+    "UPDATE users SET last_login_ip = ?, last_login_at = datetime('now'), last_login_ua = ?, ua_fingerprint = ? WHERE id = ?",
   )
-    .bind(getClientIp(c), await uaFingerprint(c), user.id)
+    .bind(getClientIp(c), getUa(c), await uaFingerprint(c), user.id)
     .run();
   await logUserAction(c.env.DB, user.id, "login", "登录成功", getClientIp(c), getUa(c));
 

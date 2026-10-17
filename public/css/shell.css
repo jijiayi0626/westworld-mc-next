@@ -17,9 +17,9 @@
   --sb-text-strong: #0f172a;
   --sb-muted: #94a3b8;
   --sb-hover: #f1f5f9;
-  --sb-accent: var(--green, #10b981);
-  --sb-accent-strong: var(--green-dark, #059669);
-  --sb-accent-bg: #ecfdf5;
+  --sb-accent: var(--green, var(--green));
+  --sb-accent-strong: var(--green-dark, var(--green-dark));
+  --sb-accent-bg: var(--green-bg);
   display: block;
   min-height: 100vh;
   background: var(--sb-page-bg);
@@ -36,7 +36,7 @@
   --sb-text-strong: #f1f5f9;
   --sb-muted: #64748b;
   --sb-hover: rgba(255, 255, 255, 0.06);
-  --sb-accent-bg: rgba(16, 185, 129, 0.16);
+  --sb-accent-bg: color-mix(in srgb, var(--green) 16%, transparent);
 }
 
 /* ---------- 顶栏（桌面 sticky / 移动 fixed） ---------- */

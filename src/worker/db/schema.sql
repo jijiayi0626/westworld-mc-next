@@ -15,7 +15,9 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT DEFAULT '',
   ua_fingerprint TEXT DEFAULT '',
   csrf_token TEXT DEFAULT '',
+  register_ip TEXT DEFAULT '',                 -- 注册时 IP（管理后台可见）
   last_login_ip TEXT DEFAULT '',
+  last_login_ua TEXT DEFAULT '',               -- 最后登录浏览器 UA（管理后台可见）
   last_login_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -207,6 +209,7 @@ CREATE TABLE IF NOT EXISTS game_servers (
   game TEXT DEFAULT 'minecraft',
   status TEXT NOT NULL DEFAULT 'offline',      -- online / offline
   version TEXT DEFAULT '',
+  motd TEXT DEFAULT '',                        -- 巡检采集的服务器 MOTD 纯文本（MineBBS/mcsrvstat）
   players_online INTEGER NOT NULL DEFAULT 0,
   max_players INTEGER NOT NULL DEFAULT 0,
   last_check TEXT,

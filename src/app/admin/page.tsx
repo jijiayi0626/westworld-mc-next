@@ -181,9 +181,9 @@ export default function AdminHomePage() {
 
         {/* 底部按钮区（图5：三个绿色按钮） */}
         <div className="flex flex-wrap gap-3">
-          <Link href="/admin/applications" className="px-5 py-2.5 rounded-[10px] bg-[#10b981] text-white text-[0.9rem] font-semibold transition-all hover:bg-[#059669]">处理入服申请</Link>
-          <Link href="/admin/messages" className="px-5 py-2.5 rounded-[10px] bg-[#10b981] text-white text-[0.9rem] font-semibold transition-all hover:bg-[#059669]">查看消息通知</Link>
-          <Link href="/admin/blacklist" className="px-5 py-2.5 rounded-[10px] bg-[#10b981] text-white text-[0.9rem] font-semibold transition-all hover:bg-[#059669]">查看风险分析</Link>
+          <Link href="/admin/applications" className="px-5 py-2.5 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">处理入服申请</Link>
+          <Link href="/admin/messages" className="px-5 py-2.5 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">查看消息通知</Link>
+          <Link href="/admin/blacklist" className="px-5 py-2.5 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">查看风险分析</Link>
         </div>
 
         {/* 快捷入口 */}
@@ -191,7 +191,7 @@ export default function AdminHomePage() {
           <h3 className="text-[0.95rem] font-bold text-slate-900 mb-3">快捷入口</h3>
           <div className="flex flex-wrap gap-2.5 text-[0.88rem]">
             {[
-              ["公告管理", "/admin/announcements"],
+              ["公告与论坛", "/admin/forum"],
               ["内容管理", "/admin/content"],
               ["服务器监控", "/admin/monitor"],
               ["AI 用量", "/admin/ai"],

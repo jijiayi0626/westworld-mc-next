@@ -165,7 +165,7 @@ export default function AdminAiPage() {
                   role="switch"
                   aria-checked={cfg.enabled}
                   onClick={() => setCfg({ ...cfg, enabled: !cfg.enabled })}
-                  className={`relative w-11 h-6 rounded-full transition-colors duration-300 cursor-pointer ${cfg.enabled ? "bg-[#10b981]" : "bg-slate-200"}`}
+                  className={`relative w-11 h-6 rounded-full transition-colors duration-300 cursor-pointer ${cfg.enabled ? "bg-[color:var(--green,#10b981)]" : "bg-slate-200"}`}
                 >
                   <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${cfg.enabled ? "left-[22px]" : "left-0.5"}`} />
                 </button>
@@ -195,7 +195,7 @@ export default function AdminAiPage() {
                 <button type="button" onClick={() => { setClearKey(true); setNewKey(""); }} className="text-left text-[0.8rem] text-red-500 hover:text-red-600 cursor-pointer bg-transparent border-none">清除已保存的密钥</button>
               )}
               <div className="flex items-center gap-3">
-                <button type="button" onClick={saveConfig} disabled={busy} className="px-5 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.9rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50">{busy ? "保存中..." : "保存 AI 设置"}</button>
+                <button type="button" onClick={saveConfig} disabled={busy} className="px-5 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50">{busy ? "保存中..." : "保存 AI 设置"}</button>
                 {success && <span className="text-emerald-600 text-[0.85rem]">{success}</span>}
               </div>
             </div>
@@ -226,7 +226,7 @@ export default function AdminAiPage() {
             <button
               type="button"
               onClick={() => setEditing({ ...emptyProvider(), id: crypto.randomUUID() })}
-              className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors whitespace-nowrap cursor-pointer"
+              className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors whitespace-nowrap cursor-pointer"
             >
               + 新增模板
             </button>
@@ -237,19 +237,19 @@ export default function AdminAiPage() {
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="flex flex-col gap-1.5">
                   <label className="text-slate-600 text-[0.82rem] font-medium">模板名称</label>
-                  <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="如：OpenAI 主力" />
+                  <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="如：OpenAI 主力" />
                 </div>
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <label className="text-slate-600 text-[0.82rem] font-medium">API 端点 Base URL</label>
-                  <input value={editing.base_url} onChange={(e) => setEditing({ ...editing, base_url: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="https://api.openai.com/v1" />
+                  <input value={editing.base_url} onChange={(e) => setEditing({ ...editing, base_url: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="https://api.openai.com/v1" />
                 </div>
                 <div className="flex flex-col gap-1.5">
                   <label className="text-slate-600 text-[0.82rem] font-medium">模型</label>
-                  <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="gpt-4o-mini" />
+                  <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="gpt-4o-mini" />
                 </div>
                 <div className="flex flex-col gap-1.5 md:col-span-2">
                   <label className="text-slate-600 text-[0.82rem] font-medium">API 密钥 {editing.api_key && <span className="text-emerald-600 text-[0.78rem]">（已保存，留空不改）</span>}</label>
-                  <input type="password" value={editing.api_key} onChange={(e) => setEditing({ ...editing, api_key: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[#10b981]" placeholder="sk-..." autoComplete="new-password" />
+                  <input type="password" value={editing.api_key} onChange={(e) => setEditing({ ...editing, api_key: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="sk-..." autoComplete="new-password" />
                 </div>
               </div>
               <div className="flex items-center gap-2.5">
@@ -261,7 +261,7 @@ export default function AdminAiPage() {
                     const exists = list.some((p) => p.id === editing.id);
                     void saveProviders(exists ? list.map((p) => (p.id === editing.id ? editing : p)) : [...list, editing]);
                   }}
-                  className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {provBusy === "save" ? "保存中..." : "保存模板"}
                 </button>
@@ -280,14 +280,14 @@ export default function AdminAiPage() {
                 const isActive = activeId === p.id;
                 const tr = testResult[p.id];
                 return (
-                  <div key={p.id} className={`border rounded-[12px] p-4 ${isActive ? "border-[#10b981] bg-[#f0fdf4]" : "border-slate-200 bg-white"}`}>
+                  <div key={p.id} className={`border rounded-[12px] p-4 ${isActive ? "border-[color:var(--green,#10b981)] bg-[#f0fdf4]" : "border-slate-200 bg-white"}`}>
                     <div className="flex flex-wrap items-center gap-2.5">
                       <span className="font-semibold text-slate-800 text-[0.95rem]">{p.name}</span>
-                      {isActive && <span className="px-2 py-0.5 rounded-full bg-[#10b981] text-white text-[0.7rem] font-medium">使用中</span>}
+                      {isActive && <span className="px-2 py-0.5 rounded-full bg-[color:var(--green,#10b981)] text-white text-[0.7rem] font-medium">使用中</span>}
                       <span className="text-[0.78rem] text-slate-400 font-mono truncate max-w-[320px]">{p.base_url} · {p.model}</span>
                       <div className="ml-auto flex items-center gap-2">
                         {!isActive && (
-                          <button type="button" disabled={provBusy === p.id} onClick={() => void activateProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-[#10b981] text-white text-[0.8rem] font-medium hover:bg-[#059669] disabled:opacity-50 cursor-pointer">一键启用</button>
+                          <button type="button" disabled={provBusy === p.id} onClick={() => void activateProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.8rem] font-medium hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer">一键启用</button>
                         )}
                         <button type="button" disabled={provBusy === p.id} onClick={() => void testProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer">{provBusy === p.id ? "测试中..." : "测试连通"}</button>
                         <button type="button" onClick={() => setEditing({ ...p, api_key: p.api_key })} className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 cursor-pointer">编辑</button>

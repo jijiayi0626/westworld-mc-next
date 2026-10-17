@@ -396,7 +396,7 @@ export default function AdminSettingsPage() {
                       value={msForm.client_id}
                       onChange={(e) => setMsForm((p) => ({ ...p, client_id: e.target.value }))}
                       placeholder={integrations.microsoft.client_id ? `Client ID（已保存 ${integrations.microsoft.client_id}，留空保留）` : "Azure 应用 Client ID"}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[#10b981]"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                     />
                     <input
                       type="password"
@@ -404,11 +404,11 @@ export default function AdminSettingsPage() {
                       onChange={(e) => setMsForm((p) => ({ ...p, client_secret: e.target.value }))}
                       placeholder={integrations.microsoft.client_secret_set ? "Client Secret（已保存，留空保留）" : "Azure 应用 Client Secret"}
                       autoComplete="new-password"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[#10b981]"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                     />
                   </div>
                   <div className="flex items-center gap-3">
-                    <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors disabled:opacity-50 cursor-pointer">
+                    <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer">
                       {msBusy ? "保存中..." : "保存微软配置"}
                     </button>
                   </div>
