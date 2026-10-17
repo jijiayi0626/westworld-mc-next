@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
+import { logOp } from "../lib/log";
 
 const app = new Hono<AppEnv>();
 
@@ -79,6 +80,10 @@ app.get("/admin/library", async (c) => {
   ).first<{ value: string }>();
   const contentBlob = contentRow?.value ?? "";
 
+  // 自定义名称（图库重命名）
+  const nameRows = await c.env.DB.prepare("SELECT key, name FROM image_meta").all<{ key: string; name: string }>();
+  const nameMap = new Map((nameRows.results ?? []).map((r) => [r.key, r.name]));
+
   const listPrefix = async (prefix: string, limit: number) => {
     const listed = await bucket.list({ prefix, limit });
     return listed.objects.map((o) => ({
@@ -88,6 +93,7 @@ app.get("/admin/library", async (c) => {
       uploaded: o.uploaded?.toISOString() ?? null,
       system: o.key.startsWith("assets/img/"),
       in_use: contentBlob.includes(o.key),
+      name: nameMap.get(o.key) || "",
     }));
   };
 
@@ -115,6 +121,25 @@ app.post("/admin/library/delete", async (c) => {
   if (!bucket) return fail("R2 未绑定", 503);
   await bucket.delete(key);
   return ok({ deleted: true });
+});
+
+// 重命名图片（存 image_meta，不影响 R2 对象；系统图片也可命名）
+app.post("/admin/library/rename", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const key = String(body.key || "").slice(0, 300);
+  const name = String(body.name ?? "").trim().slice(0, 100);
+  if (!key || !(key.startsWith("uploads/") || key.startsWith("assets/"))) {
+    return fail("非法路径");
+  }
+  await c.env.DB.prepare(
+    `INSERT INTO image_meta (key, name, updated_at) VALUES (?, ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET name = excluded.name, updated_at = datetime('now')`,
+  )
+    .bind(key, name)
+    .run();
+  await logOp(c.env.DB, c, admin.id, "image_rename", key);
+  return ok({ renamed: true, name });
 });
 
 export default app;

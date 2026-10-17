@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
-import { ok } from "../lib/http";
+import { ok, fail } from "../lib/http";
 
 const app = new Hono<AppEnv>();
 
@@ -98,6 +98,52 @@ app.get("/status", async (c) => {
   }
 
   return ok(results);
+});
+
+/** MOTD 查询源（可用 site_settings 键 motd_api_base 覆盖，默认 MineBBS 公开接口） */
+async function getMotdApiBase(db: D1Database): Promise<string> {
+  try {
+    const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'motd_api_base'").first<{ value: string }>();
+    if (row?.value) return row.value.replace(/\/+$/, "");
+  } catch {
+    /* 用默认 */
+  }
+  return "https://motd.minebbs.com";
+}
+
+// MOTD 查询（公开只读）：代理外部 MOTD API，避免浏览器跨域
+// 返回 { motd, icon, version, players: { online, max }, type }
+app.get("/motd", async (c) => {
+  const host = String(c.req.query("host") || "").trim().slice(0, 120);
+  if (!host || !/^[a-zA-Z0-9.\-_:]+$/.test(host)) return fail("请输入有效的服务器地址", 400);
+
+  const base = await getMotdApiBase(c.env.DB);
+  const address = host.includes(":") ? host : `${host}:25565`;
+  try {
+    const resp = await fetch(`${base}/api/motd/be/${encodeURIComponent(address)}`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!resp.ok) return fail(`MOTD 查询失败（上游 HTTP ${resp.status}）`, 502);
+    const data = (await resp.json()) as {
+      motd?: { clean?: string[] } | string;
+      icon?: string;
+      version?: string;
+      players?: { online?: number; max?: number };
+      type?: string;
+    };
+    const motdText = Array.isArray((data.motd as { clean?: string[] })?.clean)
+      ? ((data.motd as { clean?: string[] }).clean ?? []).join("\n")
+      : String(data.motd ?? "");
+    return ok({
+      motd: motdText.slice(0, 500),
+      icon: typeof data.icon === "string" && data.icon.startsWith("data:image") ? data.icon : "",
+      version: String(data.version ?? "").slice(0, 60),
+      players: { online: Number(data.players?.online) || 0, max: Number(data.players?.max) || 0 },
+      type: String(data.type ?? ""),
+    });
+  } catch {
+    return fail("MOTD 查询超时或上游不可用", 502);
+  }
 });
 
 // —— 管理接口：更新服务器状态 & RCON 触发巡检 ——
