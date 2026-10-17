@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
-import { str } from "../lib/validate";
+import { str, isEmail } from "../lib/validate";
 import { logOp } from "../lib/log";
 import { upopAdminStatus } from "./upop";
 import { msAdminStatus } from "./microsoft";
@@ -266,7 +266,7 @@ app.get("/stats", async (c) => {
 app.get("/users", async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio,
-            u.created_at, u.last_login_at,
+            u.created_at, u.last_login_at, u.register_ip, u.last_login_ip, u.last_login_ua,
             (SELECT w.mc_name FROM whitelist_applications w
               WHERE w.user_id = u.id AND w.status = 'approved' ORDER BY w.id DESC LIMIT 1) AS mc_name,
             (SELECT w.status FROM whitelist_applications w
@@ -357,6 +357,33 @@ app.post("/users/:id/reset-password", async (c) => {
     .bind(passwordHash, id)
     .run();
   await logOp(c.env.DB, c, admin.id, "user_reset_password", String(id));
+  return ok({ updated: true });
+});
+
+// 修改用户邮箱（保护：不能修改其他管理员；不能修改自己，自己走「安全中心」）
+app.post("/users/:id/update-email", async (c) => {
+  const admin = c.get("user")!;
+  const id = Number(c.req.param("id"));
+  const body = await c.req.json().catch(() => ({}));
+  const email = str(body.email, 100).trim().toLowerCase();
+  if (!isEmail(email)) return fail("邮箱格式不正确");
+  if (id === admin.id) return fail("不能修改当前登录账号的邮箱，请用「安全中心」修改", 403);
+
+  const target = await c.env.DB.prepare("SELECT id, role FROM users WHERE id = ?")
+    .bind(id)
+    .first<{ id: number; role: string }>();
+  if (!target) return fail("用户不存在", 404);
+  if (target.role === "admin") return fail("不能修改其他管理员的邮箱", 403);
+
+  const dup = await c.env.DB.prepare("SELECT id FROM users WHERE email = ? AND id != ?")
+    .bind(email, id)
+    .first<{ id: number }>();
+  if (dup) return fail("该邮箱已被其他账号使用", 409);
+
+  await c.env.DB.prepare("UPDATE users SET email = ?, updated_at = datetime('now') WHERE id = ?")
+    .bind(email, id)
+    .run();
+  await logOp(c.env.DB, c, admin.id, "user_update_email", String(id), email);
   return ok({ updated: true });
 });
 

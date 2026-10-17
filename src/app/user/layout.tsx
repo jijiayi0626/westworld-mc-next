@@ -13,7 +13,6 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     <>
       <script dangerouslySetInnerHTML={{ __html: APPEARANCE_BOOT }} />
       <link rel="stylesheet" href="/css/user.css" />
-      <link rel="stylesheet" href="/css/theme-classic.css" />
       <link rel="stylesheet" href="/css/mobile.css" />
       <link rel="stylesheet" href="/css/shell.css" />
       <BodyClass cls="user-page" />

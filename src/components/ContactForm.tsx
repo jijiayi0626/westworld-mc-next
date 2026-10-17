@@ -196,7 +196,7 @@ export default function ContactForm() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="submit-btn mt-2.5 bg-gradient-to-br from-accent-emerald to-[#059669] text-white border-none px-7 py-3.5 rounded-[10px] font-semibold text-[1.1rem] cursor-pointer transition-all duration-300 flex items-center justify-center gap-2.5 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="submit-btn mt-2.5 bg-gradient-to-br from-accent-emerald to-[color:var(--green-dark,#059669)] text-white border-none px-7 py-3.5 rounded-[10px] font-semibold text-[1.1rem] cursor-pointer transition-all duration-300 flex items-center justify-center gap-2.5 hover:-translate-y-0.5 hover:shadow-[0_8px_20px_rgba(16,185,129,0.4)] active:translate-y-0 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span>{submitting ? "发送中..." : submitted ? "已提交 ✓" : "发送邮件"}</span>
                   <svg viewBox="0 0 24 24" width="20" height="20">

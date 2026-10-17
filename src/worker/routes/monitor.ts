@@ -5,26 +5,75 @@ import { ok, fail } from "../lib/http";
 
 const app = new Hono<AppEnv>();
 
-/** 通过 mcsrvstat 公开 API 探测单个服务器，返回最新状态（探测失败返回 null） */
+/** 巡检探测结果 */
+interface ProbeResult {
+  status: string;
+  players_online: number;
+  max_players: number;
+  version: string;
+  motd: string;
+  source: string;
+}
+
+/**
+ * 探测单个服务器，返回最新状态（探测失败返回 null）。
+ * 优先使用 MineBBS /api/status（JSON 含 MOTD 纯文本，国内可达），失败回退 mcsrvstat.us。
+ */
 async function probeServer(
   host: string,
   port: number,
-): Promise<{ status: string; players_online: number; max_players: number; version: string } | null> {
+  db?: D1Database,
+): Promise<ProbeResult | null> {
+  const address = port === 25565 ? host : `${host}:${port}`;
+
+  // 1) MineBBS MOTD API（可经 site_settings.motd_api_base 覆盖）
+  const base = db ? await getMotdApiBase(db) : "https://motd.minebbs.com";
   try {
-    const address = port === 25565 ? host : `${host}:${port}`;
+    const resp = await fetch(`${base}/api/status?host=${encodeURIComponent(address)}&stype=auto`, {
+      signal: AbortSignal.timeout(8000),
+    });
+    if (resp.ok) {
+      const data = (await resp.json()) as {
+        status?: string;
+        pureMotd?: string;
+        motd?: { text?: string };
+        version?: string;
+        players?: { online?: number; max?: number };
+      };
+      if (data && typeof data.status === "string") {
+        const online = data.status !== "offline";
+        return {
+          status: online ? "online" : "offline",
+          players_online: online ? Number(data.players?.online) || 0 : 0,
+          max_players: online ? Number(data.players?.max) || 0 : 0,
+          version: online ? String(data.version ?? "").slice(0, 50) : "",
+          motd: online ? String(data.pureMotd ?? data.motd?.text ?? "").slice(0, 300) : "",
+          source: "minebbs",
+        };
+      }
+    }
+  } catch {
+    /* 回退到 mcsrvstat */
+  }
+
+  // 2) 回退：mcsrvstat.us 公开 API
+  try {
     const resp = await fetch(`https://api.mcsrvstat.us/3/${encodeURIComponent(address)}`);
     if (!resp.ok) return null;
     const data = (await resp.json()) as {
       online?: boolean;
       players?: { online?: number; max?: number };
       version?: string;
+      motd?: { clean?: string[] };
     };
-    if (!data.online) return { status: "offline", players_online: 0, max_players: 0, version: "" };
+    if (!data.online) return { status: "offline", players_online: 0, max_players: 0, version: "", motd: "", source: "mcsrvstat" };
     return {
       status: "online",
       players_online: data.players?.online ?? 0,
       max_players: data.players?.max ?? 0,
       version: (data.version ?? "").slice(0, 50),
+      motd: (data.motd?.clean ?? []).join(" ").slice(0, 300),
+      source: "mcsrvstat",
     };
   } catch {
     return null;
@@ -39,18 +88,19 @@ export async function checkAllServers(db: D1Database): Promise<number> {
   const servers = results as { id: number; server_name: string; host: string; port: number }[];
 
   for (const s of servers) {
-    const probed = await probeServer(s.host, s.port);
+    const probed = await probeServer(s.host, s.port, db);
     const status = probed?.status ?? "offline";
     const playersOnline = probed?.players_online ?? 0;
     const maxPlayers = probed?.max_players ?? 0;
     const version = probed?.version ?? "";
+    const motd = probed?.motd ?? "";
     await db
       .prepare(
         `UPDATE game_servers
-         SET status = ?, players_online = ?, max_players = ?, version = ?, last_check = datetime('now')
+         SET status = ?, players_online = ?, max_players = ?, version = ?, motd = ?, last_check = datetime('now')
          WHERE id = ?`,
       )
-      .bind(status, playersOnline, maxPlayers, version, s.id)
+      .bind(status, playersOnline, maxPlayers, version, motd, s.id)
       .run();
   }
   return servers.length;
@@ -61,7 +111,7 @@ export async function checkAllServers(db: D1Database): Promise<number> {
 // 探测失败时回退库内旧值。
 app.get("/status", async (c) => {
   const { results } = await c.env.DB.prepare(
-    "SELECT id, server_name, host, port, game, version, status, players_online, max_players, last_check FROM game_servers ORDER BY id ASC",
+    "SELECT id, server_name, host, port, game, version, status, players_online, max_players, motd, last_check FROM game_servers ORDER BY id ASC",
   ).all();
   const servers = results as {
     id: number;
@@ -80,19 +130,19 @@ app.get("/status", async (c) => {
   if (servers.some(stale)) {
     for (const s of servers) {
       if (!stale(s)) continue;
-      const probed = await probeServer(s.host, s.port);
+      const probed = await probeServer(s.host, s.port, c.env.DB);
       if (!probed) continue;
       await c.env.DB.prepare(
         `UPDATE game_servers
-         SET status = ?, players_online = ?, max_players = ?, version = ?, last_check = datetime('now')
+         SET status = ?, players_online = ?, max_players = ?, version = ?, motd = ?, last_check = datetime('now')
          WHERE id = ?`,
       )
-        .bind(probed.status, probed.players_online, probed.max_players, probed.version, s.id)
+        .bind(probed.status, probed.players_online, probed.max_players, probed.version, probed.motd, s.id)
         .run();
     }
     // 重新读取最新
     const { results: fresh } = await c.env.DB.prepare(
-      "SELECT id, server_name, host, port, game, version, status, players_online, max_players, last_check FROM game_servers ORDER BY id ASC",
+      "SELECT id, server_name, host, port, game, version, status, players_online, max_players, motd, last_check FROM game_servers ORDER BY id ASC",
     ).all();
     return ok(fresh);
   }

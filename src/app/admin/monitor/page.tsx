@@ -16,6 +16,7 @@ interface ServerStatus {
   status: string;
   players_online: number;
   max_players: number;
+  motd: string;
   last_check: string | null;
 }
 
@@ -183,6 +184,11 @@ export default function AdminMonitorPage() {
               <div className="mt-2 text-[0.8rem] text-slate-500">
                 版本：{s.version || "未知"} · 最近检测：{fmtTime(s.last_check)}
               </div>
+              {s.motd && (
+                <div className="mt-2 rounded-[9px] bg-slate-50 border border-slate-100 px-3 py-2 text-[0.8rem] text-slate-600 whitespace-pre-wrap break-words font-mono max-h-20 overflow-y-auto">
+                  {s.motd}
+                </div>
+              )}
               <div className="mt-3">
                 <Btn size="sm" variant="ghost" onClick={check} disabled={busy}>{busy ? "巡检中..." : "触发巡检"}</Btn>
               </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 
 interface Announcement {
   id: number;
@@ -18,9 +19,9 @@ function formatDate(s: string) {
 }
 
 export default function AnnouncementsSection() {
+  const router = useRouter();
   const [list, setList] = useState<Announcement[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const [active, setActive] = useState<Announcement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -42,91 +43,56 @@ export default function AnnouncementsSection() {
     };
   }, []);
 
-  // Esc 关闭弹窗 + 弹窗打开时锁定 body 滚动
-  useEffect(() => {
-    if (!active) return;
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setActive(null);
-    };
-    window.addEventListener("keydown", onKey);
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prevOverflow;
-    };
-  }, [active]);
-
   if (!loaded || list.length === 0) return null;
 
   return (
-    <>
-      <section className="home-announcements relative z-[900]">
-        <div className="container-mc">
-          <div className="home-announcements-header flex items-center justify-between mb-5">
-            <h2 className="text-[1.4rem] font-bold text-white inline-flex items-center gap-2.5">
-              <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
-                <path
-                  fill="currentColor"
-                  d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5a6 6 0 0 0-5-5.91V4a1 1 0 1 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"
-                  className="text-accent-emerald"
-                />
-              </svg>
-              官方公告
-            </h2>
-          </div>
-          <div className="home-announcements-list grid gap-3.5">
-            {list.map((a) => (
-              <button
-                key={a.id}
-                type="button"
-                onClick={() => setActive(a)}
-                className="home-announcement w-full text-left cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,23,42,0.22)]"
-              >
-                <div className="home-announcement-meta">
-                  <span className="home-announcement-level">公告</span>
-                  <span className="home-announcement-time">{formatDate(a.created_at)}</span>
-                </div>
-                <h3 className="home-announcement-title text-white text-[1.05rem] font-semibold mb-1.5">
-                  {a.title}
-                </h3>
-                <p className="text-slate-300 text-[0.88rem] leading-relaxed line-clamp-2">
-                  {a.content}
-                </p>
-              </button>
-            ))}
-          </div>
+    <section className="home-announcements relative z-[900]">
+      <div className="container-mc">
+        <div className="home-announcements-header flex items-center justify-between mb-5">
+          <h2 className="text-[1.4rem] font-bold text-white inline-flex items-center gap-2.5">
+            <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
+              <path
+                fill="currentColor"
+                d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5a6 6 0 0 0-5-5.91V4a1 1 0 1 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"
+                className="text-accent-emerald"
+              />
+            </svg>
+            官方公告
+          </h2>
+          <button
+            type="button"
+            onClick={() => router.push("/forum")}
+            className="inline-flex items-center gap-1 text-[0.88rem] text-white/60 hover:text-accent-emerald transition-colors cursor-pointer"
+          >
+            进入论坛
+            <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M5 12h14" />
+              <path d="m13 6 6 6-6 6" />
+            </svg>
+          </button>
         </div>
-      </section>
-
-      {/* 公告详情弹窗 */}
-      {active && (
-        <div className="announcement-popup" role="dialog" aria-modal="true" aria-label={active.title}>
-          <div className="announcement-popup-backdrop" onClick={() => setActive(null)} />
-          <div className="announcement-popup-card">
+        <div className="home-announcements-list grid gap-3.5">
+          {list.map((a) => (
             <button
+              key={a.id}
               type="button"
-              onClick={() => setActive(null)}
-              className="announcement-popup-close w-9 h-9 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 cursor-pointer flex items-center justify-center transition-colors"
-              aria-label="关闭"
+              onClick={() => router.push(`/forum?focus=home-${a.id}`)}
+              className="home-announcement w-full text-left cursor-pointer transition-all duration-300 hover:-translate-y-0.5 hover:shadow-[0_14px_36px_rgba(15,23,42,0.22)]"
             >
-              <svg viewBox="0 0 24 24" width="18" height="18">
-                <path
-                  fill="currentColor"
-                  d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"
-                />
-              </svg>
-            </button>
-            <div className="announcement-popup-body pr-4 max-h-[65vh] overflow-y-auto">
-              <h3 className="text-[1.4rem] font-bold text-[#0f172a] mb-2">{active.title}</h3>
-              <p className="text-[0.82rem] text-slate-400 mb-5">发布时间：{formatDate(active.created_at)}</p>
-              <div className="text-[0.95rem] text-slate-700 leading-[1.85] whitespace-pre-wrap">
-                {active.content}
+              <div className="home-announcement-meta">
+                <span className="home-announcement-level">公告</span>
+                <span className="home-announcement-time">{formatDate(a.created_at)}</span>
               </div>
-            </div>
-          </div>
+              <h3 className="home-announcement-title text-white text-[1.05rem] font-semibold mb-1.5">
+                {a.title}
+              </h3>
+              <p className="text-slate-300 text-[0.88rem] leading-relaxed line-clamp-2">
+                {a.content}
+              </p>
+            </button>
+          ))}
         </div>
-      )}
-    </>
+      </div>
+    </section>
   );
 }

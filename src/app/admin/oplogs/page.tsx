@@ -75,7 +75,7 @@ export default function AdminOpLogsPage() {
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
-            <button type="button" className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.88rem] font-semibold hover:bg-[#059669] transition-colors">查询</button>
+            <button type="button" className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
           </div>
         </div>
 

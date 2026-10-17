@@ -164,7 +164,7 @@ export default function AdminTicketsPage() {
               <option value="open">待回复</option>
               <option value="closed">已关闭</option>
             </select>
-            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[#10b981] text-white text-[0.88rem] font-semibold hover:bg-[#059669] transition-colors">刷新</button>
+            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">刷新</button>
           </div>
           <ErrorNote message={error} />
           {list === null ? (
