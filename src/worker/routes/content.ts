@@ -21,6 +21,15 @@ app.get("/site", async (c) => {
   }
 });
 
+// 获取当前启用的前台模板（公开）：后台「网站设置 → 外观模板」可切换
+app.get("/theme", async (c) => {
+  const row = await c.env.DB.prepare(
+    "SELECT value FROM site_settings WHERE key = 'frontend_theme'",
+  ).first<{ value: string }>();
+  const theme = row?.value === "v2" ? "v2" : "v1";
+  return ok({ theme });
+});
+
 // 获取全部站点内容（公开）
 app.get("/", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT page, field, value FROM site_content").all();
