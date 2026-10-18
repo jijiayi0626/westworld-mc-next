@@ -20,17 +20,14 @@ export function useFrontTheme(): FrontTheme {
  * 避免「先 v1 再跳 v2」的闪烁。
  */
 export function FrontThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setTheme] = useState<FrontTheme>("v1");
+  // 首屏初值直接取 <html data-frontend>（由 FRONT_THEME_BOOT 在渲染前写入缓存值），
+  // 避免「先 v1 再跳 v2」的闪烁。渲染树不随主题分支，故服务端/客户端初值不同也不会 hydration 冲突。
+  const [theme, setTheme] = useState<FrontTheme>(() => {
+    if (typeof document === "undefined") return "v1";
+    return document.documentElement.getAttribute("data-frontend") === "v2" ? "v2" : "v1";
+  });
 
   useEffect(() => {
-    // 首屏先采用缓存值（静态导出的 HTML 默认 v1）
-    try {
-      const cached = localStorage.getItem(CACHE_KEY);
-      if (cached === "v2" || cached === "v1") setTheme(cached);
-    } catch {
-      /* 隐私模式下忽略 */
-    }
-
     let cancelled = false;
     (async () => {
       try {
