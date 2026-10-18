@@ -2,6 +2,8 @@ import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/components/AuthProvider";
 import { SiteContentProvider } from "@/components/SiteContentProvider";
+import { FrontThemeProvider } from "@/components/FrontThemeProvider";
+import { FRONT_THEME_BOOT } from "@/lib/appearance-boot";
 
 export const metadata: Metadata = {
   title: "我的世界Westworld西域之光",
@@ -19,7 +21,9 @@ export default function RootLayout({
   return (
     <html lang="zh-CN">
       <head>
+        <script dangerouslySetInnerHTML={{ __html: FRONT_THEME_BOOT }} />
         <link rel="stylesheet" href="/css/front.css" />
+        <link rel="stylesheet" href="/css/front-v2.css" />
         <link rel="stylesheet" href="/css/mobile.css" />
         <link
           rel="icon"
@@ -29,7 +33,9 @@ export default function RootLayout({
       </head>
       <body>
         <AuthProvider>
-          <SiteContentProvider>{children}</SiteContentProvider>
+          <SiteContentProvider>
+            <FrontThemeProvider>{children}</FrontThemeProvider>
+          </SiteContentProvider>
         </AuthProvider>
       </body>
     </html>

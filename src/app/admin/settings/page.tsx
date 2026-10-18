@@ -41,13 +41,30 @@ const UPOP_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "upop_username_field", label: "用户名字段", hint: "默认 username" },
 ];
 
-type Tab = "basic" | "forum" | "mail" | "integrations";
+type Tab = "basic" | "appearance" | "forum" | "mail" | "integrations";
 
 const TABS: { key: Tab; label: string; desc: string }[] = [
   { key: "basic", label: "基础配置", desc: "站点键值配置的新增与编辑（维护模式、功能开关等）" },
+  { key: "appearance", label: "外观模板", desc: "切换前台页面模板，保存后前台即时生效，无需重新部署" },
   { key: "forum", label: "论坛与聊天", desc: "论坛 Tab 显隐、聊天室开关、欢迎公告与发送限制" },
   { key: "mail", label: "邮件服务", desc: "接入 Resend 或 SMTP，用于找回密码验证码与批量通知投递" },
   { key: "integrations", label: "三方集成", desc: "微软 OAuth 与 UPOP 统一认证的凭据配置" },
+];
+
+// 前台可选模板（取值写入 site_settings.frontend_theme）
+const FRONT_THEMES: { key: "v1" | "v2"; name: string; desc: string; swatch: string[] }[] = [
+  {
+    key: "v1",
+    name: "模板一 · 经典",
+    desc: "深色玻璃质感 + 翠绿点缀，全屏 Hero 大图与卡片式区块，信息密度高、氛围浓厚。",
+    swatch: ["#0f172a", "#10b981", "#ffffff"],
+  },
+  {
+    key: "v2",
+    name: "模板二 · 暗夜绿光",
+    desc: "极夜底色 + 网格霓虹绿光，序号化窄栏排版、数据化状态条，更克制现代的科技风。",
+    swatch: ["#05080a", "#2ce88a", "#35d6d0"],
+  },
 ];
 
 function StatusDot({ ok: good, label }: { ok: boolean; label: string }) {
@@ -110,6 +127,9 @@ export default function AdminSettingsPage() {
   const [mailBusy, setMailBusy] = useState(false);
   const [testTo, setTestTo] = useState("");
   const [testMsg, setTestMsg] = useState<{ err: string; ok: string }>({ err: "", ok: "" });
+
+  // 前台外观模板（frontend_theme：v1 / v2）
+  const [themeBusy, setThemeBusy] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -299,6 +319,27 @@ export default function AdminSettingsPage() {
 
   const filteredList = (list ?? []).filter((s) => !keyword || `${s.key} ${s.value}`.toLowerCase().includes(keyword.toLowerCase()));
 
+  const currentTheme = list?.find((s) => s.key === "frontend_theme")?.value === "v2" ? "v2" : "v1";
+
+  const saveTheme = async (next: "v1" | "v2") => {
+    if (next === currentTheme || themeBusy) return;
+    setError("");
+    setSuccess("");
+    setThemeBusy(true);
+    try {
+      await api("/admin/settings", {
+        method: "POST",
+        body: JSON.stringify({ key: "frontend_theme", value: next }),
+      });
+      setSuccess(`前台模板已切换到「${next === "v2" ? "模板二 · 暗夜绿光" : "模板一 · 经典"}」，前台刷新后即刻生效`);
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "切换失败");
+    } finally {
+      setThemeBusy(false);
+    }
+  };
+
   return (
     <AdminShell>
       <PageHeader title="网站设置" desc="站点键值配置、论坛聊天与三方集成" />
@@ -371,6 +412,44 @@ export default function AdminSettingsPage() {
             )}
           </Card>
         </>
+      ) : tab === "appearance" ? (
+        <Card>
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">前台页面模板</h3>
+          <p className="text-[0.85rem] text-slate-500 mb-5">
+            选择前台展示使用的页面模板，保存后前台刷新即可切换，无需重新部署。已访问过的访客会缓存上次模板以避免首屏闪烁。
+          </p>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {FRONT_THEMES.map((t) => {
+              const isCurrent = currentTheme === t.key;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  disabled={themeBusy}
+                  onClick={() => saveTheme(t.key)}
+                  className={`text-left rounded-[14px] border-2 p-5 transition-all ${
+                    isCurrent ? "border-accent-emerald bg-emerald-50/60" : "border-slate-200 hover:border-slate-300"
+                  } ${themeBusy ? "opacity-60 cursor-wait" : "cursor-pointer"}`}
+                >
+                  <div className="flex items-center justify-between mb-2.5">
+                    <span className="text-[1rem] font-bold text-slate-800">{t.name}</span>
+                    {isCurrent && <Badge color="green">使用中</Badge>}
+                  </div>
+                  <p className="text-[0.85rem] text-slate-500 leading-relaxed">{t.desc}</p>
+                  <div className="mt-4 flex gap-2">
+                    {t.swatch.map((c) => (
+                      <span
+                        key={c}
+                        className="w-6 h-6 rounded-full border border-black/10"
+                        style={{ background: c }}
+                      />
+                    ))}
+                  </div>
+                </button>
+              );
+            })}
+          </div>
+        </Card>
       ) : tab === "forum" ? (
         <Card>
           <div className="flex items-center justify-between mb-1">
