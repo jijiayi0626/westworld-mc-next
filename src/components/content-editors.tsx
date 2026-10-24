@@ -3,6 +3,7 @@
 import { useState, type ReactNode } from "react";
 import { api } from "@/lib/api";
 import { Btn, Card, Field, Input, TextArea } from "@/components/ui";
+import { Modal } from "@/components/motion";
 import type { SiteContent } from "@/lib/content";
 
 export type Setter = <K extends keyof SiteContent>(key: K, value: SiteContent[K]) => void;
@@ -52,38 +53,40 @@ export function ImgTxt({ value, onChange, placeholder }: { value: string; onChan
           图库
         </button>
       </div>
-      {open && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-[16px] w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-xl flex flex-col" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
-              <h3 className="font-bold text-slate-800">从图库选择图片</h3>
-              <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer text-xl leading-none">×</button>
-            </div>
-            <div className="p-4 overflow-y-auto flex-1">
-              {libError && <p className="text-red-500 text-[0.85rem] mb-3">{libError}</p>}
-              {items === null ? (
-                <p className="text-slate-400 text-sm text-center py-10">加载中...</p>
-              ) : items.length === 0 ? (
-                <p className="text-slate-400 text-sm text-center py-10">图库为空，请先到「图片管理」上传图片</p>
-              ) : (
-                <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-                  {items.map((i) => (
-                    <button
-                      key={i.key}
-                      type="button"
-                      onClick={() => { onChange(i.url); setOpen(false); }}
-                      className="rounded-[10px] overflow-hidden border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer bg-slate-50"
-                    >
-                      {/* eslint-disable-next-line @next/next/no-img-element */}
-                      <img src={i.url} alt={i.key} className="w-full h-20 object-cover" loading="lazy" />
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-          </div>
+      <Modal
+        open={open}
+        onClose={() => setOpen(false)}
+        overlayClassName="z-50 bg-black/40"
+        panelClassName="bg-white rounded-[16px] w-full max-w-2xl max-h-[80vh] overflow-hidden shadow-xl flex flex-col"
+        label="从图库选择图片"
+      >
+        <div className="flex items-center justify-between px-5 py-3.5 border-b border-slate-200">
+          <h3 className="font-bold text-slate-800">从图库选择图片</h3>
+          <button type="button" onClick={() => setOpen(false)} className="text-slate-400 hover:text-slate-600 cursor-pointer text-xl leading-none">×</button>
         </div>
-      )}
+        <div className="p-4 overflow-y-auto flex-1">
+          {libError && <p className="text-red-500 text-[0.85rem] mb-3">{libError}</p>}
+          {items === null ? (
+            <p className="text-slate-400 text-sm text-center py-10">加载中...</p>
+          ) : items.length === 0 ? (
+            <p className="text-slate-400 text-sm text-center py-10">图库为空，请先到「图片管理」上传图片</p>
+          ) : (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+              {items.map((i) => (
+                <button
+                  key={i.key}
+                  type="button"
+                  onClick={() => { onChange(i.url); setOpen(false); }}
+                  className="rounded-[10px] overflow-hidden border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer bg-slate-50"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={i.url} alt={i.key} className="w-full h-20 object-cover" loading="lazy" />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
+      </Modal>
     </>
   );
 }

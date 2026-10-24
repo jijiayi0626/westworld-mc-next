@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
 import { ErrorNote } from "@/components/ui";
+import { motion } from "motion/react";
 
 export interface ChatMessage {
   id: number;
@@ -258,7 +259,13 @@ export default function ChatPanel() {
             {messages.map((m) => {
               const isSelf = user?.id === m.user_id;
               return (
-                <div key={m.id} className={`group flex gap-2.5 ${isSelf ? "flex-row-reverse" : ""}`}>
+                <motion.div
+                  key={m.id}
+                  initial={{ opacity: 0, y: 8 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.22 }}
+                  className={`group flex gap-2.5 ${isSelf ? "flex-row-reverse" : ""}`}
+                >
                   {m.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.avatar_url} alt={m.username} className="w-9 h-9 rounded-[10px] object-cover border border-slate-200 shrink-0" loading="lazy" />
@@ -307,7 +314,7 @@ export default function ChatPanel() {
                       )}
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
           </div>

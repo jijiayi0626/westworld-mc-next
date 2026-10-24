@@ -5,7 +5,7 @@ import { AdminShell } from "@/components/Shell";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
 import { Badge, Btn, Empty, ErrorNote, StatusBadge, fmtTime } from "@/components/ui";
-import { Modal } from "@/components/motion";
+import { Modal, motion } from "@/components/motion";
 
 interface AdminUser {
   id: number;
@@ -250,8 +250,14 @@ export default function AdminUsersPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filtered.map((u) => (
-                    <tr key={u.id} className="hover:bg-slate-50 transition-colors">
+                  {filtered.map((u, i) => (
+                    <motion.tr
+                      key={u.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18, delay: Math.min(i, 12) * 0.02 }}
+                      className="hover:bg-slate-50 transition-colors"
+                    >
                       <td className="py-3 px-4 font-medium text-slate-800">
                         {u.username}
                         {u.role === "admin" && <Badge color="yellow">管理员</Badge>}
@@ -288,7 +294,7 @@ export default function AdminUsersPage() {
                           ))}
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
