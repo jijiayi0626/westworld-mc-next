@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { Btn, Card, Empty, ErrorNote, Field, Input, Select, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
+import { motion } from "@/components/motion";
 
 /** 官网公告（主库 announcements：首页公告区展示） */
 interface HomeAnnouncement {
@@ -236,8 +237,14 @@ export default function AdminForumPage() {
                 <Empty text="暂无官网公告，点击右上角发布" />
               ) : (
                 <div className="flex flex-col divide-y divide-slate-100">
-                  {homeList.map((a) => (
-                    <div key={a.id} className="py-4 flex items-center justify-between gap-3">
+                  {homeList.map((a, i) => (
+                    <motion.div
+                      key={a.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18, delay: Math.min(i, 12) * 0.02 }}
+                      className="py-4 flex items-center justify-between gap-3"
+                    >
                       <div className="min-w-0">
                         <div className="text-slate-800 font-medium truncate">{a.title}</div>
                         <div className="mt-1 text-[0.78rem] text-slate-500">
@@ -250,7 +257,7 @@ export default function AdminForumPage() {
                         <Btn size="sm" variant="ghost" onClick={() => startEditHome(a.id)}>编辑</Btn>
                         <Btn size="sm" variant="danger" onClick={() => removeHome(a.id)}>删除</Btn>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}
@@ -291,8 +298,14 @@ export default function AdminForumPage() {
                 <Empty text="暂无论坛公告，点击右上角发布" />
               ) : (
                 <div className="flex flex-col divide-y divide-slate-100">
-                  {forumList.map((a) => (
-                    <div key={a.id} className="py-3 flex items-start justify-between gap-3">
+                  {forumList.map((a, i) => (
+                    <motion.div
+                      key={a.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18, delay: Math.min(i, 12) * 0.02 }}
+                      className="py-3 flex items-start justify-between gap-3"
+                    >
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {a.pinned === 1 && (
@@ -309,7 +322,7 @@ export default function AdminForumPage() {
                           <span className="text-red-600">删除</span>
                         </Btn>
                       </div>
-                    </div>
+                    </motion.div>
                   ))}
                 </div>
               )}

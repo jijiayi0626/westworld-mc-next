@@ -345,16 +345,19 @@ export default function ChatPanel() {
       {/* 表情快捷栏 */}
       <div className="flex flex-wrap items-center gap-1 mb-2 px-1">
         {QUICK_EMOJIS.map((emoji) => (
-          <button
+          <motion.button
             key={emoji}
             type="button"
+            whileHover={{ scale: 1.18, y: -2 }}
+            whileTap={{ scale: 0.9 }}
+            transition={{ duration: 0.12 }}
             onClick={() => insertEmoji(emoji)}
             disabled={!!limits && !limits.enabled}
             title={`插入 ${emoji}`}
             className="w-8 h-8 rounded-[8px] text-[1.05rem] leading-none flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
           >
             {emoji}
-          </button>
+          </motion.button>
         ))}
       </div>
 
