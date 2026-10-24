@@ -120,18 +120,28 @@ export function Spinner({ text = "加载中..." }: { text?: string }) {
 export function ErrorNote({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="px-4 py-3 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]">
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="px-4 py-3 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]"
+    >
       {message}
-    </div>
+    </motion.div>
   );
 }
 
 export function SuccessNote({ message }: { message: string }) {
   if (!message) return null;
   return (
-    <div className="px-4 py-3 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.88rem]">
+    <motion.div
+      initial={{ opacity: 0, y: -4 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.2 }}
+      className="px-4 py-3 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.88rem]"
+    >
       {message}
-    </div>
+    </motion.div>
   );
 }
 

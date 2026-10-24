@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
+import { motion } from "motion/react";
 
 interface HomeAnnouncement {
   id: number;
@@ -422,7 +423,12 @@ export default function PublicForum() {
         )}
 
         {detailId ? (
-          <section className="max-w-[860px] mx-auto">
+          <motion.section
+            className="max-w-[860px] mx-auto"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.26 }}
+          >
             <button
               type="button"
               onClick={closeDetail}
@@ -568,7 +574,7 @@ export default function PublicForum() {
                 )}
               </>
             ) : null}
-          </section>
+          </motion.section>
         ) : composing ? (
           <section className="max-w-[720px] mx-auto">
             <div className="flex items-center justify-between mb-4">
@@ -764,7 +770,13 @@ export default function PublicForum() {
                 )}
               </div>
             ) : (
-              <div className="flex flex-col gap-3">
+              <motion.div
+                key={`${board}-${page}-${keyword}-${items?.length ?? 0}`}
+                className="flex flex-col gap-3"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.24 }}
+              >
                 {listLoading ? (
                   <div className="text-center text-white/60 py-12">加载中...</div>
                 ) : listError ? (
@@ -836,7 +848,7 @@ export default function PublicForum() {
                     </button>
                   </div>
                 )}
-              </div>
+              </motion.div>
             )}
           </section>
         )}
