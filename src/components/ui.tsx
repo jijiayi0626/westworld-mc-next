@@ -1,6 +1,8 @@
 "use client";
 
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import type { InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from "react";
+import { motion } from "motion/react";
+import type { HTMLMotionProps } from "motion/react";
 
 // —— 浅色管理面板通用小部件（对齐原版后台风格：白卡片 / 浅灰底 / 绿主色） ——
 
@@ -33,7 +35,7 @@ export function Btn({
   size = "md",
   className = "",
   ...props
-}: ButtonHTMLAttributes<HTMLButtonElement> & { variant?: BtnVariant; size?: BtnSize }) {
+}: HTMLMotionProps<"button"> & { variant?: BtnVariant; size?: BtnSize }) {
   const styles: Record<BtnVariant, string> = {
     primary:
       "bg-[color:var(--green,#10b981)] text-white hover:bg-[color:var(--green-dark,#059669)] shadow-[0_4px_6px_-1px_rgba(16,185,129,0.3)]",
@@ -47,8 +49,10 @@ export function Btn({
     md: "px-4 py-2 text-[0.9rem] rounded-[10px]",
   };
   return (
-    <button
-      className={`inline-flex items-center justify-center gap-2 font-semibold cursor-pointer transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${sizes[size]} ${className}`}
+    <motion.button
+      whileTap={props.disabled ? undefined : { scale: 0.96 }}
+      transition={{ duration: 0.12, ease: "easeOut" }}
+      className={`inline-flex items-center justify-center gap-2 font-semibold cursor-pointer transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${sizes[size]} ${className}`}
       {...props}
     />
   );

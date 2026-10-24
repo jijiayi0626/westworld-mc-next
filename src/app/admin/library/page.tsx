@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { Empty, ErrorNote, SuccessNote } from "@/components/ui";
+import { Modal } from "@/components/motion";
 
 interface LibItem {
   key: string;
@@ -222,12 +223,14 @@ export default function AdminLibraryPage() {
         )}
 
         {/* 大图预览 */}
-        {preview && (
-          <div
-            className="fixed inset-0 z-[999] bg-black/80 flex items-center justify-center p-6 cursor-zoom-out"
-            onClick={() => setPreview(null)}
-          >
-            <div className="max-w-[92vw] max-h-[88vh] flex flex-col gap-3" onClick={(e) => e.stopPropagation()}>
+        <Modal
+          open={!!preview}
+          onClose={() => setPreview(null)}
+          overlayClassName="z-[999] bg-black/80 cursor-zoom-out"
+          panelClassName="max-w-[92vw] max-h-[88vh] flex flex-col gap-3"
+        >
+          {preview ? (
+            <>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={preview.url}
@@ -264,9 +267,9 @@ export default function AdminLibraryPage() {
                   </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
+            </>
+          ) : null}
+        </Modal>
       </div>
     </AdminShell>
   );
