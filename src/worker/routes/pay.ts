@@ -1,11 +1,26 @@
 import { Hono } from "hono";
+import type { Context } from "hono";
 import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp } from "../lib/log";
+import { buildEpayPayUrl, epayEnabled, loadEpayConfig, verifyEpayNotify } from "../lib/epay";
 
 const app = new Hono<AppEnv>();
+
+/** 站点公开支付通道信息：前端据此展示可用支付方式 */
+app.get("/config", async (c) => {
+  const epay = await loadEpayConfig(c.env.DB);
+  return ok({
+    epay: {
+      enabled: epayEnabled(epay),
+      types: epay.types,
+      sitename: epay.sitename,
+    },
+    manual: true,
+  });
+});
 
 // 创建支付会话（为订单生成支付链接）
 app.post("/create", requireAuth, async (c) => {
@@ -14,18 +29,36 @@ app.post("/create", requireAuth, async (c) => {
   const orderId = Number(body.order_id);
 
   const order = await c.env.DB.prepare(
-    "SELECT id, order_no, total, currency, status FROM shop_orders WHERE id = ? AND user_id = ?",
+    "SELECT id, order_no, total, currency, status, product_name FROM shop_orders WHERE id = ? AND user_id = ?",
   )
     .bind(orderId, user.id)
-    .first<{ id: number; order_no: string; total: number; currency: string; status: string }>();
+    .first<{ id: number; order_no: string; total: number; currency: string; status: string; product_name: string }>();
   if (!order) return fail("订单不存在", 404);
   if (order.status !== "pending") return fail("订单状态不允许支付", 400);
 
-  // —— 支付通道占位：Creem / Stripe / 手动转账 ——
+  // —— 支付通道：易支付 / Creem / 手动转账 ——
   const provider = str(body.provider, 20) || "manual";
   let payUrl = "";
 
-  if (provider === "creem") {
+  if (provider === "epay") {
+    const cfg = await loadEpayConfig(c.env.DB);
+    if (!epayEnabled(cfg)) return fail("易支付未配置，请先在后台「网站设置 → 支付配置」完成配置", 503);
+    const payType = str(body.pay_type, 20) || cfg.types[0] || "alipay";
+    if (!cfg.types.includes(payType)) return fail("不支持的支付方式", 400);
+
+    const site = (c.env.SITE_URL as string) || new URL(c.req.url).origin;
+    payUrl = buildEpayPayUrl(cfg, {
+      type: payType,
+      orderNo: order.order_no,
+      name: order.product_name,
+      money: order.total,
+      notifyUrl: `${site.replace(/\/+$/, "")}/api/pay/notify`,
+      returnUrl: `${site.replace(/\/+$/, "")}/user/orders?paid=1`,
+    });
+    await c.env.DB.prepare("UPDATE shop_orders SET provider = ? WHERE id = ?")
+      .bind(`epay:${payType}`, order.id)
+      .run();
+  } else if (provider === "creem") {
     if (c.env.CREEM_API_KEY && c.env.CREEM_PRODUCT_ID) {
       const resp = await fetch("https://creem.io/api/v1/checkout", {
         method: "POST",
@@ -57,6 +90,48 @@ app.post("/create", requireAuth, async (c) => {
 
   return ok({ order_no: order.order_no, provider, pay_url: payUrl });
 });
+
+// —— 易支付异步通知（GET / POST 均支持，返回 success 表示已处理） ——
+async function handleEpayNotify(c: Context<AppEnv>) {
+  const cfg = await loadEpayConfig(c.env.DB);
+  if (!epayEnabled(cfg)) return c.json("fail", 503);
+
+  const query = c.req.query();
+  let body: Record<string, string> = {};
+  try {
+    const raw = await c.req.parseBody();
+    body = Object.fromEntries(Object.entries(raw).map(([k, v]) => [k, typeof v === "string" ? v : ""]));
+  } catch {
+    body = {};
+  }
+  const params = { ...query, ...body };
+
+  const orderNo = String(params.out_trade_no || "").trim();
+  if (!orderNo) return c.json("fail", 400);
+
+  const order = await c.env.DB.prepare(
+    "SELECT id, total, status FROM shop_orders WHERE order_no = ?",
+  ).bind(orderNo).first<{ id: number; total: number; status: string }>();
+  if (!order) return c.json("fail", 404);
+  if (order.status !== "pending") return c.json("success"); // 幂等：已处理直接应答
+
+  const checked = verifyEpayNotify(params, cfg, order.total);
+  if (!checked.ok) {
+    await logOp(c.env.DB, c, null, "pay_epay_notify_reject", orderNo, checked.reason);
+    return c.json("fail", 400);
+  }
+
+  const result = await c.env.DB.prepare(
+    `UPDATE shop_orders SET status = 'paid', paid_at = datetime('now'), provider = ?, payment_id = ?
+     WHERE order_no = ? AND status = 'pending'`,
+  ).bind(`epay:${params.type || "unknown"}`, String(params.trade_no || ""), orderNo).run();
+
+  await logOp(c.env.DB, c, null, "pay_epay_notify", orderNo, `changes=${result.meta.changes} money=${params.money}`);
+  return c.json("success");
+}
+
+app.get("/notify", handleEpayNotify);
+app.post("/notify", handleEpayNotify);
 
 // 支付回调（Creem webhook）
 // 安全：必须校验 x-api-key 与 CREEM_API_KEY 一致，否则任何人都能伪造回调白嫖订单。
