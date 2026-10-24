@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
+import { SwitchFade } from "@/components/motion";
 import { api } from "@/lib/api";
 import { Badge, Btn, Card, Empty, ErrorNote, Field, Input, PageHeader, Select, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
 
@@ -342,6 +343,7 @@ export default function AdminShopPage() {
         ))}
       </div>
 
+      <SwitchFade switchKey={tab}>
       {/* 统计卡（图13/14/15） */}
       {tab === "products" ? (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
@@ -656,6 +658,7 @@ export default function AdminShopPage() {
           )}
         </Card>
       )}
+      </SwitchFade>
     </AdminShell>
   );
 }

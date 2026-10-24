@@ -5,6 +5,7 @@ import { AdminShell } from "@/components/Shell";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
 import { Badge, Btn, Empty, ErrorNote, StatusBadge, fmtTime } from "@/components/ui";
+import { Modal } from "@/components/motion";
 
 interface AdminUser {
   id: number;
@@ -296,9 +297,14 @@ export default function AdminUsersPage() {
         </div>
 
         {/* 用户详情弹窗：登录信息 + 改邮箱 + 重置密码 */}
-        {detail && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setDetail(null)}>
-            <div className="bg-white rounded-[16px] p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+        <Modal
+          open={!!detail}
+          onClose={() => setDetail(null)}
+          overlayClassName="z-50 bg-black/40"
+          panelClassName="bg-white rounded-[16px] p-6 w-full max-w-lg shadow-xl max-h-[90vh] overflow-y-auto"
+        >
+          {detail ? (
+            <>
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[1.05rem] font-bold text-slate-800">
                   用户详情：{detail.username}
@@ -380,13 +386,16 @@ export default function AdminUsersPage() {
 
               {detailMsg.err && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{detailMsg.err}</div>}
               {detailMsg.ok && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{detailMsg.ok}</div>}
-            </div>
-          </div>
-        )}
+            </>
+          ) : null}
+        </Modal>
         {/* 批量通知弹窗 */}
-        {notifyOpen && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setNotifyOpen(false)}>
-            <div className="bg-white rounded-[16px] p-6 w-full max-w-lg shadow-xl" onClick={(e) => e.stopPropagation()}>
+        <Modal
+          open={notifyOpen}
+          onClose={() => setNotifyOpen(false)}
+          overlayClassName="z-50 bg-black/40"
+          panelClassName="bg-white rounded-[16px] p-6 w-full max-w-lg shadow-xl"
+        >
               <div className="flex items-center justify-between mb-4">
                 <h3 className="text-[1.05rem] font-bold text-slate-800">批量通知（邮件）</h3>
                 <button type="button" onClick={() => setNotifyOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer" aria-label="关闭">
@@ -426,9 +435,7 @@ export default function AdminUsersPage() {
                 </div>
                 {notifyResult && <div className="px-3.5 py-2.5 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-700 text-[0.85rem] break-all">{notifyResult}</div>}
               </div>
-            </div>
-          </div>
-        )}
+        </Modal>
       </div>
     </AdminShell>
   );
