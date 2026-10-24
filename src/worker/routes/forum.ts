@@ -355,7 +355,7 @@ app.post("/replies/:id/delete", requireAuth, async (c) => {
 // —— 管理端 ——
 app.use("/admin/*", requireAuth, requireAdmin);
 
-app.post("/announcements", async (c) => {
+app.post("/admin/announcements", async (c) => {
   const admin = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const title = str(body.title, 120).trim();
@@ -374,7 +374,7 @@ app.post("/announcements", async (c) => {
   return ok({ id: Number(result.meta.last_row_id) });
 });
 
-app.put("/announcements/:id", async (c) => {
+app.put("/admin/announcements/:id", async (c) => {
   const admin = c.get("user")!;
   const id = Number(c.req.param("id")) || 0;
   const row = await fdb(c)
@@ -399,7 +399,7 @@ app.put("/announcements/:id", async (c) => {
   return ok({ updated: true });
 });
 
-app.delete("/announcements/:id", async (c) => {
+app.delete("/admin/announcements/:id", async (c) => {
   const admin = c.get("user")!;
   const id = Number(c.req.param("id")) || 0;
   const row = await fdb(c)

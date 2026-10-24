@@ -122,7 +122,7 @@ async function dailyCount(db: D1Database, userId: number, withImage: boolean): P
 
 // 限制与配置（前端展示用；后台可改）
 app.get("/limits", async (c) => {
-  const cfg = await getChatConfig(fdb(c));
+  const cfg = await getChatConfig(c.env.DB);
   const show = await getForumShowConfig(c.env.DB);
   return ok({
     enabled: cfg.enabled,
@@ -167,7 +167,7 @@ app.get("/messages", async (c) => {
 // 发送文字
 app.post("/send", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const cfg = await getChatConfig(fdb(c));
+  const cfg = await getChatConfig(c.env.DB);
   if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发言");
 
   const body = await c.req.json().catch(() => ({}));
@@ -178,13 +178,13 @@ app.post("/send", requireAuth, async (c) => {
   if (await tooFast(fdb(c), user.id)) return fail("发送太快了，休息一下~");
   if ((await dailyCount(fdb(c), user.id, false)) >= DAILY_TEXT) return fail("今日发言已达上限，明天再来聊吧");
 
-  const profile = await fdb(c).prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
+  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
   const result = await fdb(c).prepare(
     "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, '')",
   )
     .bind(user.id, user.username, profile?.avatar || "", user.role, content)
     .run();
-  await logUserAction(fdb(c), user.id, "chat_send", "发送聊天消息", getClientIp(c));
+  await logUserAction(c.env.DB, user.id, "chat_send", "发送聊天消息", getClientIp(c));
 
   return ok(shape({
     id: Number(result.meta.last_row_id),
@@ -201,7 +201,7 @@ app.post("/send", requireAuth, async (c) => {
 // 发送图片
 app.post("/image", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const cfg = await getChatConfig(fdb(c));
+  const cfg = await getChatConfig(c.env.DB);
   if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发图");
 
   const maxImage = cfg.max_image_mb * 1024 * 1024;
@@ -221,13 +221,13 @@ app.post("/image", requireAuth, async (c) => {
   const key = `uploads/chat/${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
   await bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
 
-  const profile = await fdb(c).prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
+  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
   const result = await fdb(c).prepare(
     "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, '', ?)",
   )
     .bind(user.id, user.username, profile?.avatar || "", user.role, key)
     .run();
-  await logUserAction(fdb(c), user.id, "chat_image", "发送聊天图片", getClientIp(c));
+  await logUserAction(c.env.DB, user.id, "chat_image", "发送聊天图片", getClientIp(c));
 
   return ok(shape({
     id: Number(result.meta.last_row_id),
@@ -266,7 +266,7 @@ app.post("/delete-own", requireAuth, async (c) => {
     await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
   }
   await fdb(c).prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
-  await logUserAction(fdb(c), user.id, "chat_delete_own", `撤回 #${id}`, getClientIp(c));
+  await logUserAction(c.env.DB, user.id, "chat_delete_own", `撤回 #${id}`, getClientIp(c));
 
   return ok({ deleted: true });
 });
@@ -286,7 +286,7 @@ app.post("/admin/delete", async (c) => {
     await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
   }
   await fdb(c).prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
-  await logOp(fdb(c), c, admin.id, "chat_delete", `#${id}`);
+  await logOp(c.env.DB, c, admin.id, "chat_delete", `#${id}`);
   return ok({ deleted: true });
 });
 
