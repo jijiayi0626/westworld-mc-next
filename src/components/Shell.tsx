@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
 import { Spinner } from "./ui";
+import { MotionConfig } from "motion/react";
 
 interface ShellItemBase {
   label: string;
@@ -266,7 +267,8 @@ function Shell({
   const isUser = base === "/user";
 
   return (
-    <div className={`${isUser ? "user-container" : "admin-shell"} ${collapsed ? "sidebar-collapsed" : ""}`}>
+    <MotionConfig reducedMotion="user">
+      <div className={`${isUser ? "user-container" : "admin-shell"} ${collapsed ? "sidebar-collapsed" : ""}`}>
       {/* 顶栏 + 汉堡按钮（桌面端折叠侧栏 / 移动端开抽屉） */}
       <div className="mobile-topbar">
         <button
@@ -399,7 +401,8 @@ function Shell({
       <div className={isUser ? "user-main" : "main-content"}>
         {children}
       </div>
-    </div>
+      </div>
+    </MotionConfig>
   );
 }
 
