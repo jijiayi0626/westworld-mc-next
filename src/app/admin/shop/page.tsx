@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
-import { SwitchFade } from "@/components/motion";
+import { SwitchFade, motion } from "@/components/motion";
 import { api } from "@/lib/api";
 import { Badge, Btn, Card, Empty, ErrorNote, Field, Input, PageHeader, Select, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
 
@@ -491,8 +491,14 @@ export default function AdminShopPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {(filteredProducts).map((p) => (
-                      <tr key={p.id} className="hover:bg-slate-50">
+                    {(filteredProducts).map((p, i) => (
+                      <motion.tr
+                        key={p.id}
+                        initial={{ opacity: 0, y: 4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.18, delay: Math.min(i, 12) * 0.02 }}
+                        className="hover:bg-slate-50"
+                      >
                         <td className="py-3 pr-3 font-mono text-slate-500">{p.id}</td>
                         <td className="py-3 pr-3 font-medium text-slate-800">{p.name}</td>
                         <td className="py-3 pr-3 text-slate-600">{p.price} {p.currency}</td>
@@ -506,7 +512,7 @@ export default function AdminShopPage() {
                             <Btn size="sm" variant="danger" onClick={() => removeProduct(p)}>删除</Btn>
                           </div>
                         </td>
-                      </tr>
+                      </motion.tr>
                     ))}
                   </tbody>
                 </table>
@@ -611,8 +617,14 @@ export default function AdminShopPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {filteredOrders.map((o) => (
-                    <tr key={o.id} className="hover:bg-slate-50">
+                  {filteredOrders.map((o, i) => (
+                    <motion.tr
+                      key={o.id}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.18, delay: Math.min(i, 12) * 0.02 }}
+                      className="hover:bg-slate-50"
+                    >
                       <td className="py-3 pr-3 font-mono text-slate-500 text-[0.8rem]">{o.order_no}</td>
                       <td className="py-3 pr-3 text-slate-800">{o.product_name} × {o.qty}</td>
                       <td className="py-3 pr-3 text-slate-500">{o.username}</td>
@@ -638,7 +650,7 @@ export default function AdminShopPage() {
                           </Btn>
                         </div>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
