@@ -29,6 +29,7 @@ interface Order {
   paid_at: string | null;
   created_at: string;
   username: string;
+  provider?: string | null;
 }
 
 type Tab = "products" | "orders" | "economy";
@@ -39,6 +40,22 @@ interface EconomyConfigView {
   balance_cmd: string;
   deduct_cmd: string;
 }
+
+const PROVIDER_LABELS: Record<string, string> = {
+  "epay:alipay": "支付宝",
+  "epay:wxpay": "微信",
+  "epay:qqpay": "QQ钱包",
+  economy: "游戏币",
+  manual: "手动/转账",
+};
+
+const providerLabel = (provider?: string | null): string => {
+  if (!provider) return "—";
+  return PROVIDER_LABELS[provider] ?? provider;
+};
+
+type OrderStatusFilter = "all" | "pending" | "paid" | "completed" | "cancelled";
+type ProductStatusFilter = "all" | "active" | "inactive";
 
 export default function AdminShopPage() {
   const [tab, setTab] = useState<Tab>("products");
@@ -143,12 +160,13 @@ export default function AdminShopPage() {
     }
   };
 
-  const removeProduct = async (id: number) => {
+  const removeProduct = async (p: Product) => {
+    if (!window.confirm(`确认删除商品「${p.name}」？`)) return;
     setError("");
     setSuccess("");
     try {
-      await api(`/shop/admin/product/${id}/delete`, { method: "POST" });
-      if (editingId === id) startCreate();
+      await api(`/shop/admin/product/${p.id}/delete`, { method: "POST" });
+      if (editingId === p.id) startCreate();
       await loadProducts();
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除失败");
@@ -195,7 +213,67 @@ export default function AdminShopPage() {
     }
   };
 
+  const confirmPayment = async (o: Order) => {
+    setError("");
+    setSuccess("");
+    setConfirmingOrderId(o.id);
+    try {
+      await api("/pay/verify", { method: "POST", body: JSON.stringify({ order_no: o.order_no }) });
+      setSuccess("已确认收款");
+      await loadOrders();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "确认收款失败");
+    } finally {
+      setConfirmingOrderId(null);
+    }
+  };
+
+  const copyOrderNo = async (orderNo: string) => {
+    try {
+      await navigator.clipboard.writeText(orderNo);
+      setCopiedOrderNo(orderNo);
+      window.setTimeout(() => {
+        setCopiedOrderNo((cur) => (cur === orderNo ? null : cur));
+      }, 1500);
+    } catch {
+      setError("复制失败，请手动复制订单号");
+    }
+  };
+
+  // 商品筛选
   const [productKeyword, setProductKeyword] = useState("");
+  const [productCategoryFilter, setProductCategoryFilter] = useState("all");
+  const [productStatusFilter, setProductStatusFilter] = useState<ProductStatusFilter>("all");
+
+  // 订单筛选
+  const [orderKeyword, setOrderKeyword] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState<OrderStatusFilter>("all");
+  const [copiedOrderNo, setCopiedOrderNo] = useState<string | null>(null);
+  const [confirmingOrderId, setConfirmingOrderId] = useState<number | null>(null);
+
+  const productCategories = Array.from(
+    new Set((products ?? []).map((p) => p.category).filter((c): c is string => !!c)),
+  );
+
+  const filteredProducts = (products ?? []).filter((p) => {
+    if (productCategoryFilter !== "all" && p.category !== productCategoryFilter) return false;
+    if (productStatusFilter === "active" && p.active !== 1) return false;
+    if (productStatusFilter === "inactive" && p.active !== 0) return false;
+    const kw = productKeyword.trim().toLowerCase();
+    return !kw || `${p.name} ${p.category ?? ""}`.toLowerCase().includes(kw);
+  });
+
+  const filteredOrders = (orders ?? []).filter((o) => {
+    if (orderStatusFilter !== "all" && o.status !== orderStatusFilter) return false;
+    const kw = orderKeyword.trim().toLowerCase();
+    return !kw || `${o.order_no} ${o.product_name ?? ""} ${o.username ?? ""}`.toLowerCase().includes(kw);
+  });
+
+  const settledOrders = (orders ?? []).filter((o) => o.status === "paid" || o.status === "completed");
+  const revenue = settledOrders.reduce((sum, o) => sum + Number(o.total || 0), 0);
+  const revenueCurrencies = Array.from(new Set(settledOrders.map((o) => o.currency).filter(Boolean)));
+  const revenueCurrency = revenueCurrencies.length === 1 ? revenueCurrencies[0] : "CNY";
+  const revenueMixed = revenueCurrencies.length > 1;
 
   const saveEconomy = async () => {
     if (!eco) return;
@@ -247,7 +325,7 @@ export default function AdminShopPage() {
 
   return (
     <AdminShell>
-      <PageHeader title="商城管理" desc="商品上下架与订单发货" />
+      <PageHeader title="商城管理" desc="商品上下架、订单收款与发货、经济插件对接" />
 
       <div className="flex gap-2 mb-5 p-1 bg-slate-50 rounded-[10px] w-fit">
         {tabs.map((t) => (
@@ -280,16 +358,18 @@ export default function AdminShopPage() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4 mb-5">
           {[
-            { label: "全部订单", value: orders?.length ?? 0, tone: "green" },
-            { label: "待支付", value: (orders ?? []).filter((o) => o.status === "pending").length, tone: "amber" },
-            { label: "已完成", value: (orders ?? []).filter((o) => o.status === "completed").length, tone: "blue" },
-            { label: "待发货", value: (orders ?? []).filter((o) => o.status === "paid").length, tone: "pink" },
+            { label: "全部订单", value: String(orders?.length ?? 0), tone: "green", hint: "" },
+            { label: "待支付", value: String((orders ?? []).filter((o) => o.status === "pending").length), tone: "amber", hint: "" },
+            { label: "待发货", value: String((orders ?? []).filter((o) => o.status === "paid").length), tone: "pink", hint: "" },
+            { label: "已完成", value: String((orders ?? []).filter((o) => o.status === "completed").length), tone: "blue", hint: "" },
+            { label: "总成交额", value: `${revenue.toFixed(2)} ${revenueCurrency}`, tone: "slate", hint: revenueMixed ? "混合币种，仅统计展示" : "已支付 / 已完成订单" },
           ].map((c) => (
             <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
               <div className="text-[0.82rem] font-medium">{c.label}</div>
-              <div className="text-[1.8rem] font-extrabold mt-1">{c.value}</div>
+              <div className={`mt-1 font-extrabold ${c.label === "总成交额" ? "text-[1.55rem]" : "text-[1.8rem]"}`}>{c.value}</div>
+              {c.hint && <div className="text-[0.72rem] opacity-70 mt-1">{c.hint}</div>}
             </div>
           ))}
         </div>
@@ -310,6 +390,22 @@ export default function AdminShopPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="价格">
                     <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
+                    <div className="flex flex-wrap gap-1.5 mt-1">
+                      {[9.9, 19.9, 29.9, 49.9, 99].map((v) => (
+                        <button
+                          key={v}
+                          type="button"
+                          onClick={() => setPrice(String(v))}
+                          className={`px-2 py-0.5 rounded-[6px] text-[0.75rem] font-semibold border cursor-pointer transition-colors ${
+                            Number(price) === v
+                              ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                              : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
+                          }`}
+                        >
+                          {v}
+                        </button>
+                      ))}
+                    </div>
                   </Field>
                   <Field label="货币">
                     <Select value={currency} onChange={(e) => setCurrency(e.target.value)}>
@@ -320,7 +416,10 @@ export default function AdminShopPage() {
                   </Field>
                 </div>
                 <Field label="分类">
-                  <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="如 会员 / 道具" maxLength={50} />
+                  <Input value={category} onChange={(e) => setCategory(e.target.value)} placeholder="如 会员 / 道具" maxLength={50} list="shop-product-categories" />
+                  <datalist id="shop-product-categories">
+                    {productCategories.map((c) => <option key={c} value={c} />)}
+                  </datalist>
                 </Field>
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="排序（小在前）">
@@ -347,17 +446,34 @@ export default function AdminShopPage() {
           <Card>
             <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
               <h3 className="text-[1.05rem] font-bold text-slate-800">商品列表</h3>
-              <input
-                value={productKeyword}
-                onChange={(e) => setProductKeyword(e.target.value)}
-                placeholder="搜索商品名称 / 分类..."
-                className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
-              />
+              <div className="flex flex-wrap items-center gap-2">
+                <div className="w-[150px]">
+                  <Select value={productCategoryFilter} onChange={(e) => setProductCategoryFilter(e.target.value)}>
+                    <option value="all">全部分类</option>
+                    {productCategories.map((c) => <option key={c} value={c}>{c}</option>)}
+                  </Select>
+                </div>
+                <div className="w-[120px]">
+                  <Select value={productStatusFilter} onChange={(e) => setProductStatusFilter(e.target.value as ProductStatusFilter)}>
+                    <option value="all">全部状态</option>
+                    <option value="active">上架</option>
+                    <option value="inactive">下架</option>
+                  </Select>
+                </div>
+                <input
+                  value={productKeyword}
+                  onChange={(e) => setProductKeyword(e.target.value)}
+                  placeholder="搜索商品名称 / 分类..."
+                  className="w-full sm:w-[240px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+                />
+              </div>
             </div>
             {products === null ? (
               <Empty text="加载中..." />
             ) : products.length === 0 ? (
               <Empty text="还没有商品" />
+            ) : filteredProducts.length === 0 ? (
+              <Empty text="没有符合条件的商品" />
             ) : (
               <div className="overflow-x-auto">
                 <table className="w-full text-[0.88rem]">
@@ -373,7 +489,7 @@ export default function AdminShopPage() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
-                    {(products ?? []).filter((p) => !productKeyword || `${p.name} ${p.category ?? ""}`.toLowerCase().includes(productKeyword.toLowerCase())).map((p) => (
+                    {(filteredProducts).map((p) => (
                       <tr key={p.id} className="hover:bg-slate-50">
                         <td className="py-3 pr-3 font-mono text-slate-500">{p.id}</td>
                         <td className="py-3 pr-3 font-medium text-slate-800">{p.name}</td>
@@ -385,7 +501,7 @@ export default function AdminShopPage() {
                           <div className="flex flex-wrap gap-2">
                             <Btn size="sm" variant="ghost" onClick={() => startEdit(p)}>编辑</Btn>
                             <Btn size="sm" variant="ghost" onClick={() => toggleActive(p)}>{p.active === 1 ? "下架" : "上架"}</Btn>
-                            <Btn size="sm" variant="danger" onClick={() => removeProduct(p.id)}>删除</Btn>
+                            <Btn size="sm" variant="danger" onClick={() => removeProduct(p)}>删除</Btn>
                           </div>
                         </td>
                       </tr>
@@ -451,11 +567,32 @@ export default function AdminShopPage() {
         </Card>
       ) : (
         <Card>
-          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">订单列表</h3>
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+            <h3 className="text-[1.05rem] font-bold text-slate-800">订单列表</h3>
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="w-[130px]">
+                <Select value={orderStatusFilter} onChange={(e) => setOrderStatusFilter(e.target.value as OrderStatusFilter)}>
+                  <option value="all">全部状态</option>
+                  <option value="pending">待支付</option>
+                  <option value="paid">待发货</option>
+                  <option value="completed">已完成</option>
+                  <option value="cancelled">已取消</option>
+                </Select>
+              </div>
+              <input
+                value={orderKeyword}
+                onChange={(e) => setOrderKeyword(e.target.value)}
+                placeholder="搜索订单号 / 商品名 / 用户名..."
+                className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+              />
+            </div>
+          </div>
           {orders === null ? (
             <Empty text="加载中..." />
           ) : orders.length === 0 ? (
             <Empty text="暂无订单" />
+          ) : filteredOrders.length === 0 ? (
+            <Empty text="没有符合条件的订单" />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-[0.88rem]">
@@ -465,26 +602,39 @@ export default function AdminShopPage() {
                     <th className="py-2.5 pr-3">商品</th>
                     <th className="py-2.5 pr-3">买家</th>
                     <th className="py-2.5 pr-3">金额</th>
+                    <th className="py-2.5 pr-3">支付方式</th>
                     <th className="py-2.5 pr-3">状态</th>
                     <th className="py-2.5 pr-3">时间</th>
                     <th className="py-2.5">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
-                  {orders.map((o) => (
+                  {filteredOrders.map((o) => (
                     <tr key={o.id} className="hover:bg-slate-50">
                       <td className="py-3 pr-3 font-mono text-slate-500 text-[0.8rem]">{o.order_no}</td>
                       <td className="py-3 pr-3 text-slate-800">{o.product_name} × {o.qty}</td>
                       <td className="py-3 pr-3 text-slate-500">{o.username}</td>
                       <td className="py-3 pr-3 text-slate-600">{o.total} {o.currency}</td>
+                      <td className="py-3 pr-3 text-slate-500">{providerLabel(o.provider)}</td>
                       <td className="py-3 pr-3"><StatusBadge status={o.status} /></td>
                       <td className="py-3 pr-3 text-slate-500">{fmtTime(o.created_at)}</td>
                       <td className="py-3">
-                        {o.status !== "completed" ? (
-                          <Btn size="sm" variant="ghost" onClick={() => { setDeliverOrderId(o.id); setDelivery(""); }}>发货</Btn>
-                        ) : (
-                          <span className="text-[0.78rem] text-slate-500 truncate max-w-[140px] inline-block align-middle">{o.delivery || "已发货"}</span>
-                        )}
+                        <div className="flex flex-wrap items-center gap-2">
+                          {o.status === "pending" && (
+                            <Btn size="sm" onClick={() => confirmPayment(o)} disabled={confirmingOrderId === o.id}>
+                              {confirmingOrderId === o.id ? "确认中..." : "确认收款"}
+                            </Btn>
+                          )}
+                          {o.status === "paid" && (
+                            <Btn size="sm" variant="ghost" onClick={() => { setDeliverOrderId(o.id); setDelivery(""); }}>发货</Btn>
+                          )}
+                          {o.status === "completed" && (
+                            <span className="text-[0.78rem] text-slate-500 truncate max-w-[140px] inline-block align-middle">{o.delivery || "已发货"}</span>
+                          )}
+                          <Btn size="sm" variant="subtle" onClick={() => copyOrderNo(o.order_no)}>
+                            {copiedOrderNo === o.order_no ? "已复制" : "复制订单号"}
+                          </Btn>
+                        </div>
                       </td>
                     </tr>
                   ))}

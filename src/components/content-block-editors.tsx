@@ -75,6 +75,33 @@ export function SpecsEditor({ content, set }: { content: SiteContent; set: Sette
         </div>
         <Row label="副标题"><LongTxt value={s.subtitle} onChange={(v) => upd({ subtitle: v })} /></Row>
       </Section>
+      <Section title="处理器图片">
+        <p className="text-[0.82rem] text-slate-500 mb-3">
+          首页「高性能处理器」卡片使用的芯片图标，可一键切换 AMD / Intel；选择「自定义」后使用下方配置项中填写的图标 URL。
+        </p>
+        <div className="flex flex-wrap gap-3">
+          {[
+            { key: "amd" as const, label: "AMD", src: "/png/cpu-amd.svg" },
+            { key: "intel" as const, label: "Intel", src: "/png/cpu-intel.svg" },
+            { key: "" as const, label: "自定义", src: s.items[0]?.icon || "" },
+          ].map((opt) => {
+            const active = (s.cpu_brand ?? "") === opt.key;
+            return (
+              <button
+                key={opt.label}
+                type="button"
+                onClick={() => upd({ cpu_brand: opt.key })}
+                className={`flex items-center gap-3 px-4 py-3 rounded-[12px] border-2 transition-all cursor-pointer ${
+                  active ? "border-accent-emerald bg-emerald-50/60" : "border-slate-200 hover:border-slate-300"
+                }`}
+              >
+                <img src={opt.src} alt={opt.label} className="w-10 h-10 object-contain" />
+                <span className="text-[0.88rem] font-semibold text-slate-700">{opt.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      </Section>
       <Section title="配置项">
         <ObjectsEditor
           label="配置项"

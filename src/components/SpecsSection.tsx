@@ -5,6 +5,9 @@ import { useSiteContent } from "./SiteContentProvider";
 
 export default function SpecsSection() {
   const { specs } = useSiteContent();
+  const cpuIcon = specs.cpu_brand ? `/png/cpu-${specs.cpu_brand}.svg` : "";
+  const iconOf = (icon: string, title: string, index: number) =>
+    cpuIcon && (index === 0 || title.includes("处理器")) ? cpuIcon : icon;
 
   return (
     <section
@@ -35,7 +38,7 @@ export default function SpecsSection() {
                   <div className="relative">
                     <div className="absolute inset-0 rounded-full bg-accent-emerald/10 blur-lg opacity-0 group-hover:opacity-100 transition-opacity duration-300 scale-125" />
                     <img
-                      src={spec.icon}
+                      src={iconOf(spec.icon, spec.title, i)}
                       alt={spec.title}
                       className="relative w-[72px] h-[72px] object-contain drop-shadow-[0_4px_10px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:drop-shadow-[0_8px_18px_rgba(0,230,118,0.35)]"
                     />

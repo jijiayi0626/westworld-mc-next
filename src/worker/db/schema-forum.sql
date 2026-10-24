@@ -13,6 +13,24 @@ CREATE TABLE IF NOT EXISTS forum_posts (
 );
 CREATE INDEX IF NOT EXISTS idx_forum_posts_board ON forum_posts(board, pinned, id);
 
+-- 帖子回复（与 ensureForumSchema 保持一致）
+CREATE TABLE IF NOT EXISTS forum_replies (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  post_id INTEGER NOT NULL,
+  author_id INTEGER,
+  author_name TEXT DEFAULT '',
+  content TEXT NOT NULL,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_forum_replies_post ON forum_replies(post_id, id);
+
+-- 帖子点赞（post_id + user_id 联合主键防重复）
+CREATE TABLE IF NOT EXISTS forum_likes (
+  post_id INTEGER NOT NULL,
+  user_id INTEGER NOT NULL,
+  PRIMARY KEY(post_id, user_id)
+);
+
 -- 聊天室消息（自主库 chat_messages 迁移；图片仍存 R2 uploads/chat/，此处仅存 key）
 CREATE TABLE IF NOT EXISTS chat_messages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

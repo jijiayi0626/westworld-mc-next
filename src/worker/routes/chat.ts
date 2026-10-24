@@ -241,6 +241,36 @@ app.post("/image", requireAuth, async (c) => {
   }));
 });
 
+// 撤回自己的消息：仅限本人、10 分钟内（管理员不受时间限制）
+app.post("/delete-own", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const id = Number(body.id) || 0;
+  if (!id) return fail("缺少消息 ID");
+
+  const row = await fdb(c)
+    .prepare("SELECT id, user_id, image_key, created_at FROM chat_messages WHERE id = ?")
+    .bind(id)
+    .first<{ id: number; user_id: number; image_key: string | null; created_at: string }>();
+  if (!row) return fail("消息不存在", 404);
+  if (row.user_id !== user.id) return fail("只能撤回自己的消息", 403);
+
+  if (user.role !== "admin") {
+    const t = new Date(row.created_at.replace(" ", "T") + "Z").getTime();
+    if (Number.isNaN(t) || Date.now() - t > 10 * 60 * 1000) {
+      return fail("超过 10 分钟的消息无法撤回");
+    }
+  }
+
+  if (row.image_key?.startsWith("uploads/chat/")) {
+    await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
+  }
+  await fdb(c).prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
+  await logUserAction(fdb(c), user.id, "chat_delete_own", `撤回 #${id}`, getClientIp(c));
+
+  return ok({ deleted: true });
+});
+
 // —— 管理端 ——
 app.use("/admin/*", requireAuth, requireAdmin);
 

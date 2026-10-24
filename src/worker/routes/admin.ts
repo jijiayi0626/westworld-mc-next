@@ -4,6 +4,7 @@ import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str, isEmail } from "../lib/validate";
 import { loadMailConfig, mailEnabled, sendMail, renderEmail, MAIL_SENSITIVE_KEYS } from "../lib/mail";
+import { EPAY_TYPES, epayEnabled, loadEpayConfig, publicEpay } from "../lib/epay";
 import { logOp } from "../lib/log";
 import { upopAdminStatus } from "./upop";
 import { msAdminStatus } from "./microsoft";
@@ -397,7 +398,15 @@ app.get("/settings", async (c) => {
     "SELECT key, value FROM site_settings WHERE key NOT LIKE 'reset_code:%' ORDER BY key ASC",
   ).all<{ key: string; value: string }>();
   // 邮件密钥类配置脱敏返回（改用专用 /mail-config 接口管理，留空保留原值）
-  return ok(results.map((r) => (MAIL_SENSITIVE_KEYS.has(r.key) ? { ...r, value: "••••••" } : r)));
+  return ok(
+    results.map((r) =>
+      MAIL_SENSITIVE_KEYS.has(r.key)
+        ? { ...r, value: "••••••" }
+        : r.key === "pay_epay"
+          ? { ...r, value: "••••••（请到「支付配置」中编辑）" }
+          : r,
+    ),
+  );
 });
 
 app.post("/settings", async (c) => {
@@ -421,7 +430,8 @@ app.get("/mail-config", async (c) => {
   return ok({
     provider: cfg.provider,
     from: cfg.from,
-    resend_key_set: !!cfg.resend_key,
+    resend_key_set: cfg.resend_keys.length > 0,
+    resend_key_count: cfg.resend_keys.length,
     smtp_host: cfg.smtp_host,
     smtp_port: cfg.smtp_port,
     smtp_user: cfg.smtp_user,
@@ -446,9 +456,20 @@ app.post("/mail-config", async (c) => {
     ["mail_smtp_user", str(body.smtp_user, 200).trim()],
     ["mail_smtp_ssl", body.smtp_ssl ? "true" : "false"],
   ];
-  // 密钥留空 = 保留原值
-  const resendKey = str(body.resend_key, 300).trim();
-  if (resendKey) entries.push(["mail_resend_key", resendKey]);
+  // 密钥留空 = 保留原值；多 Key 支持换行 / 逗号分隔
+  const keysRaw = body.resend_keys;
+  const resendKeys: string[] = Array.isArray(keysRaw)
+    ? keysRaw.map((k: unknown) => String(k).trim()).filter(Boolean)
+    : String(keysRaw ?? "")
+        .split(/[\n,]/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+  const legacyKey = str(body.resend_key, 300).trim();
+  if (legacyKey) resendKeys.unshift(legacyKey);
+  if (resendKeys.length > 0) {
+    entries.push(["mail_resend_keys", JSON.stringify(resendKeys.slice(0, 20))]);
+    entries.push(["mail_resend_key", resendKeys[0]]);
+  }
   const smtpPass = str(body.smtp_pass, 300).trim();
   if (smtpPass) entries.push(["mail_smtp_pass", smtpPass]);
 
@@ -478,6 +499,63 @@ app.post("/mail-test", async (c) => {
     return ok({ sent: true });
   } catch (e) {
     return fail(e instanceof Error ? e.message : "发送失败", 502);
+  }
+});
+
+// —— 支付配置（易支付 / Epay 通用协议） ——
+
+app.get("/pay-config", async (c) => {
+  const cfg = await loadEpayConfig(c.env.DB);
+  const site = String(c.env.SITE_URL || "").replace(/\/+$/, "");
+  return ok({
+    ...publicEpay(cfg),
+    types_available: EPAY_TYPES,
+    notify_url: `${site}/api/pay/notify`,
+    return_url: `${site}/user/orders?paid=1`,
+  });
+});
+
+app.post("/pay-config", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const cur = await loadEpayConfig(c.env.DB);
+
+  const apiUrl = str(body.api_url, 300).trim().replace(/\/+$/, "");
+  const pid = str(body.pid, 100).trim();
+  const key = str(body.key, 300).trim() || cur.key; // 留空保留原密钥
+  const sitename = str(body.sitename, 60).trim() || "Westworld西域之光";
+  const enabled = body.enabled === true;
+  const types = Array.isArray(body.types)
+    ? (body.types as unknown[]).map((t) => String(t)).filter((t) => EPAY_TYPES.some((x) => x.key === t))
+    : cur.types;
+
+  if (apiUrl && !/^https?:\/\//i.test(apiUrl)) return fail("接口地址需以 http:// 或 https:// 开头");
+  if (types.length === 0) return fail("至少启用一种支付方式");
+
+  const cfg = { enabled, api_url: apiUrl, pid, key, types, sitename };
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES ('pay_epay', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  ).bind(JSON.stringify(cfg)).run();
+
+  await logOp(c.env.DB, c, admin.id, "pay_epay_update", enabled ? "enabled" : "disabled");
+  return ok(publicEpay(cfg));
+});
+
+// 易支付连通性测试：向接口地址发起一次请求（不产生真实支付）
+app.post("/pay-config/test", async (c) => {
+  const cfg = await loadEpayConfig(c.env.DB);
+  if (!epayEnabled(cfg)) return fail("请先填写接口地址、PID 与密钥", 400);
+  try {
+    const resp = await fetch(`${cfg.api_url.replace(/\/+$/, "")}/submit.php`, {
+      method: "GET",
+      redirect: "manual",
+      signal: AbortSignal.timeout(8000),
+    });
+    // 只要域名可解析、HTTP 可达即视为连通（submit.php 无参数通常返回错误页）
+    return ok({ reachable: true, status: resp.status });
+  } catch (e) {
+    return fail(`无法连接支付接口：${e instanceof Error ? e.message : "未知错误"}`, 502);
   }
 });
 
