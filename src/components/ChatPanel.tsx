@@ -27,6 +27,8 @@ export interface ChatLimits {
 
 const POLL_MS = 4000;
 
+const QUICK_EMOJIS = ["😀", "😂", "👍", "🎉", "❤️", "🔥", "😭", "😮", "🤔", "👀", "🚀", "🌙"];
+
 function fmtTime(s: string): string {
   const d = new Date(s.replace(" ", "T") + "Z");
   if (Number.isNaN(d.getTime())) return s;
@@ -44,11 +46,14 @@ export default function ChatPanel() {
   const [attached, setAttached] = useState<File | null>(null);
   const [loaded, setLoaded] = useState(false);
   const [limits, setLimits] = useState<ChatLimits | null>(null);
+  const [showJump, setShowJump] = useState(false);
+  const [recallingId, setRecallingId] = useState(0);
 
   const lastIdRef = useRef(0);
   const listRef = useRef<HTMLDivElement | null>(null);
   const bottomRef = useRef<HTMLDivElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const textRef = useRef<HTMLTextAreaElement | null>(null);
   const stickToBottom = useRef(true);
   const sendingRef = useRef(false);
 
@@ -109,12 +114,14 @@ export default function ChatPanel() {
     };
   }, [poll, scrollToBottom]);
 
-  // 消息容器滚动跟踪：接近底部才自动跟随
+  // 消息容器滚动跟踪：接近底部才自动跟随；离开底部时显示「回到最新」
   useEffect(() => {
     const el = listRef.current;
     if (!el) return;
     const onScroll = () => {
-      stickToBottom.current = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+      const nearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 160;
+      stickToBottom.current = nearBottom;
+      setShowJump(!nearBottom);
     };
     el.addEventListener("scroll", onScroll, { passive: true });
     return () => el.removeEventListener("scroll", onScroll);
@@ -165,6 +172,40 @@ export default function ChatPanel() {
     setAttached(f);
   };
 
+  // 表情插入到光标处
+  const insertEmoji = (emoji: string) => {
+    const max = limits?.max_text ?? 400;
+    const el = textRef.current;
+    const start = el?.selectionStart ?? text.length;
+    const end = el?.selectionEnd ?? text.length;
+    const next = (text.slice(0, start) + emoji + text.slice(end)).slice(0, max);
+    setText(next);
+    requestAnimationFrame(() => {
+      if (!el) return;
+      el.focus();
+      const pos = Math.min(start + emoji.length, next.length);
+      el.setSelectionRange(pos, pos);
+    });
+  };
+
+  // 撤回自己的消息（10 分钟内）
+  const recall = async (id: number) => {
+    if (recallingId) return;
+    setRecallingId(id);
+    setError("");
+    try {
+      await api<{ deleted: boolean }>("/chat/delete-own", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      });
+      setMessages((prev) => prev.filter((m) => m.id !== id));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "撤回失败");
+    } finally {
+      setRecallingId(0);
+    }
+  };
+
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
@@ -200,11 +241,12 @@ export default function ChatPanel() {
       )}
 
       {/* 消息区 */}
-      <div
-        ref={listRef}
-        className="chat-scroll bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-y-auto p-4 mb-3"
-        style={{ height: "clamp(340px, 54vh, 640px)" }}
-      >
+      <div className="relative mb-3">
+        <div
+          ref={listRef}
+          className="chat-scroll bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-y-auto p-4"
+          style={{ height: "clamp(340px, 54vh, 640px)" }}
+        >
         {!loaded ? (
           <div className="h-full flex items-center justify-center text-slate-400 text-[0.85rem]">加载中...</div>
         ) : messages.length === 0 ? (
@@ -216,7 +258,7 @@ export default function ChatPanel() {
             {messages.map((m) => {
               const isSelf = user?.id === m.user_id;
               return (
-                <div key={m.id} className={`flex gap-2.5 ${isSelf ? "flex-row-reverse" : ""}`}>
+                <div key={m.id} className={`group flex gap-2.5 ${isSelf ? "flex-row-reverse" : ""}`}>
                   {m.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img src={m.avatar_url} alt={m.username} className="w-9 h-9 rounded-[10px] object-cover border border-slate-200 shrink-0" loading="lazy" />
@@ -232,6 +274,17 @@ export default function ChatPanel() {
                         <span className="px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[0.62rem]">管理员</span>
                       )}
                       <span className="text-slate-400">{fmtTime(m.created_at)}</span>
+                      {isSelf && (
+                        <button
+                          type="button"
+                          onClick={() => void recall(m.id)}
+                          disabled={recallingId === m.id}
+                          title="撤回这条消息（10 分钟内）"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 text-[0.7rem] cursor-pointer disabled:opacity-50"
+                        >
+                          {recallingId === m.id ? "撤回中" : "撤回"}
+                        </button>
+                      )}
                     </div>
                     <div
                       className={`rounded-[14px] px-3.5 py-2.5 text-[0.9rem] leading-relaxed break-words ${
@@ -259,7 +312,43 @@ export default function ChatPanel() {
             })}
           </div>
         )}
-        <div ref={bottomRef} />
+          <div ref={bottomRef} />
+        </div>
+
+        {/* 回到最新：上滑离开底部时出现 */}
+        {showJump && messages.length > 0 && (
+          <button
+            type="button"
+            onClick={() => {
+              stickToBottom.current = true;
+              setShowJump(false);
+              scrollToBottom(true);
+            }}
+            className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 shadow-[0_4px_14px_rgba(0,0,0,0.12)] text-slate-600 text-[0.78rem] hover:text-emerald-600 hover:border-emerald-300 transition-colors cursor-pointer"
+          >
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M12 5v14" />
+              <path d="m19 12-7 7-7-7" />
+            </svg>
+            回到最新
+          </button>
+        )}
+      </div>
+
+      {/* 表情快捷栏 */}
+      <div className="flex flex-wrap items-center gap-1 mb-2 px-1">
+        {QUICK_EMOJIS.map((emoji) => (
+          <button
+            key={emoji}
+            type="button"
+            onClick={() => insertEmoji(emoji)}
+            disabled={!!limits && !limits.enabled}
+            title={`插入 ${emoji}`}
+            className="w-8 h-8 rounded-[8px] text-[1.05rem] leading-none flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
+          >
+            {emoji}
+          </button>
+        ))}
       </div>
 
       {/* 输入区 */}
@@ -305,6 +394,7 @@ export default function ChatPanel() {
           </svg>
         </button>
         <textarea
+          ref={textRef}
           value={text}
           onChange={(e) => setText(e.target.value.slice(0, limits?.max_text ?? 400))}
           onKeyDown={(e) => {

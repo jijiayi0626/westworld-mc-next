@@ -40,14 +40,22 @@ export default function OrdersPage() {
   const [mcName, setMcName] = useState("");
   const [balance, setBalance] = useState<number | null>(null);
   const [balanceLoading, setBalanceLoading] = useState(false);
-  const [payEconomy, setPayEconomy] = useState(true);
+
+  // 在线支付（易支付）
+  const [epayEnabled, setEpayEnabled] = useState(false);
+  const [payTypes, setPayTypes] = useState<string[]>([]);
+  const [payType, setPayType] = useState("alipay");
+  const [payMethod, setPayMethod] = useState<"economy" | "epay" | "manual">("manual");
+
+  const PAY_TYPE_LABELS: Record<string, string> = { alipay: "支付宝", wxpay: "微信支付", qqpay: "QQ 钱包" };
 
   const load = useCallback(async () => {
     try {
-      const [p, o, info] = await Promise.all([
+      const [p, o, info, pay] = await Promise.all([
         api<Product[]>("/shop/products"),
         api<Order[]>("/shop/orders"),
         api<{ enabled: boolean; currency_name?: string; mc_name?: string }>("/shop/economy-info"),
+        api<{ epay: { enabled: boolean; types: string[] } }>("/pay/config").catch(() => ({ epay: { enabled: false, types: [] } })),
       ]);
       setProducts(p);
       setOrders(o);
@@ -55,6 +63,14 @@ export default function OrdersPage() {
         setEcoEnabled(true);
         setEcoCurrency(info.currency_name || "金币");
         setMcName(info.mc_name || "");
+      }
+      if (pay.epay.enabled) {
+        setEpayEnabled(true);
+        setPayTypes(pay.epay.types);
+        if (pay.epay.types.length > 0) setPayType(pay.epay.types[0]);
+        setPayMethod("epay");
+      } else if (info.enabled) {
+        setPayMethod("economy");
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
@@ -86,19 +102,47 @@ export default function OrdersPage() {
     setSuccess("");
     setBusy(true);
     try {
-      const data = await api<{ order_no: string; total: number; currency: string; status: string; economy_paid: boolean }>("/shop/order", {
+      const data = await api<{ order_id: number; order_no: string; total: number; currency: string; status: string; economy_paid: boolean }>("/shop/order", {
         method: "POST",
-        body: JSON.stringify({ product_id: productId, qty, payment_method: payEconomy && ecoEnabled ? "economy" : "manual" }),
+        body: JSON.stringify({ product_id: productId, qty, payment_method: payMethod === "economy" && ecoEnabled ? "economy" : "manual" }),
       });
       if (data.economy_paid) {
         setSuccess(`支付成功！订单 ${data.order_no} 已扣除 ${data.total} ${data.currency}，等待管理员发货。`);
         void refreshBalance();
+      } else if (payMethod === "epay" && epayEnabled) {
+        const pay = await api<{ pay_url: string }>("/pay/create", {
+          method: "POST",
+          body: JSON.stringify({ order_id: data.order_id, provider: "epay", pay_type: payType }),
+        });
+        if (pay.pay_url) {
+          window.location.href = pay.pay_url;
+          return;
+        }
+        setSuccess(`订单已创建：${data.order_no}，请前往支付。`);
       } else {
         setSuccess(`订单已创建：${data.order_no}，应付 ${data.total} ${data.currency}。请按商品说明联系管理员转账，管理员确认收款后订单状态会更新为「已支付」。`);
       }
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "下单失败");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  /** 待支付订单：重新发起在线支付 */
+  const payOrder = async (o: Order) => {
+    setError("");
+    setSuccess("");
+    setBusy(true);
+    try {
+      const pay = await api<{ pay_url: string }>("/pay/create", {
+        method: "POST",
+        body: JSON.stringify({ order_id: o.id, provider: "epay", pay_type: payType }),
+      });
+      if (pay.pay_url) window.location.href = pay.pay_url;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "发起支付失败");
     } finally {
       setBusy(false);
     }
@@ -127,26 +171,50 @@ export default function OrdersPage() {
             </div>
           )}
         </div>
-        {ecoEnabled && (
-          <div className="flex flex-wrap gap-2 mb-4">
+        {(ecoEnabled || epayEnabled) && (
+          <div className="flex flex-wrap items-center gap-2 mb-4">
+            {ecoEnabled && (
+              <button
+                type="button"
+                onClick={() => setPayMethod("economy")}
+                className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
+                  payMethod === "economy" ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                游戏币支付（{ecoCurrency}）
+              </button>
+            )}
+            {epayEnabled && (
+              <button
+                type="button"
+                onClick={() => setPayMethod("epay")}
+                className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
+                  payMethod === "epay" ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                在线支付
+              </button>
+            )}
             <button
               type="button"
-              onClick={() => setPayEconomy(true)}
+              onClick={() => setPayMethod("manual")}
               className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
-                payEconomy ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
-              }`}
-            >
-              游戏币支付（{ecoCurrency}）
-            </button>
-            <button
-              type="button"
-              onClick={() => setPayEconomy(false)}
-              className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
-                !payEconomy ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+                payMethod === "manual" ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
               }`}
             >
               转账支付（联系管理员）
             </button>
+            {payMethod === "epay" && payTypes.length > 0 && (
+              <select
+                value={payType}
+                onChange={(e) => setPayType(e.target.value)}
+                className="px-3 py-1.5 rounded-[8px] border border-slate-200 bg-white text-[0.84rem] text-slate-700 focus:outline-none focus:border-accent-emerald"
+              >
+                {payTypes.map((t) => (
+                  <option key={t} value={t}>{PAY_TYPE_LABELS[t] || t}</option>
+                ))}
+              </select>
+            )}
           </div>
         )}
         {products === null ? (
@@ -171,9 +239,11 @@ export default function OrdersPage() {
           </div>
         )}
         <p className="mt-4 text-[0.78rem] text-slate-500">
-          {ecoEnabled
-            ? `选择「游戏币支付」下单即自动扣款（按服务器内经济插件实时结算）；选择「转账支付」则联系管理员确认收款后订单标记为「已支付」。`
-            : "说明：下单后请联系管理员完成转账，管理员在后台确认收款后订单才会标记为「已支付」。"}
+          {epayEnabled
+            ? "在线支付：下单后跳转服务商收银台完成付款，支付成功后订单自动更新为「已支付」；游戏币支付按服务器内经济插件实时结算；转账支付需联系管理员确认收款。"
+            : ecoEnabled
+              ? "选择「游戏币支付」下单即自动扣款（按服务器内经济插件实时结算）；选择「转账支付」则联系管理员确认收款后订单标记为「已支付」。"
+              : "说明：下单后请联系管理员完成转账，管理员在后台确认收款后订单才会标记为「已支付」。"}
         </p>
       </Card>
 
@@ -208,7 +278,13 @@ export default function OrdersPage() {
                     <td className="py-3 pr-3"><StatusBadge status={o.status} /></td>
                     <td className="py-3 pr-3 whitespace-nowrap text-slate-500">{fmtTime(o.created_at)}</td>
                     <td className="py-3">
-                      {o.status === "pending" && <span className="text-[0.75rem] text-slate-500">待管理员确认收款</span>}
+                      {o.status === "pending" && (
+                        epayEnabled ? (
+                          <Btn size="sm" disabled={busy} onClick={() => void payOrder(o)}>立即支付</Btn>
+                        ) : (
+                          <span className="text-[0.75rem] text-slate-500">待管理员确认收款</span>
+                        )
+                      )}
                       {o.status === "paid" && <span className="text-[0.75rem] text-slate-500">待发货</span>}
                       {o.status === "completed" && <span className="text-[0.75rem] text-slate-500">已交付</span>}
                     </td>

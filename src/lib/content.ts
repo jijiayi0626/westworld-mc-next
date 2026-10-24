@@ -22,6 +22,8 @@ export interface SiteContent {
     title: string;
     subtitle: string;
     bg_image: string;
+    /** 首页「高性能处理器」图片品牌：amd / intel / 留空使用自定义图标 */
+    cpu_brand?: "amd" | "intel" | "";
     items: Array<{
       icon: string;
       title: string;
@@ -133,6 +135,7 @@ export const defaultContent: SiteContent = {
     title: "服务器配置",
     subtitle: "为了给您提供最流畅的游戏体验，我们不惜成本选用了顶级的企业级硬件设施",
     bg_image: staticUrl("/png/89ce487b74da31797c19a3dc4ffc0d79.jpg"),
+    cpu_brand: "amd",
     items: [
       {
         icon: staticUrl("/png/CPU.png"),

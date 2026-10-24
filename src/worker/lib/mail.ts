@@ -9,6 +9,8 @@ export interface MailConfig {
   provider: "none" | "resend" | "smtp";
   from: string;
   resend_key: string;
+  /** 多 Key 轮换：任一 Key 失败自动切换下一个 */
+  resend_keys: string[];
   smtp_host: string;
   smtp_port: number;
   smtp_user: string;
@@ -16,7 +18,7 @@ export interface MailConfig {
   smtp_ssl: boolean;
 }
 
-export const MAIL_SENSITIVE_KEYS = new Set(["mail_resend_key", "mail_smtp_pass"]);
+export const MAIL_SENSITIVE_KEYS = new Set(["mail_resend_key", "mail_resend_keys", "mail_smtp_pass"]);
 
 export async function loadMailConfig(db: D1Database): Promise<MailConfig> {
   const rows = await db
@@ -24,10 +26,22 @@ export async function loadMailConfig(db: D1Database): Promise<MailConfig> {
     .all<{ key: string; value: string }>();
   const map = Object.fromEntries(rows.results.map((r) => [r.key, r.value]));
   const provider = map.mail_provider === "resend" || map.mail_provider === "smtp" ? map.mail_provider : "none";
+  let resendKeys: string[] = [];
+  if (map.mail_resend_keys) {
+    try {
+      const parsed = JSON.parse(map.mail_resend_keys);
+      if (Array.isArray(parsed)) resendKeys = parsed.filter((k): k is string => typeof k === "string" && k.trim() !== "");
+    } catch {
+      /* 兼容旧格式：按换行拆分 */
+      resendKeys = map.mail_resend_keys.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  if (resendKeys.length === 0 && map.mail_resend_key) resendKeys = [map.mail_resend_key];
   return {
     provider,
     from: map.mail_from || "",
-    resend_key: map.mail_resend_key || "",
+    resend_key: resendKeys[0] || "",
+    resend_keys: resendKeys,
     smtp_host: map.mail_smtp_host || "",
     smtp_port: Number(map.mail_smtp_port) || 587,
     smtp_user: map.mail_smtp_user || "",
@@ -37,7 +51,7 @@ export async function loadMailConfig(db: D1Database): Promise<MailConfig> {
 }
 
 export function mailEnabled(cfg: MailConfig): boolean {
-  if (cfg.provider === "resend") return !!(cfg.from && cfg.resend_key);
+  if (cfg.provider === "resend") return !!(cfg.from && cfg.resend_keys.length > 0);
   if (cfg.provider === "smtp") return !!(cfg.from && cfg.smtp_host);
   return false;
 }
@@ -78,18 +92,27 @@ export function renderEmail(title: string, bodyHtml: string, siteName = "Westwor
 // ---------------- Resend ----------------
 
 async function sendViaResend(cfg: MailConfig, opts: MailOptions): Promise<void> {
-  const resp = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${cfg.resend_key}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ from: cfg.from, to: [opts.to], subject: opts.subject, html: opts.html }),
-  });
-  if (!resp.ok) {
-    const detail = (await resp.text()).slice(0, 300);
-    throw new Error(`Resend 发送失败 (${resp.status})：${detail}`);
+  const keys = cfg.resend_keys.length > 0 ? cfg.resend_keys : [cfg.resend_key];
+  let lastError = "";
+  // 多 Key 轮换：当前 Key 失败（额度用尽 / 无效）自动尝试下一个
+  for (let i = 0; i < keys.length; i++) {
+    const key = keys[i];
+    if (!key) continue;
+    const resp = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${key}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: cfg.from, to: [opts.to], subject: opts.subject, html: opts.html }),
+    });
+    if (resp.ok) return;
+    const detail = (await resp.text()).slice(0, 200);
+    lastError = `Resend 发送失败 (${resp.status})：${detail}`;
+    // 4xx（除限流 429）通常为内容/参数问题，换 Key 也无效，直接抛出
+    if (resp.status >= 400 && resp.status < 500 && resp.status !== 429) break;
   }
+  throw new Error(lastError || "Resend 发送失败");
 }
 
 // ---------------- 原生 SMTP ----------------

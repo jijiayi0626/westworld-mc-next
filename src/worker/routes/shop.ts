@@ -301,7 +301,7 @@ app.post("/admin/product/:id/delete", async (c) => {
 app.get("/admin/orders", async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT o.id, o.order_no, o.product_name, o.qty, o.total, o.currency, o.status,
-            o.delivery, o.paid_at, o.created_at, u.username
+            o.provider, o.delivery, o.paid_at, o.created_at, u.username
      FROM shop_orders o JOIN users u ON u.id = o.user_id ORDER BY o.id DESC LIMIT 100`,
   ).all();
   return ok(results);
