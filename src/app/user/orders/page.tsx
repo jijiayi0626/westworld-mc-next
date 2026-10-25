@@ -54,12 +54,12 @@ export default function OrdersPage() {
       const [p, o, info, pay] = await Promise.all([
         api<Product[]>("/shop/products"),
         api<Order[]>("/shop/orders"),
-        api<{ enabled: boolean; currency_name?: string; mc_name?: string }>("/shop/economy-info"),
+        api<{ enabled: boolean; currency_name?: string; mc_name?: string | null; bound?: boolean }>("/shop/economy-info"),
         api<{ epay: { enabled: boolean; types: string[] } }>("/pay/config").catch(() => ({ epay: { enabled: false, types: [] } })),
       ]);
       setProducts(p);
       setOrders(o);
-      if (info.enabled) {
+      if (info.enabled && info.mc_name) {
         setEcoEnabled(true);
         setEcoCurrency(info.currency_name || "金币");
         setMcName(info.mc_name || "");
@@ -69,7 +69,7 @@ export default function OrdersPage() {
         setPayTypes(pay.epay.types);
         if (pay.epay.types.length > 0) setPayType(pay.epay.types[0]);
         setPayMethod("epay");
-      } else if (info.enabled) {
+      } else if (info.enabled && info.mc_name) {
         setPayMethod("economy");
       }
     } catch (e) {

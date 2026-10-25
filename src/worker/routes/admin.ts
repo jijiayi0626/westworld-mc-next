@@ -12,6 +12,49 @@ import { loadAiConfig } from "./ai";
 
 const app = new Hono<AppEnv>();
 
+const MASKED = "••••••";
+const SECRET_SETTING_KEYS = new Set<string>([...MAIL_SENSITIVE_KEYS, "upop_client_secret"]);
+
+/** 后台设置列表脱敏：密钥类只返回占位符，避免任何管理员会话直接拿到明文 */
+function maskSetting(key: string, value: string): string {
+  if (!value) return value;
+  if (SECRET_SETTING_KEYS.has(key)) return MASKED;
+  if (key === "pay_epay") return `${MASKED}（请到「支付配置」中编辑）`;
+  if (key === "ai_config") {
+    try {
+      const j = JSON.parse(value) as Record<string, unknown>;
+      if (typeof j.api_key === "string" && j.api_key) j.api_key = MASKED;
+      return JSON.stringify(j);
+    } catch {
+      return MASKED;
+    }
+  }
+  if (key === "ai_providers") {
+    try {
+      const list = JSON.parse(value) as Record<string, unknown>[];
+      if (!Array.isArray(list)) return MASKED;
+      return JSON.stringify(
+        list.map((p) => ({
+          ...p,
+          api_key: typeof p.api_key === "string" && p.api_key ? MASKED : "",
+        })),
+      );
+    } catch {
+      return MASKED;
+    }
+  }
+  if (key === "ms_oauth_config") {
+    try {
+      const j = JSON.parse(value) as Record<string, unknown>;
+      if (typeof j.client_secret === "string" && j.client_secret) j.client_secret = MASKED;
+      return JSON.stringify(j);
+    } catch {
+      return MASKED;
+    }
+  }
+  return value;
+}
+
 app.use("*", requireAuth, requireAdmin);
 
 // 三方接口预留状态（微软 OAuth / UPOP）
@@ -323,9 +366,14 @@ app.post("/users/:id/status", async (c) => {
     .first<{ id: number; role: string }>();
   if (!target) return fail("用户不存在", 404);
 
-  // 目标原本是管理员且要改状态/降级 -> 禁止（防止互相禁用）
+  // 目标原本是管理员且要封禁/降级：至少保留一个可用管理员，避免互相锁死
   if (target.role === "admin" && (status === "banned" || role === "user")) {
-    return fail("不能禁用或降级其他管理员", 403);
+    const row = await c.env.DB.prepare(
+      "SELECT COUNT(*) AS n FROM users WHERE role = 'admin' AND status = 'active' AND id != ?",
+    ).bind(id).first<{ n: number }>();
+    if ((row?.n ?? 0) < 1) {
+      return fail("不能禁用或降级最后一个管理员", 403);
+    }
   }
 
   if (status) {
@@ -399,13 +447,7 @@ app.get("/settings", async (c) => {
   ).all<{ key: string; value: string }>();
   // 邮件密钥类配置脱敏返回（改用专用 /mail-config 接口管理，留空保留原值）
   return ok(
-    results.map((r) =>
-      MAIL_SENSITIVE_KEYS.has(r.key)
-        ? { ...r, value: "••••••" }
-        : r.key === "pay_epay"
-          ? { ...r, value: "••••••（请到「支付配置」中编辑）" }
-          : r,
-    ),
+    results.map((r) => ({ ...r, value: maskSetting(r.key, r.value) })),
   );
 });
 
@@ -415,6 +457,14 @@ app.post("/settings", async (c) => {
   const key = str(body.key, 100).trim();
   const value = str(body.value, 10000);
   if (!key || key.startsWith("reset_code:")) return fail("无效的 key");
+  // 防止把列表里的脱敏占位符写回数据库，覆盖真实密钥
+  if (
+    value.includes("••••") &&
+    (SECRET_SETTING_KEYS.has(key) ||
+      ["ai_config", "ai_providers", "ms_oauth_config", "pay_epay"].includes(key))
+  ) {
+    return fail("该配置包含密钥，请到对应的专用配置页面修改", 400);
+  }
   await c.env.DB.prepare(
     `INSERT INTO site_settings (key, value) VALUES (?, ?)
      ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
@@ -571,10 +621,19 @@ app.post("/users/notify", async (c) => {
   const cfg = await loadMailConfig(c.env.DB);
   if (!mailEnabled(cfg)) return fail("邮件服务未配置，请先到「网站设置 → 邮件服务」完成配置", 400);
 
+  // 按用户 ID 游标分批：单次最多 30 封，避免触发 Workers 子请求上限
+  const afterId = Math.max(0, Number(body.after_id) || 0);
+  const batchSize = Math.min(30, Math.max(1, Number(body.limit) || 30));
   const { results } = await c.env.DB.prepare(
-    `SELECT email FROM users WHERE email != '' AND email IS NOT NULL ${onlyActive ? "AND status = 'active'" : ""} LIMIT 500`,
-  ).all<{ email: string }>();
-  if (results.length === 0) return fail("没有符合条件且带邮箱的用户", 400);
+    `SELECT id, email FROM users
+     WHERE email != '' AND email IS NOT NULL AND id > ?
+       ${onlyActive ? "AND status = 'active'" : ""}
+     ORDER BY id ASC LIMIT ?`,
+  ).bind(afterId, batchSize).all<{ id: number; email: string }>();
+  if (results.length === 0) {
+    if (afterId === 0) return fail("没有符合条件且带邮箱的用户", 400);
+    return ok({ total: 0, sent: 0, failed: 0, errors: [], has_more: false, next_after_id: afterId });
+  }
 
   const html = renderEmail(subject, content.replace(/\n/g, "<br>"));
   let sent = 0;
@@ -592,8 +651,10 @@ app.post("/users/notify", async (c) => {
       }
     }
   }
-  await logOp(c.env.DB, c, admin.id, "users_notify", `${sent}/${results.length}`, subject);
-  return ok({ total: results.length, sent, failed, errors });
+  const nextAfterId = results[results.length - 1].id;
+  const hasMore = results.length === batchSize;
+  await logOp(c.env.DB, c, admin.id, "users_notify", `${sent}/${results.length} after=${afterId}`, subject);
+  return ok({ total: results.length, sent, failed, errors, has_more: hasMore, next_after_id: nextAfterId });
 });
 
 // —— 操作日志 ——

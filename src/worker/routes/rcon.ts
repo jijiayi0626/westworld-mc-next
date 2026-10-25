@@ -44,6 +44,72 @@ export async function loadRconConfig(db: D1Database): Promise<RconWhitelistConfi
   }
 }
 
+export interface RconTarget {
+  host: string;
+  port: number;
+  password: string;
+  name: string;
+}
+
+/**
+ * 解析 RCON 连接目标：
+ * - 指定 serverId 时读 game_servers；
+ * - 未指定时优先用「白名单同步」里保存的加密配置，再回退 game_servers 的旧明文密码。
+ * 两种来源的密码都兼容 enc:v1 密文与旧明文。
+ */
+export async function resolveRconTarget(
+  c: { env: AppEnv["Bindings"] },
+  serverId?: number,
+): Promise<RconTarget | null> {
+  const db = c.env.DB;
+  const secret = typeof c.env.APP_SECRET === "string" ? c.env.APP_SECRET : "";
+  const decrypt = async (stored: string) => (stored ? decryptSecret(stored, secret) : "");
+
+  const fromConfig = async (
+    name: string,
+    expected?: { host: string; port: number },
+  ): Promise<RconTarget | null> => {
+    const cfg = await loadRconConfig(db);
+    if (!cfg.host || !cfg.password_enc) return null;
+    // 指定服务器时只允许回退到同一 host:port 的配置，避免把命令发到别的服
+    if (expected && (cfg.host !== expected.host || cfg.port !== expected.port)) return null;
+    const password = await decrypt(cfg.password_enc);
+    return password ? { host: cfg.host, port: cfg.port, password, name } : null;
+  };
+
+  if (serverId) {
+    const row = await db.prepare(
+      "SELECT server_name, host, port, password FROM game_servers WHERE id = ?",
+    ).bind(serverId).first<{ server_name: string; host: string; port: number; password: string }>();
+    if (!row) return null;
+    const password = await decrypt(row.password || "");
+    if (password) {
+      return { host: row.host, port: row.port, password, name: row.server_name };
+    }
+    // 该行没有密码时，仅回退到同一 host:port 的全局 RCON 配置
+    return (await fromConfig(row.server_name, { host: row.host, port: row.port })) ?? {
+      host: row.host,
+      port: row.port,
+      password: "",
+      name: row.server_name,
+    };
+  }
+
+  const configured = await fromConfig("RCON 白名单同步");
+  if (configured) return configured;
+
+  const row = await db.prepare(
+    "SELECT server_name, host, port, password FROM game_servers WHERE password != '' ORDER BY id ASC LIMIT 1",
+  ).first<{ server_name: string; host: string; port: number; password: string }>();
+  if (!row) return null;
+  return {
+    host: row.host,
+    port: row.port,
+    password: await decrypt(row.password || ""),
+    name: row.server_name,
+  };
+}
+
 function publicConfig(cfg: RconWhitelistConfig) {
   return {
     enabled: cfg.enabled,
@@ -104,10 +170,9 @@ app.post("/command", async (c) => {
   const command = String(body.command || "").trim().slice(0, 500);
   if (!command) return fail("命令不能为空");
 
-  const server = await c.env.DB.prepare(
-    "SELECT id, server_name, host, port, password FROM game_servers WHERE id = ?",
-  ).bind(serverId).first<{ id: number; server_name: string; host: string; port: number; password: string }>();
+  const server = await resolveRconTarget(c, serverId);
   if (!server) return fail("服务器不存在", 404);
+  if (!server.password) return fail("该服务器未配置 RCON 密码", 400);
 
   const data = await runRconCommand(c, server.host, server.port, server.password, command, 5);
 
@@ -115,7 +180,7 @@ app.post("/command", async (c) => {
     `INSERT INTO op_logs (operator_id, action, target, detail, ip)
      VALUES (?, 'rcon_command', ?, ?, 'rcon')`,
   )
-    .bind(admin.id, server.server_name, command.slice(0, 200))
+    .bind(admin.id, server.name, command.slice(0, 200))
     .run();
 
   if (!data.ok) return fail(data.message || "RCON 执行失败", 502);

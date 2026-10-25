@@ -209,7 +209,7 @@ app.post("/admin/providers/test", async (c) => {
   }
 });
 
-// 会话限额（AI_ENABLED=false 时每用户每日 5 条；启用后由真实计费控制）
+// 每用户每日默认限额（可在后台调整，启用 AI 后同样生效）
 const DAILY_LIMIT_DISABLED = 5;
 
 // 发送消息（OpenAI 兼容；未配置时返回固定占位回复）
@@ -221,25 +221,27 @@ app.post("/chat", requireAuth, async (c) => {
 
   const aiCfg = await loadAiConfig(c.env.DB, c.env);
 
-  // 未启用 AI 时按日限额限制；启用后由真实计费控制
-  if (!aiCfg.enabled) {
-    const usage = await c.env.DB.prepare(
-      "SELECT COALESCE(count, 0) AS used FROM ai_usage WHERE user_id = ? AND date = date('now')",
-    ).bind(user.id).first<{ used: number }>();
-    if ((usage?.used ?? 0) >= (aiCfg.daily_limit || DAILY_LIMIT_DISABLED)) {
-      return fail(`每日最多 ${aiCfg.daily_limit || DAILY_LIMIT_DISABLED} 条，明天再来吧`, 429);
-    }
+  // 每用户每日限额（启用 AI 后同样生效，避免单个账号刷爆上游额度）
+  const dailyLimit = aiCfg.daily_limit || DAILY_LIMIT_DISABLED;
+  const usage = await c.env.DB.prepare(
+    "SELECT COALESCE(count, 0) AS used FROM ai_usage WHERE user_id = ? AND date = date('now')",
+  ).bind(user.id).first<{ used: number }>();
+  if ((usage?.used ?? 0) >= dailyLimit) {
+    return fail(`每日最多 ${dailyLimit} 条，明天再来吧`, 429);
   }
 
-  // 会话：取最近一个未完结会话
-  const convo = await c.env.DB.prepare(
-    `SELECT id FROM ai_conversations WHERE user_id = ? AND status = 'active' ORDER BY id DESC LIMIT 1`,
-  )
-    .bind(user.id)
-    .first<{ id: number }>();
-
-  let convoId = convo?.id ?? 0;
-  if (!convoId) {
+  // 会话：显式传入 conversation_id 时续聊并校验归属；否则新建（修复「新对话」无效）
+  const requestedConvoId = Number(body.conversation_id) || 0;
+  let convoId = 0;
+  if (requestedConvoId > 0) {
+    const owned = await c.env.DB.prepare(
+      "SELECT id FROM ai_conversations WHERE id = ? AND user_id = ? AND status = 'active'",
+    )
+      .bind(requestedConvoId, user.id)
+      .first<{ id: number }>();
+    if (!owned) return fail("会话不存在或已结束", 404);
+    convoId = owned.id;
+  } else {
     const r = await c.env.DB.prepare(
       "INSERT INTO ai_conversations (user_id, title) VALUES (?, ?)",
     ).bind(user.id, content.slice(0, 30)).run();
@@ -257,9 +259,12 @@ app.post("/chat", requireAuth, async (c) => {
     const model = aiCfg.model || "gpt-4o-mini";
     if (!apiKey) return fail("AI 服务未配置 API Key，请在管理后台 AI 配置中填写", 503);
 
-    // 拉取该会话历史作为上下文
+    // 拉取该会话最近 20 条作为上下文（先倒序截断，再正序喂给模型）
     const { results: history } = await c.env.DB.prepare(
-      "SELECT role, content FROM ai_conversation_messages WHERE conversation_id = ? ORDER BY id ASC LIMIT 20",
+      `SELECT role, content FROM (
+         SELECT id, role, content FROM ai_conversation_messages
+         WHERE conversation_id = ? ORDER BY id DESC LIMIT 20
+       ) ORDER BY id ASC`,
     ).bind(convoId).all();
 
     const resp = await fetch(chatUrl(baseUrl), {

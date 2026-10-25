@@ -27,9 +27,17 @@ export function genCsrfToken(): string {
   return [...buf].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-// 生成随机数字验证码（找回密码）
+// 生成随机数字验证码（找回密码）：使用 CSPRNG，拒绝采样避免取模偏差
 export function genCode(len = 6): string {
-  let s = "";
-  for (let i = 0; i < len; i++) s += Math.floor(Math.random() * 10);
-  return s;
+  const out: string[] = [];
+  const buf = new Uint8Array(Math.max(len * 2, 16));
+  while (out.length < len) {
+    crypto.getRandomValues(buf);
+    for (const b of buf) {
+      if (b >= 250) continue; // 250 = 25 * 10，保证均匀分布
+      out.push(String(b % 10));
+      if (out.length === len) break;
+    }
+  }
+  return out.join("");
 }

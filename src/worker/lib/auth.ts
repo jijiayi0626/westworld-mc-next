@@ -53,8 +53,24 @@ export async function requireAuth(c: Context<AppEnv>, next: Next) {
     if (!payload) {
       return c.json({ code: 401, message: "登录已过期", data: null }, 401);
     }
+    const id = Number(payload.sub);
+    if (!Number.isInteger(id) || id <= 0) {
+      return c.json({ code: 401, message: "登录已过期", data: null }, 401);
+    }
+    // 每次都从数据库读取最新状态：封禁/降权立即生效，不能等 JWT 过期
+    const row = await c.env.DB.prepare(
+      "SELECT id, username, role, status FROM users WHERE id = ?",
+    )
+      .bind(id)
+      .first<{ id: number; username: string; role: string; status: string }>();
+    if (!row) {
+      return c.json({ code: 401, message: "账号不存在", data: null }, 401);
+    }
+    if (row.status !== "active") {
+      return c.json({ code: 403, message: "账号已被封禁", data: null }, 403);
+    }
     c.set("session", payload);
-    c.set("user", { id: Number(payload.sub), username: payload.username, role: payload.role });
+    c.set("user", { id: row.id, username: row.username, role: row.role });
     await next();
   } catch (e) {
     return c.json({ code: 500, message: (e as Error).message, data: null }, 500);

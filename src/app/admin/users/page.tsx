@@ -111,11 +111,39 @@ export default function AdminUsersPage() {
     }
     setNotifyBusy(true);
     try {
-      const r = await api<{ total: number; sent: number; failed: number; errors: string[] }>("/admin/users/notify", {
-        method: "POST",
-        body: JSON.stringify({ subject: notifySubject.trim(), content: notifyContent.trim(), only_active: notifyOnlyActive }),
-      });
-      setNotifyResult(`发送完成：成功 ${r.sent} / 共 ${r.total}${r.failed ? `，失败 ${r.failed}${r.errors.length ? `（如 ${r.errors[0]}）` : ""}` : ""}`);
+      type Batch = {
+        total: number;
+        sent: number;
+        failed: number;
+        errors: string[];
+        has_more: boolean;
+        next_after_id: number;
+      };
+      let after = 0;
+      let total = 0;
+      let sent = 0;
+      let failed = 0;
+      const errors: string[] = [];
+      for (let i = 0; i < 1000; i++) {
+        const r = await api<Batch>("/admin/users/notify", {
+          method: "POST",
+          body: JSON.stringify({
+            subject: notifySubject.trim(),
+            content: notifyContent.trim(),
+            only_active: notifyOnlyActive,
+            after_id: after,
+            limit: 30,
+          }),
+        });
+        total += r.total;
+        sent += r.sent;
+        failed += r.failed;
+        errors.push(...r.errors);
+        if (!r.has_more) break;
+        after = r.next_after_id;
+        setNotifyResult(`发送中：已处理 ${total} 人（成功 ${sent}，失败 ${failed}）...`);
+      }
+      setNotifyResult(`发送完成：成功 ${sent} / 共 ${total}${failed ? `，失败 ${failed}${errors.length ? `（如 ${errors[0]}）` : ""}` : ""}`);
     } catch (e) {
       setNotifyResult(e instanceof Error ? e.message : "发送失败");
     } finally {

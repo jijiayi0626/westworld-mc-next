@@ -62,8 +62,12 @@ export default function UserSecurityPage() {
   useEffect(() => {
     void loadBindings();
     void loadUpop();
-    if (window.location.search.includes("upop_bound=1")) {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("upop_bound") === "1") {
       setSuccess("UPOP 账号绑定成功");
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (params.get("bound") === "1" || params.get("ms_bound") === "1") {
+      setSuccess("微软账号绑定成功");
       window.history.replaceState(null, "", window.location.pathname);
     }
   }, [loadBindings, loadUpop]);

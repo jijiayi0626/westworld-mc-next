@@ -55,7 +55,7 @@
 
 | 模块 | 说明 |
 |---|---|
-| 认证 | 账号密码 + CSRF + HttpOnly Cookie；微软 OAuth 与 UPOP 统一认证绑定 |
+| 认证 | 账号密码 + 同源校验（CSRF 防护）+ HttpOnly Cookie；微软 OAuth 与 UPOP 统一认证绑定 |
 | 论坛 | 公告（管理端发布）+ 聊天室（文字 / 图片、频控、日限额），独立 D1 数据库 `westworld-forum` 存储 |
 | 工单 / 申请 | 支持往返回复；入服申请审核通过后可经 RCON 自动加白名单 |
 | 商城 | 商品 + 订单 + Creem 支付；支持对接服务器经济插件（RCON 查询 / 扣款指令模板） |
@@ -76,7 +76,7 @@
                                 └── 定时任务（cron */5：服务器巡检 + 心跳）
 ```
 
-- 前端：Next.js 15（App Router，静态导出 `output: export`）+ Tailwind CSS，全站内联 SVG 图标（无外部图标库 / 字体依赖，离线可用）
+- 前端：Next.js 14（App Router，静态导出 `output: export`）+ Tailwind CSS，全站内联 SVG 图标（无外部图标库 / 字体依赖，离线可用）
 - 后端：Hono on Workers；环境变量与密钥见「部署上线」
 - 数据：两套 D1（主库 + 论坛库）与 R2 对象存储
 

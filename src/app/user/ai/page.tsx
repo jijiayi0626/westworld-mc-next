@@ -77,7 +77,7 @@ export default function AiPage() {
     try {
       const data = await api<{ conversation_id: number; reply: string }>("/ai/chat", {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, conversation_id: current ?? undefined }),
       });
       setMessages((prev) => [
         ...(prev || []),

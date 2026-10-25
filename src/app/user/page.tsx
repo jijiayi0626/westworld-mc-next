@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { UserShell } from "@/components/Shell";
 import { useAuth } from "@/components/AuthProvider";
@@ -17,6 +17,15 @@ export default function UserHomePage() {
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  // 首次拿到异步加载的 user 后同步一次，避免硬刷新后表单为空、保存时把资料覆盖掉
+  const loadedFor = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (!user || loadedFor.current === user.id) return;
+    loadedFor.current = user.id;
+    setBio(user.bio || "");
+    setAvatar(user.avatar || "");
+  }, [user]);
 
   if (!user) return <UserShell><></></UserShell>;
 
