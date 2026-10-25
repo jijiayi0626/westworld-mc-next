@@ -3,6 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
+import { logOp } from "../lib/log";
 
 const app = new Hono<AppEnv>();
 
@@ -89,6 +90,169 @@ export async function loadAiConfig(db: D1Database, env: AppEnv["Bindings"]): Pro
     /* 模板配置损坏时按通用配置走 */
   }
   return cfg;
+}
+
+// —— 多场景 AI ——
+
+export interface AiScenario {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  system_prompt: string;
+  temperature: number;
+  max_tokens: number;
+}
+
+/** 内置场景：提示词与参数均可在后台修改，未保存时使用这里的默认值 */
+export const DEFAULT_AI_SCENARIOS: AiScenario[] = [
+  {
+    id: "chat",
+    name: "玩家助手",
+    description: "用户中心 AI 助手的多轮对话，回答玩法、申请、规则等问题。",
+    enabled: true,
+    system_prompt:
+      "你是西域之光 Minecraft 服务器的人工智能助手，回答服务器的玩法、申请、规则、商城等问题。保持简洁友好；不确定的信息不要编造，建议用户提交工单。",
+    temperature: 0.7,
+    max_tokens: 900,
+  },
+  {
+    id: "ticket_summary",
+    name: "工单摘要",
+    description: "把较长的工单对话压缩成管理员可快速浏览的处理摘要。",
+    enabled: true,
+    system_prompt:
+      "你是客服工单摘要助手。阅读工单标题、分类和对话，用中文输出 3-5 条要点：用户诉求、已提供的信息、已尝试的操作、待办事项、潜在风险。只依据原文，不要编造；不要输出客套话。",
+    temperature: 0.2,
+    max_tokens: 700,
+  },
+  {
+    id: "application_review",
+    name: "入服预审",
+    description: "对入服申请做辅助预审，给出建议与风险点，最终决定仍由管理员做出。",
+    enabled: true,
+    system_prompt:
+      "你是 Minecraft 服务器入服审核助手。根据申请人的游戏名、版本、来源渠道和自我介绍，用中文输出：1) 建议（通过/拒绝/需补充）；2) 理由与风险点；3) 一段可直接发给申请人的礼貌备注。不要替管理员做最终决定，不要编造申请中没有的信息。",
+    temperature: 0.3,
+    max_tokens: 700,
+  },
+  {
+    id: "reply_draft",
+    name: "回复草稿",
+    description: "根据工单对话为管理员起草一条可直接发送的回复。",
+    enabled: true,
+    system_prompt:
+      "你是西域之光服务器的客服。根据工单对话写一条中文回复草稿：先回应用户的核心问题，再给出清晰可执行的下一步；语气友好、简洁，不要承诺无法确认的时间或补偿。只输出回复正文。",
+    temperature: 0.5,
+    max_tokens: 800,
+  },
+];
+
+function clamp(n: unknown, min: number, max: number, fallback: number): number {
+  const v = Number(n);
+  if (!Number.isFinite(v)) return fallback;
+  return Math.min(max, Math.max(min, v));
+}
+
+/** 读取场景配置：以默认场景为骨架，合并数据库中的自定义提示词与参数 */
+export async function loadAiScenarios(db: D1Database): Promise<AiScenario[]> {
+  let stored: Partial<AiScenario>[] = [];
+  try {
+    const row = await db
+      .prepare("SELECT value FROM site_settings WHERE key = 'ai_scenarios'")
+      .first<{ value: string }>();
+    if (row?.value) {
+      const parsed = JSON.parse(row.value);
+      if (Array.isArray(parsed)) stored = parsed as Partial<AiScenario>[];
+    }
+  } catch {
+    /* 配置损坏时回退默认值 */
+  }
+  return DEFAULT_AI_SCENARIOS.map((def) => {
+    const s = stored.find((x) => x && x.id === def.id);
+    if (!s) return { ...def };
+    return {
+      ...def,
+      enabled: typeof s.enabled === "boolean" ? s.enabled : def.enabled,
+      system_prompt:
+        typeof s.system_prompt === "string" && s.system_prompt.trim()
+          ? s.system_prompt.trim().slice(0, 4000)
+          : def.system_prompt,
+      temperature: clamp(s.temperature, 0, 2, def.temperature),
+      max_tokens: Math.round(clamp(s.max_tokens, 64, 4096, def.max_tokens)),
+    };
+  });
+}
+
+export interface AiCompleteResult {
+  ok: boolean;
+  text: string;
+  message?: string;
+  model?: string;
+}
+
+/**
+ * 通用补全：读取全局配置 + 场景提示词，调用 OpenAI 兼容接口。
+ * 不处理每日限额（由调用方决定），失败时返回可读错误而不是抛异常。
+ */
+export async function aiComplete(
+  db: D1Database,
+  env: AppEnv["Bindings"],
+  scenarioId: string,
+  messages: { role: string; content: string }[],
+  options?: { force?: boolean },
+): Promise<AiCompleteResult> {
+  const cfg = await loadAiConfig(db, env);
+  if (!cfg.enabled && !options?.force) {
+    return { ok: false, text: "", message: "AI 功能未启用，请先在「AI 管理」中开启总开关" };
+  }
+  if (!cfg.api_key) {
+    return { ok: false, text: "", message: "AI 服务未配置 API Key，请在「AI 管理」中填写" };
+  }
+  const scenarios = await loadAiScenarios(db);
+  const scenario = scenarios.find((s) => s.id === scenarioId);
+  if (!scenario) {
+    return { ok: false, text: "", message: `未知的 AI 场景：${scenarioId}` };
+  }
+  if (!scenario.enabled && !options?.force) {
+    return { ok: false, text: "", message: `场景「${scenario.name}」已停用，请先在「AI 管理」中开启` };
+  }
+
+  try {
+    const resp = await fetch(chatUrl(cfg.base_url || "https://api.openai.com/v1"), {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${cfg.api_key}`,
+      },
+      body: JSON.stringify({
+        model: cfg.model || "gpt-4o-mini",
+        temperature: scenario.temperature,
+        max_tokens: scenario.max_tokens,
+        messages: [
+          { role: "system", content: scenario.system_prompt },
+          ...messages
+            .filter((m) => m && typeof m.content === "string" && m.content)
+            .slice(-24)
+            .map((m) => ({
+              role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
+              content: m.content.slice(0, 8000),
+            })),
+        ],
+      }),
+      signal: AbortSignal.timeout(30_000),
+    });
+    if (!resp.ok) {
+      return { ok: false, text: "", message: `AI 服务异常：${await upstreamError(resp)}` };
+    }
+    const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
+    const text = data.choices?.[0]?.message?.content?.trim() || "";
+    if (!text) return { ok: false, text: "", message: "AI 响应为空，请稍后重试" };
+    return { ok: true, text, model: cfg.model };
+  } catch (e) {
+    const message = e instanceof Error && e.name === "TimeoutError" ? "AI 请求超时" : e instanceof Error ? e.message : "AI 请求失败";
+    return { ok: false, text: "", message };
+  }
 }
 
 // —— AI 接口模板（多供应商一键切换） ——
@@ -254,40 +418,22 @@ app.post("/chat", requireAuth, async (c) => {
 
   let reply: string;
   if (aiCfg.enabled) {
-    const apiKey = aiCfg.api_key;
-    const baseUrl = aiCfg.base_url || "https://api.openai.com/v1";
-    const model = aiCfg.model || "gpt-4o-mini";
-    if (!apiKey) return fail("AI 服务未配置 API Key，请在管理后台 AI 配置中填写", 503);
-
     // 拉取该会话最近 20 条作为上下文（先倒序截断，再正序喂给模型）
     const { results: history } = await c.env.DB.prepare(
       `SELECT role, content FROM (
          SELECT id, role, content FROM ai_conversation_messages
          WHERE conversation_id = ? ORDER BY id DESC LIMIT 20
        ) ORDER BY id ASC`,
-    ).bind(convoId).all();
+    ).bind(convoId).all<{ role: string; content: string }>();
 
-    const resp = await fetch(chatUrl(baseUrl), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${apiKey}`,
-      },
-      body: JSON.stringify({
-        model,
-        messages: [
-          { role: "system", content: "你是西域之光服务器的人工智能助手，回答服务器的玩法、申请、规则等问题。保持简洁友好。" },
-          ...history.map((m) => ({ role: m.role, content: m.content })),
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
-    });
-
-    if (!resp.ok) {
-      return fail(`AI 服务异常：${await upstreamError(resp)}`, 502);
-    }
-    const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
-    reply = data.choices?.[0]?.message?.content || "（无回复）";
+    const result = await aiComplete(
+      c.env.DB,
+      c.env,
+      "chat",
+      history.map((m) => ({ role: m.role, content: m.content })),
+    );
+    if (!result.ok) return fail(result.message || "AI 服务异常", 502);
+    reply = result.text;
   } else {
     reply =
       "你好！我是西域之光的人工智能助手（演示模式）。\n" +
@@ -391,6 +537,58 @@ app.get("/admin/usage", async (c) => {
      GROUP BY u.id ORDER BY total_usage DESC LIMIT 50`,
   ).all();
   return ok(results);
+});
+
+// —— 多场景配置 ——
+
+app.get("/admin/scenarios", async (c) => {
+  const [scenarios, cfg] = await Promise.all([
+    loadAiScenarios(c.env.DB),
+    loadAiConfig(c.env.DB, c.env),
+  ]);
+  return ok({ scenarios, defaults: DEFAULT_AI_SCENARIOS, ai_enabled: cfg.enabled });
+});
+
+app.post("/admin/scenarios", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const incoming = Array.isArray(body.scenarios) ? (body.scenarios as Record<string, unknown>[]) : [];
+  const byId = new Map<string, Record<string, unknown>>();
+  for (const item of incoming) {
+    if (item && typeof item.id === "string") byId.set(item.id, item);
+  }
+  const next = DEFAULT_AI_SCENARIOS.map((def) => {
+    const s = byId.get(def.id);
+    if (!s) return { ...def };
+    return {
+      ...def,
+      enabled: s.enabled === true,
+      system_prompt:
+        typeof s.system_prompt === "string" && s.system_prompt.trim()
+          ? s.system_prompt.trim().slice(0, 4000)
+          : def.system_prompt,
+      temperature: clamp(s.temperature, 0, 2, def.temperature),
+      max_tokens: Math.round(clamp(s.max_tokens, 64, 4096, def.max_tokens)),
+    };
+  });
+  await writeSetting(c.env.DB, "ai_scenarios", JSON.stringify(next));
+  await logOp(c.env.DB, c, admin.id, "ai_scenarios_update", String(next.filter((s) => s.enabled).length));
+  return ok({ scenarios: next });
+});
+
+app.post("/admin/scenarios/test", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const id = str(body.id, 64);
+  const sample = str(body.sample, 2000).trim() || "请用一句话回复：你好，我想了解服务器的玩法。";
+  const scenario = (await loadAiScenarios(c.env.DB)).find((s) => s.id === id);
+  if (!scenario) return fail("场景不存在", 404);
+  const r = await aiComplete(c.env.DB, c.env, id, [{ role: "user", content: sample }], { force: true });
+  return ok({
+    ok: r.ok,
+    text: r.text,
+    model: r.model,
+    message: r.ok ? `场景「${scenario.name}」调用成功` : r.message || "测试失败",
+  });
 });
 
 export default app;

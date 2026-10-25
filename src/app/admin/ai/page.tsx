@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
-import { Card, Empty, PageHeader, fmtTime } from "@/components/ui";
+import { Card, Empty, ErrorNote, PageHeader, SuccessNote, fmtTime } from "@/components/ui";
 
 interface Usage {
   id: number;
@@ -19,6 +19,23 @@ interface AiProvider {
   model: string;
   api_key: string;
 }
+
+interface AiScenario {
+  id: string;
+  name: string;
+  description: string;
+  enabled: boolean;
+  system_prompt: string;
+  temperature: number;
+  max_tokens: number;
+}
+
+const SCENARIO_SAMPLES: Record<string, string> = {
+  chat: "你好，我想了解一下服务器怎么加入，Java 版和基岩版都能进吗？",
+  ticket_summary: "用户反馈：昨晚充值后商城订单一直显示待发货，已重启游戏也没收到物品，希望尽快处理。",
+  application_review: "游戏名：Steve_2026；Java 版；来源：B站；自我介绍：玩 MC 五年，喜欢红石和建筑，想和朋友一起长期玩。",
+  reply_draft: "用户反馈：登录时提示账号或密码错误，但确认密码没问题，已经尝试重置还是不行。",
+};
 
 const emptyProvider = (): AiProvider => ({ id: "", name: "", base_url: "https://api.openai.com/v1", model: "gpt-4o-mini", api_key: "" });
 
@@ -40,6 +57,12 @@ export default function AdminAiPage() {
   const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }>>({});
   const [provBusy, setProvBusy] = useState("");
 
+  // 多场景（提示词 / 参数 / 独立开关）
+  const [scenarios, setScenarios] = useState<AiScenario[] | null>(null);
+  const [scenarioDefaults, setScenarioDefaults] = useState<AiScenario[]>([]);
+  const [scenarioBusy, setScenarioBusy] = useState("");
+  const [scenarioTest, setScenarioTest] = useState<Record<string, { ok: boolean; message: string; text?: string }>>({});
+
   useEffect(() => {
     api<Usage[]>("/ai/admin/usage").then(setList).catch((e) => setError(e instanceof Error ? e.message : "加载失败"));
     api<{ enabled: boolean; api_key: string; base_url: string; model: string; daily_limit: number }>("/ai/admin/config")
@@ -51,6 +74,12 @@ export default function AdminAiPage() {
         setActiveId(d.active_id);
       })
       .catch(() => setProviders([]));
+    api<{ scenarios: AiScenario[]; defaults: AiScenario[] }>("/ai/admin/scenarios")
+      .then((d) => {
+        setScenarios(d.scenarios);
+        setScenarioDefaults(d.defaults);
+      })
+      .catch(() => setScenarios([]));
   }, []);
 
   const saveConfig = async () => {
@@ -128,6 +157,45 @@ export default function AdminAiPage() {
       setTestResult((r) => ({ ...r, [id]: { ok: false, message: e instanceof Error ? e.message : "测试失败" } }));
     } finally {
       setProvBusy("");
+    }
+  };
+
+  // —— 场景操作 ——
+  const patchScenario = (id: string, patch: Partial<AiScenario>) => {
+    setScenarios((prev) => (prev ? prev.map((s) => (s.id === id ? { ...s, ...patch } : s)) : prev));
+  };
+
+  const saveScenarios = async () => {
+    if (!scenarios) return;
+    setError("");
+    setSuccess("");
+    setScenarioBusy("save");
+    try {
+      const d = await api<{ scenarios: AiScenario[] }>("/ai/admin/scenarios", {
+        method: "POST",
+        body: JSON.stringify({ scenarios }),
+      });
+      setScenarios(d.scenarios);
+      setSuccess("AI 场景配置已保存");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setScenarioBusy("");
+    }
+  };
+
+  const testScenario = async (id: string) => {
+    setScenarioBusy(id);
+    try {
+      const d = await api<{ ok: boolean; message: string; text?: string }>("/ai/admin/scenarios/test", {
+        method: "POST",
+        body: JSON.stringify({ id, sample: SCENARIO_SAMPLES[id] || "" }),
+      });
+      setScenarioTest((r) => ({ ...r, [id]: { ok: d.ok, message: d.message, text: d.text } }));
+    } catch (e) {
+      setScenarioTest((r) => ({ ...r, [id]: { ok: false, message: e instanceof Error ? e.message : "测试失败" } }));
+    } finally {
+      setScenarioBusy("");
     }
   };
 
@@ -310,6 +378,126 @@ export default function AdminAiPage() {
               })}
             </div>
           )}
+        </div>
+
+        {/* 多场景：每个场景独立提示词与参数 */}
+        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">
+          <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
+            <div>
+              <h3 className="text-[1.05rem] font-bold text-slate-800">多场景配置</h3>
+              <p className="text-[0.8rem] text-slate-400 mt-0.5">
+                同一套 AI 接口可分别用于玩家对话、工单摘要、入服预审与回复草稿，按场景独立控制提示词、温度和长度。
+              </p>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={scenarioBusy === "save"}
+                onClick={() => setScenarios(scenarioDefaults)}
+                className="px-4 py-2 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.85rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+              >
+                恢复默认提示词
+              </button>
+              <button
+                type="button"
+                disabled={scenarioBusy === "save" || !scenarios}
+                onClick={() => void saveScenarios()}
+                className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer"
+              >
+                {scenarioBusy === "save" ? "保存中..." : "保存场景配置"}
+              </button>
+            </div>
+          </div>
+
+          {scenarios === null ? (
+            <p className="text-slate-400 text-sm">加载场景配置中...</p>
+          ) : (
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+              {scenarios.map((s) => {
+                const tr = scenarioTest[s.id];
+                return (
+                  <div key={s.id} className={`border rounded-[12px] p-4 ${s.enabled ? "border-slate-200 bg-white" : "border-slate-200 bg-slate-50/60"}`}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-semibold text-slate-800 text-[0.95rem]">{s.name}</span>
+                          <span className="text-[0.7rem] font-mono text-slate-400">{s.id}</span>
+                          {!s.enabled && <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-500 text-[0.68rem]">已停用</span>}
+                        </div>
+                        <p className="text-[0.78rem] text-slate-500 mt-1 leading-relaxed">{s.description}</p>
+                      </div>
+                      <button
+                        type="button"
+                        role="switch"
+                        aria-checked={s.enabled}
+                        onClick={() => patchScenario(s.id, { enabled: !s.enabled })}
+                        className={`relative w-11 h-6 rounded-full transition-colors duration-300 cursor-pointer flex-shrink-0 ${s.enabled ? "bg-[color:var(--green,#10b981)]" : "bg-slate-200"}`}
+                        title={s.enabled ? "点击停用" : "点击启用"}
+                      >
+                        <span className={`absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-all duration-300 ${s.enabled ? "left-[22px]" : "left-0.5"}`} />
+                      </button>
+                    </div>
+
+                    <label className="block text-slate-600 text-[0.8rem] font-medium mt-3 mb-1.5">系统提示词</label>
+                    <textarea
+                      value={s.system_prompt}
+                      onChange={(e) => patchScenario(s.id, { system_prompt: e.target.value })}
+                      rows={5}
+                      maxLength={4000}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-slate-700 text-[0.84rem] leading-relaxed focus:outline-none focus:border-[#3b82f6] resize-y"
+                    />
+
+                    <div className="grid grid-cols-2 gap-3 mt-3">
+                      <label className="flex flex-col gap-1">
+                        <span className="text-slate-500 text-[0.76rem]">温度（0-2，越低越稳定）</span>
+                        <input
+                          type="number"
+                          min={0}
+                          max={2}
+                          step={0.1}
+                          value={s.temperature}
+                          onChange={(e) => patchScenario(s.id, { temperature: Number(e.target.value) })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-[8px] px-2.5 py-1.5 text-[0.85rem] focus:outline-none focus:border-[#3b82f6]"
+                        />
+                      </label>
+                      <label className="flex flex-col gap-1">
+                        <span className="text-slate-500 text-[0.76rem]">最大输出 tokens</span>
+                        <input
+                          type="number"
+                          min={64}
+                          max={4096}
+                          step={64}
+                          value={s.max_tokens}
+                          onChange={(e) => patchScenario(s.id, { max_tokens: Number(e.target.value) })}
+                          className="w-full bg-slate-50 border border-slate-200 rounded-[8px] px-2.5 py-1.5 text-[0.85rem] focus:outline-none focus:border-[#3b82f6]"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-3 flex items-center gap-2">
+                      <button
+                        type="button"
+                        disabled={scenarioBusy === s.id}
+                        onClick={() => void testScenario(s.id)}
+                        className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+                      >
+                        {scenarioBusy === s.id ? "测试中..." : "用示例测试"}
+                      </button>
+                      <span className="text-[0.75rem] text-slate-400">强制测试，不受总开关/场景开关影响</span>
+                    </div>
+                    {tr && (
+                      <div className={`mt-2.5 px-3 py-2 rounded-[8px] text-[0.8rem] whitespace-pre-wrap ${tr.ok ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                        <div>{tr.ok ? "✓ " : "✗ "}{tr.message}</div>
+                        {tr.text && <div className="mt-1.5 font-mono text-[0.76rem] leading-relaxed max-h-32 overflow-y-auto">{tr.text}</div>}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <ErrorNote message={error} />
+          <SuccessNote message={success} />
         </div>
 
         {/* AI 配置说明（图20 折叠面板） */}

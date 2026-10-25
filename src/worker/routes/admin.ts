@@ -52,6 +52,15 @@ function maskSetting(key: string, value: string): string {
       return MASKED;
     }
   }
+  if (key === "rainyun_config") {
+    try {
+      const j = JSON.parse(value) as Record<string, unknown>;
+      if (typeof j.api_key === "string" && j.api_key) j.api_key = MASKED;
+      return JSON.stringify(j);
+    } catch {
+      return MASKED;
+    }
+  }
   return value;
 }
 
@@ -491,7 +500,7 @@ app.post("/settings", async (c) => {
   if (
     value.includes("••••") &&
     (SECRET_SETTING_KEYS.has(key) ||
-      ["ai_config", "ai_providers", "ms_oauth_config", "pay_epay"].includes(key))
+      ["ai_config", "ai_providers", "ms_oauth_config", "rainyun_config", "pay_epay"].includes(key))
   ) {
     return fail("该配置包含密钥，请到对应的专用配置页面修改", 400);
   }
@@ -716,6 +725,143 @@ app.get("/oplogs", async (c) => {
      FROM op_logs o LEFT JOIN users u ON u.id = o.operator_id ORDER BY o.id DESC LIMIT 100`,
   ).all();
   return ok(results);
+});
+
+// —— 风控看板 ——
+
+app.get("/risk", async (c) => {
+  const db = c.env.DB;
+  const [userStats, pendingApps, openTickets, blacklist, sharedReg, sharedLogin, sharedFp, recentRegs, recentLogs, rateLimits] =
+    await Promise.all([
+      db
+        .prepare(
+          `SELECT COUNT(*) AS total,
+                  COALESCE(SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END), 0) AS banned,
+                  COALESCE(SUM(CASE WHEN role = 'admin' AND status = 'active' THEN 1 ELSE 0 END), 0) AS admins,
+                  COALESCE(SUM(CASE WHEN created_at >= datetime('now','-1 day') THEN 1 ELSE 0 END), 0) AS new_24h,
+                  COALESCE(SUM(CASE WHEN created_at >= datetime('now','-7 day') THEN 1 ELSE 0 END), 0) AS new_7d,
+                  COALESCE(SUM(CASE WHEN status = 'active' AND last_login_at >= datetime('now','-7 day') THEN 1 ELSE 0 END), 0) AS active_7d
+           FROM users`,
+        )
+        .first<{ total: number; banned: number; admins: number; new_24h: number; new_7d: number; active_7d: number }>(),
+      db
+        .prepare("SELECT COUNT(*) AS n FROM whitelist_applications WHERE status = 'pending'")
+        .first<{ n: number }>(),
+      db
+        .prepare("SELECT COUNT(*) AS n FROM support_tickets WHERE status != 'closed'")
+        .first<{ n: number }>(),
+      db
+        .prepare("SELECT id, ip, reason, created_at FROM ip_blacklist ORDER BY id DESC LIMIT 100")
+        .all<{ id: number; ip: string; reason: string; created_at: string }>(),
+      db
+        .prepare(
+          `SELECT register_ip AS ip, COUNT(*) AS accounts,
+                  GROUP_CONCAT(username, ', ') AS usernames,
+                  COALESCE(SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END), 0) AS banned,
+                  MIN(created_at) AS first_seen, MAX(created_at) AS last_seen
+           FROM users WHERE register_ip != '' AND register_ip IS NOT NULL
+           GROUP BY register_ip HAVING COUNT(*) > 1
+           ORDER BY accounts DESC, last_seen DESC LIMIT 20`,
+        )
+        .all<{ ip: string; accounts: number; usernames: string; banned: number; first_seen: string; last_seen: string }>(),
+      db
+        .prepare(
+          `SELECT last_login_ip AS ip, COUNT(*) AS accounts,
+                  GROUP_CONCAT(username, ', ') AS usernames,
+                  COALESCE(SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END), 0) AS banned,
+                  MAX(last_login_at) AS last_seen
+           FROM users WHERE last_login_ip != '' AND last_login_ip IS NOT NULL
+           GROUP BY last_login_ip HAVING COUNT(*) > 1
+           ORDER BY accounts DESC, last_seen DESC LIMIT 20`,
+        )
+        .all<{ ip: string; accounts: number; usernames: string; banned: number; last_seen: string }>(),
+      db
+        .prepare(
+          `SELECT ua_fingerprint AS fingerprint, COUNT(*) AS accounts,
+                  GROUP_CONCAT(username, ', ') AS usernames,
+                  COALESCE(SUM(CASE WHEN status = 'banned' THEN 1 ELSE 0 END), 0) AS banned
+           FROM users WHERE ua_fingerprint != '' AND ua_fingerprint IS NOT NULL
+           GROUP BY ua_fingerprint HAVING COUNT(*) > 1
+           ORDER BY accounts DESC LIMIT 20`,
+        )
+        .all<{ fingerprint: string; accounts: number; usernames: string; banned: number }>(),
+      db
+        .prepare(
+          `SELECT id, username, email, status, register_ip, created_at
+           FROM users ORDER BY id DESC LIMIT 12`,
+        )
+        .all<{ id: number; username: string; email: string; status: string; register_ip: string; created_at: string }>(),
+      db
+        .prepare(
+          `SELECT l.id, l.action, l.ip, l.detail, l.created_at, u.username
+           FROM user_logs l LEFT JOIN users u ON u.id = l.user_id
+           WHERE l.action IN ('register','login','reset_password','forgot_password')
+           ORDER BY l.id DESC LIMIT 20`,
+        )
+        .all<{ id: number; action: string; ip: string; detail: string; created_at: string; username: string | null }>(),
+      db
+        .prepare(
+          `SELECT key, count, expires_at FROM rate_limits
+           WHERE (key LIKE 'login:%' OR key LIKE 'reg:%') AND expires_at > ?
+           ORDER BY count DESC LIMIT 10`,
+        )
+        .bind(Math.floor(Date.now() / 1000))
+        .all<{ key: string; count: number; expires_at: number }>(),
+    ]);
+
+  const stats = userStats ?? { total: 0, banned: 0, admins: 0, new_24h: 0, new_7d: 0, active_7d: 0 };
+  const factors: { label: string; points: number; detail: string }[] = [];
+  let score = 0;
+  const addFactor = (label: string, points: number, detail: string) => {
+    if (points <= 0) return;
+    score += points;
+    factors.push({ label, points, detail });
+  };
+  addFactor("封禁账号", Math.min(25, stats.banned * 8), `${stats.banned} 个账号处于封禁状态`);
+  addFactor(
+    "共用注册 IP",
+    Math.min(20, sharedReg.results.length * 5),
+    `${sharedReg.results.length} 个 IP 注册了多个账号`,
+  );
+  addFactor(
+    "共用设备指纹",
+    Math.min(15, sharedFp.results.length * 4),
+    `${sharedFp.results.length} 个浏览器指纹关联多个账号`,
+  );
+  addFactor("IP 黑名单", Math.min(10, blacklist.results.length * 2), `${blacklist.results.length} 个 IP 被拉黑`);
+  addFactor("待审核申请", Math.min(15, (pendingApps?.n ?? 0) * 3), `${pendingApps?.n ?? 0} 份入服申请待处理`);
+  addFactor("未关闭工单", Math.min(10, openTickets?.n ?? 0), `${openTickets?.n ?? 0} 个工单仍未关闭`);
+  addFactor(
+    "短期注册量",
+    Math.min(10, Math.floor(stats.new_24h / 5) * 2),
+    `24 小时内新增 ${stats.new_24h} 个账号`,
+  );
+  score = Math.min(100, score);
+
+  const level =
+    score >= 70
+      ? { label: "高风险", tone: "red", desc: "存在多项明显异常，建议尽快核查关联账号与黑名单。" }
+      : score >= 45
+        ? { label: "中风险", tone: "amber", desc: "出现较多可疑信号，建议检查共用 IP / 设备与待处理事项。" }
+        : score >= 20
+          ? { label: "需关注", tone: "blue", desc: "有少量异常信号，保持日常巡检即可。" }
+          : { label: "低风险", tone: "green", desc: "当前未发现明显批量注册或关联账号风险。" };
+
+  return ok({
+    score,
+    level,
+    factors,
+    stats,
+    pending_apps: pendingApps?.n ?? 0,
+    open_tickets: openTickets?.n ?? 0,
+    blacklist: blacklist.results,
+    shared_register_ips: sharedReg.results,
+    shared_login_ips: sharedLogin.results,
+    shared_fingerprints: sharedFp.results,
+    recent_registrations: recentRegs.results,
+    recent_logs: recentLogs.results,
+    rate_limits: rateLimits.results,
+  });
 });
 
 // —— IP 黑名单 ——

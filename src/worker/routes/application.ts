@@ -11,6 +11,7 @@ import { escapeHtml } from "../lib/mail";
 import { getSecret } from "../lib/auth";
 import { decryptSecret } from "../lib/cipher";
 import { loadRconConfig } from "./rcon";
+import { aiComplete } from "./ai";
 
 const app = new Hono<AppEnv>();
 
@@ -125,6 +126,42 @@ app.get("/admin/list", async (c) => {
      ORDER BY w.id DESC LIMIT 100`,
   ).all();
   return ok(results);
+});
+
+// AI 预审：只返回建议，不自动改变申请状态
+app.post("/admin/:id/ai-review", async (c) => {
+  const id = Number(c.req.param("id"));
+  const row = await c.env.DB.prepare(
+    `SELECT w.id, w.mc_name, w.type, w.intro, w.channel, w.status, w.created_at,
+            u.username, u.email, u.created_at AS user_created_at
+     FROM whitelist_applications w LEFT JOIN users u ON u.id = w.user_id WHERE w.id = ?`,
+  )
+    .bind(id)
+    .first<{
+      id: number;
+      mc_name: string;
+      type: string;
+      intro: string;
+      channel: string;
+      status: string;
+      created_at: string;
+      username: string | null;
+      email: string | null;
+      user_created_at: string | null;
+    }>();
+  if (!row) return fail("申请不存在", 404);
+
+  const context =
+    `申请 #${row.id}\n游戏名：${row.mc_name}\n版本：${row.type === "bedrock" ? "基岩版" : "Java 版"}\n` +
+    `来源：${row.channel || "未填写"}\n提交时间：${row.created_at}\n申请人：${row.username || "未知"}` +
+    `${row.user_created_at ? `（账号注册于 ${row.user_created_at}）` : ""}\n` +
+    `当前状态：${row.status}\n自我介绍：\n${String(row.intro || "").slice(0, 4000)}`;
+
+  const result = await aiComplete(c.env.DB, c.env, "application_review", [
+    { role: "user", content: context },
+  ]);
+  if (!result.ok) return fail(result.message || "AI 预审失败", 502);
+  return ok({ suggestion: result.text, model: result.model });
 });
 
 // 审核：approved / rejected（启用 RCON 自动同步时下发命令）

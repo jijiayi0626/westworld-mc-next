@@ -18,7 +18,7 @@ interface TicketRow {
 }
 
 interface TicketDetail {
-  ticket: { id: number; subject: string; category: string; priority: string; status: string; user_id: number; created_at: string; updated_at: string };
+  ticket: { id: number; subject: string; category: string; priority: string; status: string; user_id: number; created_at: string; updated_at: string; ai_summary?: string };
   replies: Array<{ id: number; user_id: number; content: string; attachments: TicketAttachment[]; is_staff: number; created_at: string }>;
 }
 
@@ -31,6 +31,7 @@ export default function AdminTicketsPage() {
   const [reply, setReply] = useState("");
   const [replyFiles, setReplyFiles] = useState<TicketAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
+  const [aiBusy, setAiBusy] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -98,6 +99,38 @@ export default function AdminTicketsPage() {
     }
   };
 
+  const generateSummary = async () => {
+    if (!detail) return;
+    setError("");
+    setSuccess("");
+    setAiBusy("summary");
+    try {
+      const d = await api<{ summary: string }>(`/ticket/admin/${detail.ticket.id}/ai-summary`, { method: "POST" });
+      setDetail((prev) => (prev ? { ...prev, ticket: { ...prev.ticket, ai_summary: d.summary } } : prev));
+      setSuccess("AI 摘要已生成");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI 摘要失败");
+    } finally {
+      setAiBusy("");
+    }
+  };
+
+  const generateReply = async () => {
+    if (!detail) return;
+    setError("");
+    setSuccess("");
+    setAiBusy("reply");
+    try {
+      const d = await api<{ draft: string }>(`/ticket/admin/${detail.ticket.id}/ai-reply`, { method: "POST" });
+      setReply(d.draft);
+      setSuccess("AI 草稿已填入，可修改后发送");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "AI 起草失败");
+    } finally {
+      setAiBusy("");
+    }
+  };
+
   const catLabel: Record<string, string> = { general: "综合", apply: "入服", bug: "Bug", payment: "支付" };
 
   const filtered = (list ?? []).filter((t) => !statusFilter || t.status === statusFilter);
@@ -121,8 +154,23 @@ export default function AdminTicketsPage() {
                 </Badge>
               </div>
             </div>
-            <Btn variant="ghost" onClick={closeDetail}>← 返回列表</Btn>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Btn variant="ghost" size="sm" onClick={() => void generateSummary()} disabled={aiBusy === "summary"}>
+                {aiBusy === "summary" ? "生成中..." : detail.ticket.ai_summary ? "重新生成摘要" : "AI 摘要"}
+              </Btn>
+              <Btn variant="ghost" onClick={closeDetail}>← 返回列表</Btn>
+            </div>
           </div>
+
+          {detail.ticket.ai_summary && (
+            <div className="mt-4 px-4 py-3 rounded-[10px] bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center justify-between gap-2 mb-1.5">
+                <span className="text-[0.8rem] font-semibold text-emerald-700">AI 处理摘要</span>
+                <span className="text-[0.72rem] text-emerald-600/70">仅供参考，请以原始对话为准</span>
+              </div>
+              <div className="text-[0.86rem] text-emerald-900 whitespace-pre-wrap leading-relaxed">{detail.ticket.ai_summary}</div>
+            </div>
+          )}
 
           <div className="flex flex-col gap-3 mt-4 max-h-[380px] overflow-y-auto pr-1">
             {detail.replies.length === 0 && <Empty text="暂无回复" />}
@@ -150,8 +198,11 @@ export default function AdminTicketsPage() {
             <form onSubmit={sendReply} className="mt-4 flex flex-col gap-3">
               <TextArea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="输入回复内容..." maxLength={5000} />
               <AttachmentUploader value={replyFiles} onChange={setReplyFiles} disabled={busy} />
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Btn type="submit" disabled={busy}>{busy ? "发送中..." : "发送回复"}</Btn>
+                <Btn type="button" variant="ghost" onClick={() => void generateReply()} disabled={aiBusy === "reply"}>
+                  {aiBusy === "reply" ? "起草中..." : "AI 起草回复"}
+                </Btn>
                 <Btn type="button" variant="ghost" onClick={() => setStatus("closed")} disabled={busy}>关闭工单</Btn>
               </div>
             </form>

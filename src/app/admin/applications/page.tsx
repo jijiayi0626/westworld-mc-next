@@ -407,6 +407,8 @@ export default function AdminApplicationsPage() {
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(0);
   const [note, setNote] = useState("");
+  const [aiBusyId, setAiBusyId] = useState(0);
+  const [aiResults, setAiResults] = useState<Record<number, string>>({});
 
   const load = useCallback(async () => {
     try {
@@ -431,6 +433,19 @@ export default function AdminApplicationsPage() {
       setError(e instanceof Error ? e.message : "审核失败");
     } finally {
       setBusyId(0);
+    }
+  };
+
+  const aiReview = async (id: number) => {
+    setError("");
+    setAiBusyId(id);
+    try {
+      const d = await api<{ suggestion: string }>(`/application/admin/${id}/ai-review`, { method: "POST" });
+      setAiResults((prev) => ({ ...prev, [id]: d.suggestion }));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "AI 预审失败");
+    } finally {
+      setAiBusyId(0);
     }
   };
 
@@ -524,11 +539,32 @@ export default function AdminApplicationsPage() {
                 </div>
               )}
               {tab === "pending" && (
-                <div className="mt-4 flex gap-2">
-                  <Btn variant="primary" size="sm" disabled={busyId === a.id} onClick={() => review(a.id, "approved")}>
-                    {busyId === a.id ? "处理中..." : "通过"}
-                  </Btn>
-                  <Btn variant="danger" size="sm" disabled={busyId === a.id} onClick={() => review(a.id, "rejected")}>拒绝</Btn>
+                <div className="mt-4">
+                  <div className="flex gap-2 flex-wrap">
+                    <Btn variant="primary" size="sm" disabled={busyId === a.id} onClick={() => review(a.id, "approved")}>
+                      {busyId === a.id ? "处理中..." : "通过"}
+                    </Btn>
+                    <Btn variant="danger" size="sm" disabled={busyId === a.id} onClick={() => review(a.id, "rejected")}>拒绝</Btn>
+                    <Btn variant="ghost" size="sm" disabled={aiBusyId === a.id} onClick={() => void aiReview(a.id)}>
+                      {aiBusyId === a.id ? "预审中..." : aiResults[a.id] ? "重新 AI 预审" : "AI 预审"}
+                    </Btn>
+                  </div>
+                  {aiResults[a.id] && (
+                    <div className="mt-3 px-4 py-3 rounded-[10px] bg-sky-50 border border-sky-200">
+                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                        <span className="text-[0.8rem] font-semibold text-sky-700">AI 预审建议</span>
+                        <button
+                          type="button"
+                          onClick={() => setNote(aiResults[a.id].slice(0, 1000))}
+                          className="text-[0.75rem] text-sky-600 hover:text-sky-800 underline cursor-pointer bg-transparent border-none"
+                        >
+                          填入审核备注
+                        </button>
+                      </div>
+                      <div className="text-[0.86rem] text-sky-900 whitespace-pre-wrap leading-relaxed max-h-56 overflow-y-auto">{aiResults[a.id]}</div>
+                      <p className="mt-2 text-[0.72rem] text-sky-600/70">AI 仅提供辅助建议，最终审核结果由管理员决定。</p>
+                    </div>
+                  )}
                 </div>
               )}
             </Card>

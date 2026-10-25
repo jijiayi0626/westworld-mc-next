@@ -23,6 +23,8 @@ import { checkAllServers } from "./routes/monitor";
 import rconRoutes from "./routes/rcon";
 import uploadRoutes from "./routes/upload";
 import assetsRoutes from "./routes/assets";
+import rainyunRoutes from "./routes/rainyun";
+import backupRoutes from "./routes/backup";
 import { processDeliveryQueue, expireStaleOrders } from "./routes/shop";
 import { RconDO } from "./do/rcon-do";
 
@@ -106,6 +108,8 @@ app.route("/api/forum", forumRoutes);
 app.route("/api/monitor", monitorRoutes);
 app.route("/api/rcon", rconRoutes);
 app.route("/api/upload", uploadRoutes);
+app.route("/api/rainyun", rainyunRoutes);
+app.route("/api/backup", backupRoutes);
 app.route("/static", assetsRoutes);
 
 // 健康检查
