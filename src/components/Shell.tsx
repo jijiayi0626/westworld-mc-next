@@ -110,6 +110,8 @@ const ICONS: Record<string, string[]> = {
   shopping_cart: ["M2 3h3l2.7 12.4a1 1 0 0 0 1 .8h9.7a1 1 0 0 0 1-.8L21 7H6", "M9 21a0.5 0.5 0 1 0 0-1 0.5 0.5 0 0 0 0 1", "M19 21a0.5 0.5 0 1 0 0-1 0.5 0.5 0 0 0 0 1"],
   image: ["M3 5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5z", "M8.5 10a1.5 1.5 0 1 0 0-3 1.5 1.5 0 0 0 0 3", "M21 15l-5-5-11 11"],
   monitoring: ["M3 3v18h18", "M7 15l4-5 3 2 5-7"],
+  cloud: ["M18 10h-1.3A6 6 0 1 0 6 14.5", "M6 10a4 4 0 0 1 7.5-1.9", "M6 19h11a4 4 0 0 0 1-7.9"],
+  backup: ["M4 4a2 2 0 0 1 2-2h9l5 5v13a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4z", "M8 2v6h8", "M8 14h8", "M8 18h5"],
   palette: ["M12 3a9 9 0 1 0 0 18h1a2 2 0 0 0 0-4h-1a1 1 0 0 1 0-2h4a4 4 0 0 0 4-4 8 8 0 0 0-8-8z", "M7.5 10.5v.01", "M10 7.5v.01", "M14 7.5v.01"],
   description: ["M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z", "M14 2v6h6", "M9 13h6", "M9 17h6"],
   language: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M3 12h18", "M12 3a14 14 0 0 1 4 9 14 14 0 0 1-4 9 14 14 0 0 1-4-9 14 14 0 0 1 4-9z"],
@@ -478,7 +480,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: "/admin/forum", label: "公告与论坛", icon: "campaign" },
         { href: "/admin/tickets", label: "工单管理", icon: "confirmation_number" },
         { href: "/admin/oplogs", label: "行为日志", icon: "history" },
-        { href: "/admin/blacklist", label: "风控分析", icon: "shield" },
+        { href: "/admin/blacklist", label: "风控看板", icon: "shield" },
       ],
     },
     {
@@ -503,6 +505,8 @@ export function AdminShell({ children }: { children: ReactNode }) {
       icon: "settings",
       children: [
         { href: "/admin/monitor", label: "服务器监控", icon: "monitoring" },
+        { href: "/admin/rainyun", label: "雨云面板", icon: "cloud" },
+        { href: "/admin/backup", label: "数据备份", icon: "backup" },
         { href: "/admin/visual", label: "可视化编辑", icon: "palette" },
         { href: "/admin/content", label: "内容管理", icon: "description" },
         { href: "/admin/settings", label: "网站设置", icon: "language" },

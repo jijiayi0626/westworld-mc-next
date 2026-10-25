@@ -7,6 +7,7 @@ import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
 import { queueAdminMail } from "../lib/notify";
 import { escapeHtml } from "../lib/mail";
+import { aiComplete } from "./ai";
 
 const app = new Hono<AppEnv>();
 
@@ -205,6 +206,70 @@ app.get("/admin/list", async (c) => {
      FROM support_tickets t JOIN users u ON u.id = t.user_id ORDER BY t.id DESC LIMIT 100`,
   ).all();
   return ok(results);
+});
+
+/** 构造供 AI 阅读的工单文本（只保留必要字段，限制总长度） */
+async function buildTicketContext(db: D1Database, id: number) {
+  const ticket = await db
+    .prepare(
+      `SELECT t.id, t.subject, t.category, t.priority, t.status, u.username
+       FROM support_tickets t LEFT JOIN users u ON u.id = t.user_id WHERE t.id = ?`,
+    )
+    .bind(id)
+    .first<{
+      id: number;
+      subject: string;
+      category: string;
+      priority: string;
+      status: string;
+      username: string | null;
+    }>();
+  if (!ticket) return null;
+  const { results: replies } = await db
+    .prepare(
+      `SELECT r.content, r.is_staff, r.created_at, u.username
+       FROM support_ticket_replies r LEFT JOIN users u ON u.id = r.user_id
+       WHERE r.ticket_id = ? ORDER BY r.id ASC LIMIT 60`,
+    )
+    .bind(id)
+    .all<{ content: string; is_staff: number; created_at: string; username: string | null }>();
+  const lines = replies.map((r) => {
+    const who = r.is_staff ? "管理员" : r.username || "玩家";
+    return `[${who} ${r.created_at}] ${String(r.content || "").replace(/\s+/g, " ").slice(0, 1200)}`;
+  });
+  const text =
+    `工单 #${ticket.id}\n标题：${ticket.subject}\n分类：${ticket.category}\n优先级：${ticket.priority}\n` +
+    `状态：${ticket.status}\n提交人：${ticket.username || "未知"}\n对话：\n${lines.join("\n") || "（暂无对话）"}`;
+  return text.slice(0, 12000);
+}
+
+// AI 摘要：生成后写入 support_tickets.ai_summary
+app.post("/admin/:id/ai-summary", async (c) => {
+  const admin = c.get("user")!;
+  const id = Number(c.req.param("id"));
+  const context = await buildTicketContext(c.env.DB, id);
+  if (!context) return fail("工单不存在", 404);
+  const result = await aiComplete(c.env.DB, c.env, "ticket_summary", [
+    { role: "user", content: context },
+  ]);
+  if (!result.ok) return fail(result.message || "AI 摘要失败", 502);
+  await c.env.DB.prepare("UPDATE support_tickets SET ai_summary = ? WHERE id = ?")
+    .bind(result.text.slice(0, 4000), id)
+    .run();
+  await logOp(c.env.DB, c, admin.id, "ticket_ai_summary", String(id));
+  return ok({ summary: result.text, model: result.model });
+});
+
+// AI 起草回复：只返回草稿，不直接发送
+app.post("/admin/:id/ai-reply", async (c) => {
+  const id = Number(c.req.param("id"));
+  const context = await buildTicketContext(c.env.DB, id);
+  if (!context) return fail("工单不存在", 404);
+  const result = await aiComplete(c.env.DB, c.env, "reply_draft", [
+    { role: "user", content: `${context}\n\n请为管理员起草回复。` },
+  ]);
+  if (!result.ok) return fail(result.message || "AI 起草失败", 502);
+  return ok({ draft: result.text, model: result.model });
 });
 
 // 关闭/重新打开工单
