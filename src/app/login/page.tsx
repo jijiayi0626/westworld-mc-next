@@ -8,6 +8,11 @@ import { api } from "@/lib/api";
 
 type Tab = "login" | "register" | "forgot" | "reset";
 
+/** 与服务端 isValidPassword 保持一致：8-64 位且包含字母和数字 */
+function isStrongPassword(v: string): boolean {
+  return v.length >= 8 && v.length <= 64 && /[A-Za-z]/.test(v) && /\d/.test(v);
+}
+
 // 原版 FoxMC 登录页样式（admin/login.css）：浅色渐变背景 + 白卡片 + 绿 Logo + 全宽绿按钮
 
 function LogoIcon({ size = 36 }: { size?: number }) {
@@ -70,6 +75,10 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    if (tab === "register" && !isStrongPassword(password)) {
+      setError("密码需 8-64 位，且包含字母和数字");
+      return;
+    }
     setBusy(true);
     try {
       if (tab === "login") {
@@ -101,6 +110,10 @@ export default function LoginPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    if (!isStrongPassword(newPassword)) {
+      setError("密码需 8-64 位，且包含字母和数字");
+      return;
+    }
     setBusy(true);
     try {
       await api("/auth/reset", {
@@ -182,7 +195,7 @@ export default function LoginPage() {
                 <label>新密码</label>
                 <div className="input-wrap">
                   <LockIcon />
-                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="6-64 位" required />
+                  <input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="8-64 位，含字母和数字" required />
                 </div>
               </div>
               <button type="submit" className="login-btn hm-press" disabled={busy}>{busy ? "提交中..." : "重置密码"}</button>
@@ -232,7 +245,7 @@ export default function LoginPage() {
                     <label>密码</label>
                     <div className="input-wrap">
                       <LockIcon />
-                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="6-64 位" autoComplete="new-password" required />
+                      <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="8-64 位，含字母和数字" autoComplete="new-password" required />
                     </div>
                   </div>
                 </>

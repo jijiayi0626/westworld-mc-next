@@ -6,8 +6,19 @@ import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp } from "../lib/log";
 import { buildEpayPayUrl, epayEnabled, loadEpayConfig, verifyEpayNotify } from "../lib/epay";
+import { deliverOrder } from "./shop";
 
 const app = new Hono<AppEnv>();
+
+/** 支付成功后异步触发自动发货，不阻塞回调响应（失败由 cron 继续重试） */
+function scheduleDelivery(c: Context<AppEnv>, orderId: number) {
+  const task = deliverOrder(c.env, orderId).catch(() => false);
+  try {
+    c.executionCtx.waitUntil(task);
+  } catch {
+    void task;
+  }
+}
 
 /** 站点公开支付通道信息：前端据此展示可用支付方式 */
 app.get("/config", async (c) => {
@@ -128,6 +139,7 @@ async function handleEpayNotify(c: Context<AppEnv>) {
   ).bind(`epay:${params.type || "unknown"}`, String(params.trade_no || ""), orderNo).run();
 
   await logOp(c.env.DB, c, null, "pay_epay_notify", orderNo, `changes=${result.meta.changes} money=${params.money}`);
+  if (Number(result.meta.changes) > 0) scheduleDelivery(c, order.id);
   return c.text("success");
 }
 
@@ -157,6 +169,11 @@ app.post("/webhook", async (c) => {
     "UPDATE shop_orders SET status = 'paid', paid_at = datetime('now'), provider = 'creem' WHERE order_no = ? AND status = 'pending'",
   ).bind(orderNo).run();
   await logOp(c.env.DB, c, null, "pay_webhook", orderNo, `changes=${result.meta.changes}`);
+  if (Number(result.meta.changes) > 0) {
+    const row = await c.env.DB.prepare("SELECT id FROM shop_orders WHERE order_no = ?")
+      .bind(orderNo).first<{ id: number }>();
+    if (row) scheduleDelivery(c, row.id);
+  }
   return ok({ received: true });
 });
 
@@ -173,6 +190,9 @@ app.post("/verify", requireAuth, requireAdmin, async (c) => {
   ).bind(orderNo).run();
   if (result.meta.changes === 0) return fail("订单不存在或已处理", 400);
   await logOp(c.env.DB, c, admin.id, "pay_manual_confirm", orderNo);
+  const row = await c.env.DB.prepare("SELECT id FROM shop_orders WHERE order_no = ?")
+    .bind(orderNo).first<{ id: number }>();
+  if (row) scheduleDelivery(c, row.id);
   return ok({ paid: true });
 });
 

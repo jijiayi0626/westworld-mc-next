@@ -6,6 +6,8 @@ import { isEmail, str } from "../lib/validate";
 import { isBlacklisted } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
+import { queueAdminMail } from "../lib/notify";
+import { escapeHtml } from "../lib/mail";
 
 const app = new Hono<AppEnv>();
 
@@ -36,6 +38,16 @@ app.post("/submit", async (c) => {
   )
     .bind(name, email, subject, message, ip, getUa(c))
     .run();
+
+  queueAdminMail(
+    c,
+    "contact",
+    `新留言：${subject || name}`,
+    `<p>姓名：${escapeHtml(name)}</p>
+     <p>邮箱：${escapeHtml(email || "未填写")}</p>
+     <p>主题：${escapeHtml(subject || "未填写")}</p>
+     <p>内容：</p><p>${escapeHtml(message.slice(0, 1000)).replace(/\n/g, "<br>")}</p>`,
+  );
 
   return ok({ submitted: true });
 });

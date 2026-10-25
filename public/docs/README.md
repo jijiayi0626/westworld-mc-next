@@ -48,14 +48,14 @@
 
 ### 多模板与深浅主题
 
-- 前台导航栏右侧「外观设置」可切换 **现代模板 / 默认模板** 与 **深色 / 浅色** 模式，偏好存于浏览器本地，刷新无闪烁（首屏内联脚本预置）。
+- 用户中心 / 管理后台侧栏底部「外观设置」可切换 **现代模板 / 经典模板** 与 **浅色 / 深色 / 跟随系统** 模式，偏好存于浏览器本地，刷新无闪烁（首屏内联脚本预置）。
 - 顶部导航在窄屏自动收纳为「更多」下拉，移动端为汉堡抽屉。
 
 ### 后端（Cloudflare Workers + Hono）
 
 | 模块 | 说明 |
 |---|---|
-| 认证 | 账号密码 + CSRF + HttpOnly Cookie；微软 OAuth 与 UPOP 统一认证绑定 |
+| 认证 | 账号密码 + 同源校验（CSRF 防护）+ HttpOnly Cookie；微软 OAuth 与 UPOP 统一认证绑定 |
 | 论坛 | 公告（管理端发布）+ 聊天室（文字 / 图片、频控、日限额），独立 D1 数据库 `westworld-forum` 存储 |
 | 工单 / 申请 | 支持往返回复；入服申请审核通过后可经 RCON 自动加白名单 |
 | 商城 | 商品 + 订单 + Creem 支付；支持对接服务器经济插件（RCON 查询 / 扣款指令模板） |
@@ -76,7 +76,7 @@
                                 └── 定时任务（cron */5：服务器巡检 + 心跳）
 ```
 
-- 前端：Next.js 15（App Router，静态导出 `output: export`）+ Tailwind CSS，全站内联 SVG 图标（无外部图标库 / 字体依赖，离线可用）
+- 前端：Next.js 14（App Router，静态导出 `output: export`）+ Tailwind CSS，全站内联 SVG 图标（无外部图标库 / 字体依赖，离线可用）
 - 后端：Hono on Workers；环境变量与密钥见「部署上线」
 - 数据：两套 D1（主库 + 论坛库）与 R2 对象存储
 
@@ -125,6 +125,7 @@ npx wrangler deploy
 - `wrangler.jsonc`：绑定主库 `DB`（mc-next）、论坛库 `FORUM_DB`（westworld-forum）、`ASSETS`（R2）、`RCON`（DO）、cron 触发器
 - 初始化建表：`npx wrangler d1 execute mc-next --remote --file src/worker/db/schema.sql`
 - 论坛库建表：`npx wrangler d1 execute westworld-forum --remote --file src/worker/db/schema-forum.sql`
+- 已有数据库升级：按需执行 `scripts/migrate-*.sql`（本次涉及 `migrate-user-socials.sql`、`migrate-shop-delivery.sql`、`migrate-ticket-attachments.sql`）
 - 敏感配置（AI 密钥、微软 OAuth、UPOP、RCON 等）均在后台「网站设置」页配置，存数据库即时生效
 
 ---
@@ -134,10 +135,12 @@ npx wrangler deploy
 | 模块 | 说明 |
 |---|---|
 | 内容管理 / 可视化编辑 | 站点文案、图片、相册（可命名）、群二维码等 |
-| 图片管理 | 上传 / 大图预览 / 重命名 / 删除（系统图片受保护，含“使用中”标记） |
-| 网站设置 | 已按分区重做：站点基础、三方接口（微软 OAuth / UPOP）、聊天室、商店经济插件、高级设置 |
+| 图片管理 | 上传 / 大图预览 / 重命名 / 删除（系统图片受保护，含“使用中”标记与孤儿图片批量清理） |
+| 网站设置 | 已分区重做：基础配置（键值 + 搜索）、论坛与聊天、三方集成（微软 OAuth / UPOP）、邮件服务与事件通知 |
 | 论坛管理 | 公告发布 / 编辑 / 置顶；聊天室与公告的展示开关 |
-| 商城 | 商品 / 订单 / 发货；经济插件对接（余额查询、扣款指令模板 + 连通性测试） |
+| 用户管理 | 检索 / 详情 / 封禁 / 角色 / 重置密码 / 改邮箱 / 新建用户 / 批量邮件通知 |
+| 工单 | 用户与管理员往返回复、图片/PDF/ZIP 附件、关闭与重开 |
+| 商城 | 商品与库存 / 自动发货指令 / 订单筛选、重试发货、经济插件对接（余额查询、扣款指令模板 + 连通性测试） |
 | 服务器监控 | 状态巡检、RCON 命令、MOTD 查询（MineBBS API） |
 | AI 设置 | 供应商模板、密钥、用量统计 |
 | 关于本站 | 项目信息 + 在线查看 README 与更新日志 |

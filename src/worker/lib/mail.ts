@@ -70,8 +70,7 @@ export async function sendMail(cfg: MailConfig, opts: MailOptions): Promise<void
 }
 
 /** 品牌邮件模板（绿白风格，深浅邮箱客户端均兼容的内联样式） */
-export function renderEmail(title: string, bodyHtml: string, siteName = "Westworld西域之光"): string {
-  return `<!doctype html><html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,'Segoe UI','Noto Sans SC',sans-serif;">
+export function renderEmail(title: string, bodyHtml: string, siteName = "Westworld西域之光"): string {  return `<!doctype html><html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,'Segoe UI','Noto Sans SC',sans-serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 12px;">
 <tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
@@ -213,5 +212,83 @@ async function sendViaSmtp(cfg: MailConfig, opts: MailOptions): Promise<void> {
     } catch {
       /* 忽略关闭错误 */
     }
+  }
+}
+
+// ---------------- 管理员事件通知 ----------------
+
+export type MailEvent = "ticket" | "application" | "order" | "contact";
+
+const MAIL_EVENT_DEFAULTS: Record<MailEvent, boolean> = {
+  ticket: true,
+  application: true,
+  order: true,
+  contact: true,
+};
+
+export interface MailNotifySettings {
+  events: Record<MailEvent, boolean>;
+  recipients: string[];
+}
+
+/** 读取事件开关与收件人；未配置收件人时回退为所有管理员账号邮箱 */
+export async function loadMailNotifySettings(db: D1Database): Promise<MailNotifySettings> {
+  const rows = await db
+    .prepare("SELECT key, value FROM site_settings WHERE key IN ('mail_events','mail_notify_emails')")
+    .all<{ key: string; value: string }>();
+  const map = Object.fromEntries(rows.results.map((r) => [r.key, r.value]));
+
+  const events = { ...MAIL_EVENT_DEFAULTS };
+  if (map.mail_events) {
+    try {
+      const parsed = JSON.parse(map.mail_events) as Record<string, unknown>;
+      for (const key of Object.keys(events) as MailEvent[]) {
+        if (typeof parsed[key] === "boolean") events[key] = parsed[key] as boolean;
+      }
+    } catch {
+      // 配置损坏时使用默认全开
+    }
+  }
+
+  let recipients = String(map.mail_notify_emails || "")
+    .split(/[\n,;]/)
+    .map((s) => s.trim())
+    .filter((s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s));
+  if (recipients.length === 0) {
+    try {
+      const admins = await db
+        .prepare("SELECT email FROM users WHERE role = 'admin' AND email != '' AND email IS NOT NULL LIMIT 10")
+        .all<{ email: string }>();
+      recipients = admins.results.map((r) => r.email).filter(Boolean);
+    } catch {
+      recipients = [];
+    }
+  }
+  return { events, recipients: Array.from(new Set(recipients)).slice(0, 10) };
+}
+
+export function escapeHtml(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+/**
+ * 向管理员发送事件通知邮件。邮件服务未配置、事件关闭或没有收件人时静默跳过。
+ * 永不抛错，调用方可直接 waitUntil。
+ */
+export async function notifyAdmins(db: D1Database, event: MailEvent, title: string, bodyHtml: string): Promise<void> {
+  try {
+    const cfg = await loadMailConfig(db);
+    if (!mailEnabled(cfg)) return;
+    const settings = await loadMailNotifySettings(db);
+    if (!settings.events[event] || settings.recipients.length === 0) return;
+    const html = renderEmail(title, bodyHtml);
+    await Promise.allSettled(settings.recipients.map((to) => sendMail(cfg, { to, subject: title, html })));
+  } catch {
+    // 通知失败不影响主流程
   }
 }

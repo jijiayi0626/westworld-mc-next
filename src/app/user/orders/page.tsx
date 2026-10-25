@@ -13,6 +13,7 @@ interface Product {
   currency: string;
   category: string;
   active: number;
+  stock: number;
 }
 
 interface Order {
@@ -23,9 +24,21 @@ interface Order {
   total: number;
   currency: string;
   status: string;
+  delivery_status: string | null;
   paid_at: string | null;
+  completed_at: string | null;
   created_at: string;
 }
+
+type OrderFilter = "all" | "pending" | "paid" | "completed" | "cancelled";
+
+const DELIVERY_HINTS: Record<string, { text: string; className: string }> = {
+  pending: { text: "自动发货处理中", className: "text-slate-400" },
+  sent: { text: "已自动发货", className: "text-emerald-600" },
+  failed: { text: "发货重试中，请联系管理员", className: "text-amber-600" },
+  exhausted: { text: "自动发货失败，请联系管理员", className: "text-red-500" },
+  skipped: { text: "等待管理员手动发货", className: "text-slate-400" },
+};
 
 export default function OrdersPage() {
   const [products, setProducts] = useState<Product[] | null>(null);
@@ -33,6 +46,7 @@ export default function OrdersPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
+  const [orderFilter, setOrderFilter] = useState<OrderFilter>("all");
 
   // 经济支付
   const [ecoEnabled, setEcoEnabled] = useState(false);
@@ -96,6 +110,8 @@ export default function OrdersPage() {
   useEffect(() => {
     if (ecoEnabled) void refreshBalance();
   }, [ecoEnabled, refreshBalance]);
+
+  const filteredOrders = (orders ?? []).filter((o) => orderFilter === "all" || o.status === orderFilter);
 
   const buy = async (productId: number, qty = 1) => {
     setError("");
@@ -230,9 +246,16 @@ export default function OrdersPage() {
                   <Badge color="gray">{p.category || "综合"}</Badge>
                 </div>
                 <p className="text-[0.82rem] text-slate-500 flex-1">{p.description || "暂无描述"}</p>
-                <div className="flex items-center justify-between mt-2">
-                  <span className="text-accent-emerald font-bold text-[1.05rem]">{p.price} {p.currency}</span>
-                  <Btn size="sm" disabled={busy} onClick={() => buy(p.id)}>购买</Btn>
+                <div className="flex items-end justify-between gap-2 mt-2">
+                  <div className="flex flex-col">
+                    <span className="text-accent-emerald font-bold text-[1.05rem]">{p.price} {p.currency}</span>
+                    {p.stock === 0 ? (
+                      <span className="text-[0.72rem] text-red-500">已售罄</span>
+                    ) : p.stock > 0 ? (
+                      <span className="text-[0.72rem] text-slate-400">剩余 {p.stock} 件</span>
+                    ) : null}
+                  </div>
+                  <Btn size="sm" disabled={busy || p.stock === 0} onClick={() => buy(p.id)}>{p.stock === 0 ? "售罄" : "购买"}</Btn>
                 </div>
               </div>
             ))}
@@ -249,11 +272,38 @@ export default function OrdersPage() {
 
       {/* 我的订单 */}
       <Card>
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">订单列表</h3>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h3 className="text-[1.05rem] font-bold text-slate-800">订单列表</h3>
+          <div className="flex flex-wrap gap-1.5">
+            {([
+              { key: "all", label: "全部" },
+              { key: "pending", label: "待支付" },
+              { key: "paid", label: "待发货" },
+              { key: "completed", label: "已完成" },
+              { key: "cancelled", label: "已取消" },
+            ] as { key: OrderFilter; label: string }[]).map((t) => (
+              <button
+                key={t.key}
+                type="button"
+                onClick={() => setOrderFilter(t.key)}
+                className={`px-3 py-1 rounded-[7px] text-[0.8rem] font-medium border transition-all cursor-pointer ${
+                  orderFilter === t.key
+                    ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald"
+                    : "bg-white border-slate-200 text-slate-500 hover:text-slate-700"
+                }`}
+              >
+                {t.label}
+                {t.key !== "all" && ` ${(orders ?? []).filter((o) => o.status === t.key).length}`}
+              </button>
+            ))}
+          </div>
+        </div>
         {orders === null ? (
           <Empty text="加载中..." />
         ) : orders.length === 0 ? (
           <Empty text="还没有订单" />
+        ) : filteredOrders.length === 0 ? (
+          <Empty text="没有该状态的订单" />
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-[0.85rem]">
@@ -269,13 +319,20 @@ export default function OrdersPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {orders.map((o) => (
+                {filteredOrders.map((o) => (
                   <tr key={o.id} className="text-slate-600">
                     <td className="py-3 pr-3 font-mono text-[0.78rem]">{o.order_no}</td>
                     <td className="py-3 pr-3">{o.product_name}</td>
                     <td className="py-3 pr-3">{o.qty}</td>
                     <td className="py-3 pr-3 text-accent-emerald font-semibold">{o.total} {o.currency}</td>
-                    <td className="py-3 pr-3"><StatusBadge status={o.status} /></td>
+                    <td className="py-3 pr-3">
+                      <StatusBadge status={o.status} />
+                      {o.status === "paid" && o.delivery_status && DELIVERY_HINTS[o.delivery_status] && (
+                        <span className={`block mt-1 text-[0.72rem] ${DELIVERY_HINTS[o.delivery_status].className}`}>
+                          {DELIVERY_HINTS[o.delivery_status].text}
+                        </span>
+                      )}
+                    </td>
                     <td className="py-3 pr-3 whitespace-nowrap text-slate-500">{fmtTime(o.created_at)}</td>
                     <td className="py-3">
                       {o.status === "pending" && (

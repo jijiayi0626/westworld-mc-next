@@ -15,7 +15,8 @@ app.use("*", requireAuth);
 app.get("/me", async (c) => {
   const user = c.get("user")!;
   const row = await c.env.DB.prepare(
-    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio, u.created_at, u.last_login_at, u.last_login_ip,
+    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio, u.qq, u.discord,
+            u.created_at, u.last_login_at, u.last_login_ip,
             (SELECT mc_username FROM microsoft_bindings WHERE user_id = u.id) AS mc_username,
             (SELECT mc_uuid FROM microsoft_bindings WHERE user_id = u.id) AS mc_uuid
      FROM users u WHERE u.id = ?`,
@@ -26,14 +27,18 @@ app.get("/me", async (c) => {
   return ok(row);
 });
 
-// 修改资料（bio/avatar）
+// 修改资料（bio/avatar/qq/discord）
 app.post("/profile", async (c) => {
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const bio = str(body.bio, 200);
   const avatar = str(body.avatar, 500);
-  await c.env.DB.prepare("UPDATE users SET bio = ?, avatar = ?, updated_at = datetime('now') WHERE id = ?")
-    .bind(bio, avatar, user.id)
+  const qq = str(body.qq, 20).replace(/[^\d]/g, "");
+  const discord = str(body.discord, 50).replace(/[^\w.#-]/g, "");
+  await c.env.DB.prepare(
+    "UPDATE users SET bio = ?, avatar = ?, qq = ?, discord = ?, updated_at = datetime('now') WHERE id = ?",
+  )
+    .bind(bio, avatar, qq, discord, user.id)
     .run();
   return ok({ updated: true });
 });
@@ -44,7 +49,7 @@ app.post("/password", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const oldPassword = str(body.old_password, 64);
   const newPassword = str(body.new_password, 64);
-  if (!isValidPassword(newPassword)) return fail("新密码需 6-64 位");
+  if (!isValidPassword(newPassword)) return fail("新密码需 8-64 位，且包含字母和数字");
 
   const row = await c.env.DB.prepare("SELECT password_hash FROM users WHERE id = ?")
     .bind(user.id)

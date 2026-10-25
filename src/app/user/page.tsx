@@ -12,7 +12,10 @@ export default function UserHomePage() {
   const { user, refresh } = useAuth();
   const [bio, setBio] = useState(user?.bio || "");
   const [avatar, setAvatar] = useState(user?.avatar || "");
-  const [qq, setQq] = useState("");
+  const [qqAvatar, setQqAvatar] = useState("");
+  const [qqId, setQqId] = useState("");
+  const [discord, setDiscord] = useState("");
+  const [appStatus, setAppStatus] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [saving, setSaving] = useState(false);
@@ -25,6 +28,12 @@ export default function UserHomePage() {
     loadedFor.current = user.id;
     setBio(user.bio || "");
     setAvatar(user.avatar || "");
+    setQqId(user.qq || "");
+    setDiscord(user.discord || "");
+    // 入服申请状态用于新人任务：失败不影响页面
+    api<{ status: string }[]>("/application/mine")
+      .then((rows) => setAppStatus(rows[0]?.status || ""))
+      .catch(() => setAppStatus(""));
   }, [user]);
 
   if (!user) return <UserShell><></></UserShell>;
@@ -51,7 +60,7 @@ export default function UserHomePage() {
     setSuccess("");
     setSaving(true);
     try {
-      await api("/user/profile", { method: "POST", body: JSON.stringify({ bio, avatar }) });
+      await api("/user/profile", { method: "POST", body: JSON.stringify({ bio, avatar, qq: qqId, discord }) });
       setSuccess("资料已保存");
       await refresh();
     } catch (e) {
@@ -67,6 +76,18 @@ export default function UserHomePage() {
     { href: "/user/ai", label: "AI 助手", desc: "咨询服务器问题", color: "#f5f3ff", text: "#6d28d9" },
     { href: "/user/orders", label: "我的订单", desc: "查看商城订单", color: "#fef9c3", text: "#a16207" },
   ];
+
+  // 新人任务：与 PHP 版一致的 6 项引导，全部由真实资料计算，不做假进度
+  const tasks = [
+    { label: "上传头像", done: !!user.avatar },
+    { label: "填写个性签名", done: !!user.bio },
+    { label: "绑定游戏名", done: !!user.mc_username },
+    { label: "绑定 QQ", done: !!user.qq },
+    { label: "绑定 Discord", done: !!user.discord },
+    { label: "通过入服申请", done: appStatus === "approved" },
+  ];
+  const doneCount = tasks.filter((t) => t.done).length;
+  const percent = Math.round((doneCount / tasks.length) * 100);
 
   return (
     <UserShell>
@@ -106,6 +127,27 @@ export default function UserHomePage() {
 
         {/* 右侧：快捷入口 + 资料编辑 */}
         <div className="lg:col-span-2 flex flex-col gap-5">
+          <Card>
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="text-[1.05rem] font-bold text-slate-800">新人任务</h3>
+              <span className="text-[0.85rem] font-semibold text-emerald-600">{doneCount} / {tasks.length}</span>
+            </div>
+            <p className="text-[0.8rem] text-slate-400 mb-3">完善资料后即可获得更完整的社区体验</p>
+            <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-4">
+              <div className="h-full bg-gradient-to-r from-[color:var(--green,#10b981)] to-[color:var(--green-dark,#059669)] transition-all" style={{ width: `${percent}%` }} />
+            </div>
+            <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {tasks.map((t) => (
+                <li key={t.label} className="flex items-center gap-2 text-[0.85rem]">
+                  <span className={`inline-flex w-5 h-5 items-center justify-center rounded-full text-[0.7rem] font-bold ${t.done ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
+                    {t.done ? "✓" : "•"}
+                  </span>
+                  <span className={t.done ? "text-slate-400 line-through" : "text-slate-700"}>{t.label}</span>
+                </li>
+              ))}
+            </ul>
+          </Card>
+
           <div className="grid grid-cols-2 gap-4">
             {quickLinks.map((q) => (
               <Link key={q.href} href={q.href}>
@@ -150,15 +192,23 @@ export default function UserHomePage() {
               <Field label="QQ 头像" hint="输入 QQ 号，一键使用腾讯 QQ 头像">
                 <div className="flex items-center gap-3">
                   <Input
-                    value={qq}
-                    onChange={(e) => setQq(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                    value={qqAvatar}
+                    onChange={(e) => setQqAvatar(e.target.value.replace(/\D/g, "").slice(0, 12))}
                     placeholder="QQ 号"
                     inputMode="numeric"
                   />
-                  <Btn variant="ghost" onClick={() => { const n = qq.trim(); if (n) setAvatar(`https://q1.qlogo.cn/g?b=qq&nk=${n}&s=100`); }}>使用 QQ 头像</Btn>
-                  <Btn variant="subtle" onClick={() => { setAvatar(""); setQq(""); }}>清除</Btn>
+                  <Btn variant="ghost" onClick={() => { const n = qqAvatar.trim(); if (n) setAvatar(`https://q1.qlogo.cn/g?b=qq&nk=${n}&s=100`); }}>使用 QQ 头像</Btn>
+                  <Btn variant="subtle" onClick={() => { setAvatar(""); setQqAvatar(""); }}>清除</Btn>
                 </div>
               </Field>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <Field label="QQ 号" hint="仅用于社区联系，不公开显示">
+                  <Input value={qqId} onChange={(e) => setQqId(e.target.value.replace(/\D/g, "").slice(0, 12))} placeholder="例如 10001" inputMode="numeric" />
+                </Field>
+                <Field label="Discord" hint="填写用户名或 ID">
+                  <Input value={discord} onChange={(e) => setDiscord(e.target.value.slice(0, 50))} placeholder="例如 name#1234" />
+                </Field>
+              </div>
               <Field label="个性签名">
                 <TextArea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="介绍一下自己吧~（200 字内）" maxLength={200} />
               </Field>

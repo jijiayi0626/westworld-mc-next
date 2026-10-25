@@ -10,6 +10,12 @@ const MIME: Record<string, string> = {
   ".webp": "image/webp",
   ".svg": "image/svg+xml",
   ".ico": "image/x-icon",
+  ".pdf": "application/pdf",
+  ".zip": "application/zip",
+  ".doc": "application/msword",
+  ".docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  ".xls": "application/vnd.ms-excel",
+  ".xlsx": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
   ".css": "text/css",
   ".js": "text/javascript",
   ".json": "application/json",
@@ -26,13 +32,17 @@ app.get("/*", async (c) => {
   if (!obj) return c.notFound();
   const ext = key.slice(key.lastIndexOf(".")).toLowerCase();
   const type = MIME[ext] || "application/octet-stream";
-  return new Response(obj.body, {
-    headers: {
-      "Content-Type": type,
-      "Cache-Control": "public, max-age=31536000, immutable",
-      "ETag": obj.httpEtag,
-    },
-  });
+  const headers: Record<string, string> = {
+    "Content-Type": type,
+    "Cache-Control": "public, max-age=31536000, immutable",
+    "ETag": obj.httpEtag,
+  };
+  // 压缩包/Office 文档强制下载，避免浏览器直接打开
+  if ([".zip", ".doc", ".docx", ".xls", ".xlsx"].includes(ext)) {
+    const filename = key.split("/").pop() || "download";
+    headers["Content-Disposition"] = `attachment; filename="${filename.replace(/[^\w.\-]/g, "_")}"`;
+  }
+  return new Response(obj.body, { headers });
 });
 
 export default app;

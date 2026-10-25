@@ -114,6 +114,8 @@ export default function AdminSettingsPage() {
     smtp_user: string;
     smtp_pass_set: boolean;
     smtp_ssl: boolean;
+    events?: Record<string, boolean>;
+    notify_emails?: string;
   }
   const [mailCfg, setMailCfg] = useState<MailConfigView | null>(null);
   const [mailForm, setMailForm] = useState({
@@ -127,6 +129,13 @@ export default function AdminSettingsPage() {
     smtp_ssl: false,
   });
   const [mailBusy, setMailBusy] = useState(false);
+  const [mailEvents, setMailEvents] = useState<Record<string, boolean>>({
+    ticket: true,
+    application: true,
+    order: true,
+    contact: true,
+  });
+  const [notifyEmails, setNotifyEmails] = useState("");
   const [testTo, setTestTo] = useState("");
   const [testMsg, setTestMsg] = useState<{ err: string; ok: string }>({ err: "", ok: "" });
 
@@ -202,6 +211,10 @@ export default function AdminSettingsPage() {
         smtp_user: mail.smtp_user,
         smtp_ssl: mail.smtp_ssl,
       }));
+      if (mail.events) {
+        setMailEvents({ ticket: true, application: true, order: true, contact: true, ...mail.events });
+      }
+      setNotifyEmails(mail.notify_emails || "");
     } catch {
       /* 邮件配置加载失败不阻塞页面 */
     }
@@ -328,6 +341,8 @@ export default function AdminSettingsPage() {
           smtp_user: mailForm.smtp_user.trim(),
           smtp_pass: mailForm.smtp_pass.trim(),
           smtp_ssl: mailForm.smtp_ssl,
+          events: mailEvents,
+          notify_emails: notifyEmails,
         }),
       });
       // 清空密钥输入，避免下次误覆盖
@@ -686,6 +701,39 @@ export default function AdminSettingsPage() {
                     </label>
                   </>
                 )}
+
+                <div className="border-t border-slate-100 pt-4 flex flex-col gap-4">
+                  <div>
+                    <h4 className="font-semibold text-slate-800 text-[0.95rem]">事件通知</h4>
+                    <p className="text-[0.78rem] text-slate-500 mt-1">开启后，对应事件发生时会自动发送邮件提醒；未填写收件人时默认发送给所有管理员账号邮箱。</p>
+                  </div>
+                  <Field label="通知收件人" hint="每行一个邮箱，也可用逗号分隔，最多 10 个">
+                    <TextArea
+                      value={notifyEmails}
+                      onChange={(e) => setNotifyEmails(e.target.value)}
+                      placeholder="admin@example.com"
+                      rows={2}
+                    />
+                  </Field>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                    {([
+                      { key: "ticket", label: "新工单" },
+                      { key: "application", label: "入服申请" },
+                      { key: "order", label: "新订单" },
+                      { key: "contact", label: "联系留言" },
+                    ] as const).map((ev) => (
+                      <label key={ev.key} className="flex items-center gap-2 text-[0.86rem] text-slate-700 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={mailEvents[ev.key] !== false}
+                          onChange={(e) => setMailEvents((p) => ({ ...p, [ev.key]: e.target.checked }))}
+                          className="w-4 h-4 accent-emerald-500"
+                        />
+                        {ev.label}
+                      </label>
+                    ))}
+                  </div>
+                </div>
 
                 <div>
                   <Btn type="submit" disabled={mailBusy}>{mailBusy ? "保存中..." : "保存邮件配置"}</Btn>

@@ -22,6 +22,7 @@ export default function AdminLibraryPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [cleaning, setCleaning] = useState(false);
   const [keyword, setKeyword] = useState("");
   const [copied, setCopied] = useState("");
   const [tab, setTab] = useState<"mine" | "system">("mine");
@@ -64,6 +65,7 @@ export default function AdminLibraryPage() {
       setError("系统默认图片不可删除（页面引用它，删除会导致显示异常）");
       return;
     }
+    if (item.in_use && !confirm("这张图片似乎正在被页面引用，删除后可能导致显示异常。仍要删除？")) return;
     if (!confirm("确定删除这张图片？此操作不可撤销。")) return;
     setError("");
     setSuccess("");
@@ -72,6 +74,35 @@ export default function AdminLibraryPage() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除失败");
+    }
+  };
+
+  // 扫描并清理未被任何页面/内容引用的孤儿图片
+  const cleanupOrphans = async () => {
+    setError("");
+    setSuccess("");
+    setCleaning(true);
+    try {
+      const r = await api<{ orphans: LibItem[]; total: number; scanned: number }>("/upload/admin/library/orphans");
+      if (r.total === 0) {
+        setSuccess(`已扫描 ${r.scanned} 张图片，没有发现未使用的图片`);
+        return;
+      }
+      const preview = r.orphans.slice(0, 6).map((o) => `· ${o.key}`).join("\n");
+      if (!confirm(`发现 ${r.total} 张未被引用的图片（共扫描 ${r.scanned} 张），清理后将永久删除：\n\n${preview}${r.total > 6 ? `\n… 其余 ${r.total - 6} 张` : ""}\n\n确认清理？`)) {
+        setSuccess(`发现 ${r.total} 张未使用图片，已取消清理`);
+        return;
+      }
+      const done = await api<{ total: number; skipped: { key: string; reason: string }[] }>("/upload/admin/library/cleanup", {
+        method: "POST",
+        body: JSON.stringify({}),
+      });
+      setSuccess(`已清理 ${done.total} 张未使用图片${done.skipped.length ? `，${done.skipped.length} 张被跳过（仍被引用或删除失败）` : ""}`);
+      await load(tab);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "清理失败");
+    } finally {
+      setCleaning(false);
     }
   };
 
@@ -111,7 +142,16 @@ export default function AdminLibraryPage() {
       <div className="px-6 py-6">
         <div className="flex items-center justify-between mb-5">
           <h1 className="text-[1.35rem] font-bold text-slate-900">图片管理</h1>
-          <label className="cursor-pointer">
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => void cleanupOrphans()}
+              disabled={cleaning || uploading}
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-white border border-slate-200 text-slate-600 text-[0.86rem] font-semibold hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-60"
+            >
+              {cleaning ? "扫描中..." : "清理未使用图片"}
+            </button>
+            <label className="cursor-pointer">
             <input
               ref={fileRef}
               type="file"
@@ -127,6 +167,7 @@ export default function AdminLibraryPage() {
               {uploading ? "上传中..." : "+ 上传图片"}
             </span>
           </label>
+          </div>
         </div>
 
         {/* 分类 Tab + 检索区 */}
@@ -179,6 +220,9 @@ export default function AdminLibraryPage() {
                   )}
                   {i.in_use && (
                     <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/85 text-white text-[0.62rem] font-medium">使用中</span>
+                  )}
+                  {!i.system && i.in_use === false && (
+                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/85 text-white text-[0.62rem] font-medium" title="未检测到引用，可清理">未使用</span>
                   )}
                 </div>
                 <div className="p-2.5">

@@ -9,7 +9,9 @@ export function isValidUsername(v: string): boolean {
 }
 
 export function isValidPassword(v: string): boolean {
-  return v.length >= 6 && v.length <= 64;
+  // 8-64 位，且必须同时包含字母和数字（纯数字/纯字母一律拒绝）
+  if (v.length < 8 || v.length > 64) return false;
+  return /[A-Za-z]/.test(v) && /\d/.test(v);
 }
 
 export function isValidPlayerName(v: string): boolean {
