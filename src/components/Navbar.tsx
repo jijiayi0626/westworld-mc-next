@@ -11,6 +11,7 @@ import ServerStatus from "./ServerStatus";
 // 聊天室入口已移至用户中心（/user/chat）
 const mainItems = [
   { label: "首页", href: "/" },
+  { label: "论坛", href: "/forum" },
   { label: "配置", href: "/specs" },
   { label: "下载", href: "/help" },
   { label: "相册", href: "/gallery" },

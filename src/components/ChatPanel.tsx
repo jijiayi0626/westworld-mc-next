@@ -46,6 +46,7 @@ export default function ChatPanel() {
   const [sending, setSending] = useState(false);
   const [attached, setAttached] = useState<File | null>(null);
   const [loaded, setLoaded] = useState(false);
+  const [loadFailed, setLoadFailed] = useState(false);
   const [limits, setLimits] = useState<ChatLimits | null>(null);
   const [showJump, setShowJump] = useState(false);
   const [recallingId, setRecallingId] = useState(0);
@@ -104,6 +105,7 @@ export default function ChatPanel() {
       } catch {
         if (!stop) {
           setLoaded(true);
+          setLoadFailed(true);
           setError("聊天室加载失败，请刷新重试");
         }
       }
@@ -249,9 +251,13 @@ export default function ChatPanel() {
           style={{ height: "clamp(340px, 54vh, 640px)" }}
         >
         {!loaded ? (
-          <div className="h-full flex items-center justify-center text-slate-400 text-[0.85rem]">加载中...</div>
+          <div className="h-full flex items-center justify-center text-slate-500 text-[0.85rem]">加载中...</div>
+        ) : loadFailed ? (
+          <div className="h-full flex items-center justify-center text-slate-500 text-[0.85rem]">
+            消息加载失败，请稍后刷新
+          </div>
         ) : messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-slate-400 text-[0.85rem]">
+          <div className="h-full flex items-center justify-center text-slate-500 text-[0.85rem]">
             还没有人发言，来抢个沙发吧～
           </div>
         ) : (
