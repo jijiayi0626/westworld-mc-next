@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
-import { str, isEmail } from "../lib/validate";
-import { loadMailConfig, mailEnabled, sendMail, renderEmail, MAIL_SENSITIVE_KEYS } from "../lib/mail";
+import { str, isEmail, isValidPassword, isValidUsername } from "../lib/validate";
+import { loadMailConfig, mailEnabled, sendMail, renderEmail, MAIL_SENSITIVE_KEYS, loadMailNotifySettings } from "../lib/mail";
 import { EPAY_TYPES, epayEnabled, loadEpayConfig, publicEpay } from "../lib/epay";
 import { logOp } from "../lib/log";
 import { upopAdminStatus } from "./upop";
@@ -350,6 +350,36 @@ app.get("/users/stats", async (c) => {
   });
 });
 
+// 管理员创建用户（可指定角色，初始密码需满足复杂度要求）
+app.post("/users", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const username = str(body.username, 20).trim();
+  const email = str(body.email, 100).trim().toLowerCase();
+  const password = str(body.password, 64);
+  const role = body.role === "admin" ? "admin" : "user";
+
+  if (!isValidUsername(username)) return fail("用户名需 3-20 位（字母/数字/下划线/中文）");
+  if (email && !isEmail(email)) return fail("邮箱格式不正确");
+  if (!isValidPassword(password)) return fail("密码需 8-64 位，且包含字母和数字");
+
+  const dup = await c.env.DB.prepare("SELECT id FROM users WHERE username = ? OR (email != '' AND email = ?)")
+    .bind(username, email || "\u0000")
+    .first<{ id: number }>();
+  if (dup) return fail("用户名或邮箱已被使用", 409);
+
+  const { hashPassword } = await import("../lib/password");
+  const passwordHash = await hashPassword(password);
+  const csrf = crypto.randomUUID();
+  const result = await c.env.DB.prepare(
+    `INSERT INTO users (username, email, password_hash, role, csrf_token) VALUES (?, ?, ?, ?, ?)`,
+  ).bind(username, email, passwordHash, role, csrf).run();
+  const id = Number(result.meta.last_row_id);
+
+  await logOp(c.env.DB, c, admin.id, "user_create", String(id), `${username} ${role}`);
+  return ok({ id, username, email, role });
+});
+
 // 封禁 / 解封 / 改角色（保护：不能对自己操作；不能改其他管理员）
 app.post("/users/:id/status", async (c) => {
   const admin = c.get("user")!;
@@ -392,7 +422,7 @@ app.post("/users/:id/reset-password", async (c) => {
   const id = Number(c.req.param("id"));
   const body = await c.req.json().catch(() => ({}));
   const newPassword = str(body.new_password, 64);
-  if (newPassword.length < 6) return fail("新密码至少 6 位");
+  if (!isValidPassword(newPassword)) return fail("新密码需 8-64 位，且包含字母和数字");
   if (id === admin.id) return fail("不能重置当前登录账号的密码，请用「安全中心」修改", 403);
 
   const target = await c.env.DB.prepare("SELECT id, role FROM users WHERE id = ?")
@@ -477,6 +507,7 @@ app.post("/settings", async (c) => {
 
 app.get("/mail-config", async (c) => {
   const cfg = await loadMailConfig(c.env.DB);
+  const notify = await loadMailNotifySettings(c.env.DB);
   return ok({
     provider: cfg.provider,
     from: cfg.from,
@@ -487,6 +518,8 @@ app.get("/mail-config", async (c) => {
     smtp_user: cfg.smtp_user,
     smtp_pass_set: !!cfg.smtp_pass,
     smtp_ssl: cfg.smtp_ssl,
+    events: notify.events,
+    notify_emails: notify.recipients.join("\n"),
   });
 });
 
@@ -522,6 +555,24 @@ app.post("/mail-config", async (c) => {
   }
   const smtpPass = str(body.smtp_pass, 300).trim();
   if (smtpPass) entries.push(["mail_smtp_pass", smtpPass]);
+
+  // 事件通知开关与收件人
+  if (body.events && typeof body.events === "object") {
+    const src = body.events as Record<string, unknown>;
+    const events: Record<string, boolean> = {};
+    for (const key of ["ticket", "application", "order", "contact"]) {
+      events[key] = src[key] !== false;
+    }
+    entries.push(["mail_events", JSON.stringify(events)]);
+  }
+  if (typeof body.notify_emails === "string") {
+    const list = body.notify_emails
+      .split(/[\n,;]/)
+      .map((s: string) => s.trim())
+      .filter((s: string) => isEmail(s))
+      .slice(0, 10);
+    entries.push(["mail_notify_emails", list.join("\n")]);
+  }
 
   for (const [key, value] of entries) {
     await c.env.DB.prepare(

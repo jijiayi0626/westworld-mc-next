@@ -76,8 +76,8 @@ export default function UserSecurityPage() {
     e.preventDefault();
     setError("");
     setSuccess("");
-    if (newPassword.length < 6) {
-      setError("新密码至少 6 位");
+    if (newPassword.length < 8 || !/[A-Za-z]/.test(newPassword) || !/\d/.test(newPassword)) {
+      setError("新密码需 8-64 位，且包含字母和数字");
       return;
     }
     if (newPassword !== confirmPassword) {
@@ -165,7 +165,7 @@ export default function UserSecurityPage() {
               <Input type="password" value={oldPassword} onChange={(e) => setOldPassword(e.target.value)} placeholder="输入当前密码" autoComplete="current-password" required />
             </Field>
             <Field label="新密码">
-              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="至少 6 位" autoComplete="new-password" required />
+              <Input type="password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} placeholder="8-64 位，含字母和数字" autoComplete="new-password" required />
             </Field>
             <Field label="确认新密码">
               <Input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次输入新密码" autoComplete="new-password" required />

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { UserShell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { Btn, Card, ErrorNote, Field, Input, PageHeader, Select, SuccessNote, TextArea, Empty, StatusBadge, fmtTime, Badge } from "@/components/ui";
+import { AttachmentList, AttachmentUploader, type TicketAttachment } from "@/components/TicketAttachments";
 
 interface Ticket {
   id: number;
@@ -30,6 +31,7 @@ interface TicketDetail {
     id: number;
     user_id: number;
     content: string;
+    attachments: TicketAttachment[];
     is_staff: number;
     created_at: string;
   }>;
@@ -47,7 +49,9 @@ export default function TicketsPage() {
   const [category, setCategory] = useState("general");
   const [priority, setPriority] = useState("normal");
   const [content, setContent] = useState("");
+  const [createFiles, setCreateFiles] = useState<TicketAttachment[]>([]);
   const [reply, setReply] = useState("");
+  const [replyFiles, setReplyFiles] = useState<TicketAttachment[]>([]);
 
   const load = useCallback(async () => {
     try {
@@ -73,21 +77,27 @@ export default function TicketsPage() {
   const closeDetail = () => {
     setDetail(null);
     setReply("");
+    setReplyFiles([]);
   };
 
   const create = async (e: FormEvent) => {
     e.preventDefault();
     setError("");
     setSuccess("");
+    if (!content.trim() && createFiles.length === 0) {
+      setError("请填写详细描述或上传附件");
+      return;
+    }
     setBusy(true);
     try {
       await api("/ticket/create", {
         method: "POST",
-        body: JSON.stringify({ subject: subject.trim(), category, priority, content: content.trim() }),
+        body: JSON.stringify({ subject: subject.trim(), category, priority, content: content.trim(), attachments: createFiles }),
       });
       setSuccess("工单已创建");
       setSubject("");
       setContent("");
+      setCreateFiles([]);
       setShowCreate(false);
       await load();
     } catch (err) {
@@ -101,13 +111,18 @@ export default function TicketsPage() {
     e.preventDefault();
     if (!detail) return;
     setError("");
+    if (!reply.trim() && replyFiles.length === 0) {
+      setError("请输入回复内容或上传附件");
+      return;
+    }
     setBusy(true);
     try {
       await api(`/ticket/${detail.ticket.id}/reply`, {
         method: "POST",
-        body: JSON.stringify({ content: reply.trim() }),
+        body: JSON.stringify({ content: reply.trim(), attachments: replyFiles }),
       });
       setReply("");
+      setReplyFiles([]);
       await openDetail(detail.ticket.id);
       await load();
     } catch (err) {
@@ -156,7 +171,10 @@ export default function TicketsPage() {
               </Field>
             </div>
             <Field label="详细描述">
-              <TextArea value={content} onChange={(e) => setContent(e.target.value)} placeholder="请详细描述遇到的问题，包括时间、坐标、复现步骤等" maxLength={5000} required />
+              <TextArea value={content} onChange={(e) => setContent(e.target.value)} placeholder="请详细描述遇到的问题，包括时间、坐标、复现步骤等" maxLength={5000} />
+            </Field>
+            <Field label="附件（可选）">
+              <AttachmentUploader value={createFiles} onChange={setCreateFiles} disabled={busy} />
             </Field>
             <ErrorNote message={error} />
             <SuccessNote message={success} />
@@ -201,13 +219,15 @@ export default function TicketsPage() {
                   <span>{fmtTime(r.created_at)}</span>
                 </div>
                 <div className="whitespace-pre-wrap">{r.content}</div>
+                <AttachmentList items={r.attachments} />
               </div>
             ))}
           </div>
 
           {detail.ticket.status !== "closed" ? (
             <form onSubmit={sendReply} className="mt-4 flex flex-col gap-3">
-              <TextArea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="输入回复内容..." maxLength={5000} required />
+              <TextArea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="输入回复内容..." maxLength={5000} />
+              <AttachmentUploader value={replyFiles} onChange={setReplyFiles} disabled={busy} />
               <ErrorNote message={error} />
               <div>
                 <Btn type="submit" disabled={busy}>{busy ? "发送中..." : "发送回复"}</Btn>

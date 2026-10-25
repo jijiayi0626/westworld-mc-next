@@ -125,6 +125,7 @@ npx wrangler deploy
 - `wrangler.jsonc`：绑定主库 `DB`（mc-next）、论坛库 `FORUM_DB`（westworld-forum）、`ASSETS`（R2）、`RCON`（DO）、cron 触发器
 - 初始化建表：`npx wrangler d1 execute mc-next --remote --file src/worker/db/schema.sql`
 - 论坛库建表：`npx wrangler d1 execute westworld-forum --remote --file src/worker/db/schema-forum.sql`
+- 已有数据库升级：按需执行 `scripts/migrate-*.sql`（本次涉及 `migrate-user-socials.sql`、`migrate-shop-delivery.sql`、`migrate-ticket-attachments.sql`）
 - 敏感配置（AI 密钥、微软 OAuth、UPOP、RCON 等）均在后台「网站设置」页配置，存数据库即时生效
 
 ---
@@ -134,10 +135,12 @@ npx wrangler deploy
 | 模块 | 说明 |
 |---|---|
 | 内容管理 / 可视化编辑 | 站点文案、图片、相册（可命名）、群二维码等 |
-| 图片管理 | 上传 / 大图预览 / 重命名 / 删除（系统图片受保护，含“使用中”标记） |
-| 网站设置 | 已分区重做：基础配置（键值 + 搜索）、论坛与聊天、三方集成（微软 OAuth / UPOP） |
+| 图片管理 | 上传 / 大图预览 / 重命名 / 删除（系统图片受保护，含“使用中”标记与孤儿图片批量清理） |
+| 网站设置 | 已分区重做：基础配置（键值 + 搜索）、论坛与聊天、三方集成（微软 OAuth / UPOP）、邮件服务与事件通知 |
 | 论坛管理 | 公告发布 / 编辑 / 置顶；聊天室与公告的展示开关 |
-| 商城 | 商品 / 订单 / 发货；经济插件对接（余额查询、扣款指令模板 + 连通性测试） |
+| 用户管理 | 检索 / 详情 / 封禁 / 角色 / 重置密码 / 改邮箱 / 新建用户 / 批量邮件通知 |
+| 工单 | 用户与管理员往返回复、图片/PDF/ZIP 附件、关闭与重开 |
+| 商城 | 商品与库存 / 自动发货指令 / 订单筛选、重试发货、经济插件对接（余额查询、扣款指令模板 + 连通性测试） |
 | 服务器监控 | 状态巡检、RCON 命令、MOTD 查询（MineBBS API） |
 | AI 设置 | 供应商模板、密钥、用量统计 |
 | 关于本站 | 项目信息 + 在线查看 README 与更新日志 |

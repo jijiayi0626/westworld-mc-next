@@ -23,6 +23,7 @@ import { checkAllServers } from "./routes/monitor";
 import rconRoutes from "./routes/rcon";
 import uploadRoutes from "./routes/upload";
 import assetsRoutes from "./routes/assets";
+import { processDeliveryQueue, expireStaleOrders } from "./routes/shop";
 import { RconDO } from "./do/rcon-do";
 
 const app = new Hono<AppEnv>();
@@ -113,6 +114,13 @@ app.get("/api/health", (c) => c.json({ code: 0, message: "ok", data: { app: "mc-
 // 404 兜底
 app.notFound((c) => c.json({ code: 404, message: "接口不存在", data: null }, 404));
 
+// 全局异常兜底：任何未捕获异常都返回统一 JSON，避免客户端拿到 HTML/纯文本错误
+// （前端 api() 依赖 JSON 结构；透出堆栈既无用也可能泄露内部信息）
+app.onError((err, c) => {
+  console.error(`[api] ${c.req.method} ${c.req.path} ->`, err instanceof Error ? err.stack || err.message : err);
+  return c.json({ code: 500, message: "服务器内部错误，请稍后再试", data: null }, 500);
+});
+
 export default {
   fetch: app.fetch,
   // 定时服务器巡检：cron 每 5 分钟触发一次；实际巡检间隔由
@@ -135,6 +143,14 @@ export default {
               .run();
           } catch {
             /* 表不存在时忽略 */
+          }
+
+          // 商城：补发失败订单 + 取消超时未支付订单并归还库存
+          try {
+            await processDeliveryQueue(env);
+            await expireStaleOrders(env);
+          } catch {
+            /* 表未迁移或单笔异常时忽略，等待下一轮 */
           }
 
           const intervalRow = await env.DB.prepare(

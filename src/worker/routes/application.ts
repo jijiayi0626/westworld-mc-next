@@ -6,6 +6,8 @@ import { isValidPlayerName, str } from "../lib/validate";
 import { isBlacklisted } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
+import { queueAdminMail } from "../lib/notify";
+import { escapeHtml } from "../lib/mail";
 import { getSecret } from "../lib/auth";
 import { decryptSecret } from "../lib/cipher";
 import { loadRconConfig } from "./rcon";
@@ -82,6 +84,16 @@ app.post("/submit", async (c) => {
   await c.env.DB.prepare(
     "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'whitelist', ?, ?)",
   ).bind(user.id, "入服申请已提交", `申请 #${id} 正在审核中`).run();
+
+  queueAdminMail(
+    c,
+    "application",
+    `新的入服申请 #${id}：${mcName}`,
+    `<p>用户：${escapeHtml(user.username)}</p>
+     <p>游戏名：${escapeHtml(mcName)}（${type === "bedrock" ? "基岩版" : "Java 版"}）</p>
+     <p>来源：${escapeHtml(channel || "未知")}</p>
+     <p>自我介绍：</p><p>${escapeHtml(intro.slice(0, 800)).replace(/\n/g, "<br>")}</p>`,
+  );
 
   return ok({ id });
 });

@@ -76,6 +76,12 @@ export default function AdminUsersPage() {
   const [notifyBusy, setNotifyBusy] = useState(false);
   const [notifyResult, setNotifyResult] = useState<string>("");
 
+  // 新建用户
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createForm, setCreateForm] = useState({ username: "", email: "", password: "", role: "user" });
+  const [createBusy, setCreateBusy] = useState(false);
+  const [createMsg, setCreateMsg] = useState<{ err: string; ok: string }>({ err: "", ok: "" });
+
   const load = useCallback(async () => {
     try {
       const [users, st] = await Promise.all([
@@ -181,8 +187,8 @@ export default function AdminUsersPage() {
 
   const resetPassword = async () => {
     if (!detail) return;
-    if (newPwd.length < 6) {
-      setDetailMsg({ err: "新密码至少 6 位", ok: "" });
+    if (newPwd.length < 8 || !/[A-Za-z]/.test(newPwd) || !/\d/.test(newPwd)) {
+      setDetailMsg({ err: "新密码需 8-64 位，且包含字母和数字", ok: "" });
       return;
     }
     setDetailMsg({ err: "", ok: "" });
@@ -195,6 +201,34 @@ export default function AdminUsersPage() {
       setDetailMsg({ err: e instanceof Error ? e.message : "重置失败", ok: "" });
     } finally {
       setBusyId(0);
+    }
+  };
+
+  const createUser = async () => {
+    setCreateMsg({ err: "", ok: "" });
+    const { username, email, password, role } = createForm;
+    if (!/^[a-zA-Z0-9_\u4e00-\u9fa5]{3,20}$/.test(username.trim())) {
+      setCreateMsg({ err: "用户名需 3-20 位（字母/数字/下划线/中文）", ok: "" });
+      return;
+    }
+    if (password.length < 8 || password.length > 64 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
+      setCreateMsg({ err: "密码需 8-64 位，且包含字母和数字", ok: "" });
+      return;
+    }
+    setCreateBusy(true);
+    try {
+      await api("/admin/users", {
+        method: "POST",
+        body: JSON.stringify({ username: username.trim(), email: email.trim(), password, role }),
+      });
+      setCreateMsg({ err: "", ok: `用户 ${username.trim()} 已创建` });
+      setCreateForm({ username: "", email: "", password: "", role: "user" });
+      await load();
+      window.setTimeout(() => setCreateOpen(false), 900);
+    } catch (e) {
+      setCreateMsg({ err: e instanceof Error ? e.message : "创建失败", ok: "" });
+    } finally {
+      setCreateBusy(false);
     }
   };
 
@@ -242,7 +276,8 @@ export default function AdminUsersPage() {
             </select>
             <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
           </div>
-          <div className="mt-3 flex items-center gap-2">
+          <div className="mt-3 flex items-center gap-2 flex-wrap">
+            <button type="button" onClick={() => { setCreateOpen(true); setCreateMsg({ err: "", ok: "" }); }} className="px-3.5 py-1.5 rounded-[8px] bg-white border border-slate-200 text-slate-700 text-[0.85rem] font-semibold hover:bg-slate-50 transition-colors cursor-pointer">新建用户</button>
             <button type="button" onClick={() => { setNotifyOpen(true); setNotifyResult(""); }} className="px-3.5 py-1.5 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors cursor-pointer">批量通知</button>
             <span className="text-slate-400 text-[0.78rem]">通过邮件通知用户，单次最多 500 人；需先在「网站设置 → 邮件服务」完成配置</span>
           </div>
@@ -403,7 +438,7 @@ export default function AdminUsersPage() {
                       type="text"
                       value={newPwd}
                       onChange={(e) => setNewPwd(e.target.value)}
-                      placeholder="新密码（至少 6 位）"
+                      placeholder="新密码（8-64 位，含字母和数字）"
                       className="flex-1 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
                     />
                     <button
@@ -424,6 +459,72 @@ export default function AdminUsersPage() {
           ) : null}
         </Modal>
         {/* 批量通知弹窗 */}
+        <Modal
+          open={createOpen}
+          onClose={() => setCreateOpen(false)}
+          overlayClassName="z-50 bg-black/40"
+          panelClassName="bg-white rounded-[16px] p-6 w-full max-w-lg shadow-xl"
+        >
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-[1.05rem] font-bold text-slate-800">新建用户</h3>
+            <button type="button" onClick={() => setCreateOpen(false)} className="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center cursor-pointer" aria-label="关闭">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" /></svg>
+            </button>
+          </div>
+          <div className="flex flex-col gap-3">
+            <div>
+              <label className="block text-[0.82rem] font-medium text-slate-600 mb-1">用户名</label>
+              <input
+                value={createForm.username}
+                onChange={(e) => setCreateForm((p) => ({ ...p, username: e.target.value }))}
+                placeholder="3-20 位字母 / 数字 / 下划线 / 中文"
+                maxLength={20}
+                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
+              />
+            </div>
+            <div>
+              <label className="block text-[0.82rem] font-medium text-slate-600 mb-1">邮箱（可选）</label>
+              <input
+                type="email"
+                value={createForm.email}
+                onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
+                placeholder="user@example.com"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
+              />
+            </div>
+            <div>
+              <label className="block text-[0.82rem] font-medium text-slate-600 mb-1">初始密码</label>
+              <input
+                type="password"
+                value={createForm.password}
+                onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))}
+                placeholder="8-64 位，含字母和数字"
+                autoComplete="new-password"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
+              />
+            </div>
+            <div>
+              <label className="block text-[0.82rem] font-medium text-slate-600 mb-1">角色</label>
+              <select
+                value={createForm.role}
+                onChange={(e) => setCreateForm((p) => ({ ...p, role: e.target.value }))}
+                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.88rem] text-slate-700 focus:outline-none"
+              >
+                <option value="user">普通用户</option>
+                <option value="admin">管理员</option>
+              </select>
+            </div>
+            {createMsg.err && <div className="px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{createMsg.err}</div>}
+            {createMsg.ok && <div className="px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{createMsg.ok}</div>}
+            <div className="flex justify-end gap-2 mt-1">
+              <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-[10px] bg-slate-100 text-slate-600 text-[0.86rem] font-semibold hover:bg-slate-200 cursor-pointer">取消</button>
+              <button type="button" onClick={() => void createUser()} disabled={createBusy} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.86rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer">
+                {createBusy ? "创建中..." : "创建用户"}
+              </button>
+            </div>
+          </div>
+        </Modal>
+
         <Modal
           open={notifyOpen}
           onClose={() => setNotifyOpen(false)}

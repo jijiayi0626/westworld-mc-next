@@ -15,6 +15,8 @@ interface Product {
   category: string;
   sort: number;
   active: number;
+  stock: number;
+  delivery_cmd: string;
   created_at: string;
 }
 
@@ -27,6 +29,11 @@ interface Order {
   currency: string;
   status: string;
   delivery: string | null;
+  delivery_status: string | null;
+  delivery_attempts: number | null;
+  delivery_log: string | null;
+  next_retry_at: string | null;
+  mc_name: string | null;
   paid_at: string | null;
   created_at: string;
   username: string;
@@ -55,6 +62,14 @@ const providerLabel = (provider?: string | null): string => {
   return PROVIDER_LABELS[provider] ?? provider;
 };
 
+const DELIVERY_LABELS: Record<string, { label: string; color: "green" | "red" | "yellow" | "blue" | "gray" }> = {
+  pending: { label: "待发货", color: "yellow" },
+  sent: { label: "已自动发货", color: "green" },
+  failed: { label: "发货失败", color: "red" },
+  exhausted: { label: "重试耗尽", color: "red" },
+  skipped: { label: "需手动发货", color: "blue" },
+};
+
 type OrderStatusFilter = "all" | "pending" | "paid" | "completed" | "cancelled";
 type ProductStatusFilter = "all" | "active" | "inactive";
 
@@ -75,6 +90,9 @@ export default function AdminShopPage() {
   const [category, setCategory] = useState("");
   const [sort, setSort] = useState("0");
   const [active, setActive] = useState(true);
+  const [stock, setStock] = useState("-1");
+  const [deliveryCmd, setDeliveryCmd] = useState("");
+  const [retryingOrderId, setRetryingOrderId] = useState<number | null>(null);
 
   // 发货
   const [deliverOrderId, setDeliverOrderId] = useState<number | null>(null);
@@ -125,6 +143,8 @@ export default function AdminShopPage() {
     setCategory("");
     setSort("0");
     setActive(true);
+    setStock("-1");
+    setDeliveryCmd("");
   };
 
   const startEdit = (p: Product) => {
@@ -136,6 +156,8 @@ export default function AdminShopPage() {
     setCategory(p.category);
     setSort(String(p.sort));
     setActive(p.active === 1);
+    setStock(String(p.stock ?? -1));
+    setDeliveryCmd(p.delivery_cmd ?? "");
   };
 
   const saveProduct = async (e: FormEvent) => {
@@ -144,7 +166,7 @@ export default function AdminShopPage() {
     setSuccess("");
     setBusy(true);
     try {
-      const body = { name: name.trim(), description: description.trim(), price: Number(price), currency, category: category.trim(), sort: Number(sort), active };
+      const body = { name: name.trim(), description: description.trim(), price: Number(price), currency, category: category.trim(), sort: Number(sort), active, stock: Number.isFinite(Number(stock)) ? Math.trunc(Number(stock)) : -1, delivery_cmd: deliveryCmd.trim() };
       if (editingId) {
         await api(`/shop/admin/product/${editingId}/update`, { method: "POST", body: JSON.stringify(body) });
         setSuccess("商品已更新");
@@ -187,6 +209,8 @@ export default function AdminShopPage() {
           category: p.category,
           sort: p.sort,
           active: p.active !== 1,
+          stock: p.stock,
+          delivery_cmd: p.delivery_cmd,
         }),
       });
       await loadProducts();
@@ -211,6 +235,25 @@ export default function AdminShopPage() {
       setError(err instanceof Error ? err.message : "发货失败");
     } finally {
       setBusy(false);
+    }
+  };
+
+  const retryDelivery = async (o: Order) => {
+    setError("");
+    setSuccess("");
+    setRetryingOrderId(o.id);
+    try {
+      const r = await api<{ delivered: boolean; delivery_status: string; delivery_log: string }>(`/shop/admin/order/${o.id}/retry-delivery`, { method: "POST" });
+      if (r.delivered) {
+        setSuccess(`订单 ${o.order_no} 自动发货成功`);
+      } else {
+        setError(`自动发货失败：${r.delivery_log || "请检查 RCON 配置与玩家在线状态"}`);
+      }
+      await loadOrders();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "重试失败");
+    } finally {
+      setRetryingOrderId(null);
     }
   };
 
@@ -434,6 +477,12 @@ export default function AdminShopPage() {
                     </Select>
                   </Field>
                 </div>
+                <Field label="库存" hint="-1 表示不限量；下单即占用，取消/超时自动归还">
+                  <Input type="number" min="-1" value={stock} onChange={(e) => setStock(e.target.value)} />
+                </Field>
+                <Field label="自动发货指令" hint="留空则手动发货；支持 {player} {qty} {order_no} {product} {amount}">
+                  <Input value={deliveryCmd} onChange={(e) => setDeliveryCmd(e.target.value)} maxLength={500} placeholder="give {player} diamond {qty}" />
+                </Field>
               </div>
               <Field label="描述">
                 <TextArea value={description} onChange={(e) => setDescription(e.target.value)} maxLength={2000} />
@@ -485,6 +534,8 @@ export default function AdminShopPage() {
                       <th className="py-2.5 pr-3">名称</th>
                       <th className="py-2.5 pr-3">价格</th>
                       <th className="py-2.5 pr-3">分类</th>
+                      <th className="py-2.5 pr-3">库存</th>
+                      <th className="py-2.5 pr-3">自动发货</th>
                       <th className="py-2.5 pr-3">排序</th>
                       <th className="py-2.5 pr-3">状态</th>
                       <th className="py-2.5">操作</th>
@@ -503,6 +554,16 @@ export default function AdminShopPage() {
                         <td className="py-3 pr-3 font-medium text-slate-800">{p.name}</td>
                         <td className="py-3 pr-3 text-slate-600">{p.price} {p.currency}</td>
                         <td className="py-3 pr-3 text-slate-500">{p.category || "-"}</td>
+                        <td className="py-3 pr-3">
+                          {p.stock === -1 ? (
+                            <span className="text-slate-400">不限</span>
+                          ) : p.stock === 0 ? (
+                            <Badge color="red">售罄</Badge>
+                          ) : (
+                            <span className={p.stock <= 5 ? "text-amber-600 font-semibold" : "text-slate-600"}>{p.stock}</span>
+                          )}
+                        </td>
+                        <td className="py-3 pr-3">{p.delivery_cmd ? <Badge color="blue">已配置</Badge> : <span className="text-slate-400">手动</span>}</td>
                         <td className="py-3 pr-3 text-slate-500">{p.sort}</td>
                         <td className="py-3 pr-3">{p.active === 1 ? <Badge color="green">上架</Badge> : <Badge color="gray">下架</Badge>}</td>
                         <td className="py-3">
@@ -612,6 +673,7 @@ export default function AdminShopPage() {
                     <th className="py-2.5 pr-3">金额</th>
                     <th className="py-2.5 pr-3">支付方式</th>
                     <th className="py-2.5 pr-3">状态</th>
+                    <th className="py-2.5 pr-3">发货</th>
                     <th className="py-2.5 pr-3">时间</th>
                     <th className="py-2.5">操作</th>
                   </tr>
@@ -627,10 +689,26 @@ export default function AdminShopPage() {
                     >
                       <td className="py-3 pr-3 font-mono text-slate-500 text-[0.8rem]">{o.order_no}</td>
                       <td className="py-3 pr-3 text-slate-800">{o.product_name} × {o.qty}</td>
-                      <td className="py-3 pr-3 text-slate-500">{o.username}</td>
+                      <td className="py-3 pr-3 text-slate-500">{o.username}{o.mc_name ? <span className="block text-[0.72rem] text-slate-400">游戏名：{o.mc_name}</span> : null}</td>
                       <td className="py-3 pr-3 text-slate-600">{o.total} {o.currency}</td>
                       <td className="py-3 pr-3 text-slate-500">{providerLabel(o.provider)}</td>
                       <td className="py-3 pr-3"><StatusBadge status={o.status} /></td>
+                      <td className="py-3 pr-3">
+                        {(() => {
+                          const d = o.delivery_status ? DELIVERY_LABELS[o.delivery_status] : null;
+                          if (!d) return <span className="text-slate-400">—</span>;
+                          return (
+                            <div className="flex flex-col gap-1 items-start">
+                              <Badge color={d.color}>{d.label}</Badge>
+                              {(o.delivery_status === "failed" || o.delivery_status === "exhausted") && (
+                                <span className="text-[0.72rem] text-slate-400">
+                                  重试 {o.delivery_attempts ?? 0} 次{o.next_retry_at ? ` · 下次 ${fmtTime(o.next_retry_at)}` : ""}
+                                </span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </td>
                       <td className="py-3 pr-3 text-slate-500">{fmtTime(o.created_at)}</td>
                       <td className="py-3">
                         <div className="flex flex-wrap items-center gap-2">
@@ -641,6 +719,11 @@ export default function AdminShopPage() {
                           )}
                           {o.status === "paid" && (
                             <Btn size="sm" variant="ghost" onClick={() => { setDeliverOrderId(o.id); setDelivery(""); }}>发货</Btn>
+                          )}
+                          {o.status === "paid" && (o.delivery_status === "failed" || o.delivery_status === "exhausted") && (
+                            <Btn size="sm" variant="subtle" onClick={() => retryDelivery(o)} disabled={retryingOrderId === o.id}>
+                              {retryingOrderId === o.id ? "重试中..." : "重试自动发货"}
+                            </Btn>
                           )}
                           {o.status === "completed" && (
                             <span className="text-[0.78rem] text-slate-500 truncate max-w-[140px] inline-block align-middle">{o.delivery || "已发货"}</span>

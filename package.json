@@ -1,6 +1,6 @@
 {
   "name": "mc-next",
-  "version": "2.4.0",
+  "version": "2.6.0",
   "private": true,
   "description": "MC 服务器宣传网站 - Next.js 14 重制版",
   "scripts": {

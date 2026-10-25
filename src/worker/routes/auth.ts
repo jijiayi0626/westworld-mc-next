@@ -26,7 +26,7 @@ app.post("/register", async (c) => {
 
   if (!isValidUsername(username)) return fail("用户名需 3-20 位（字母/数字/下划线/中文）");
   if (!isEmail(email)) return fail("邮箱格式不正确");
-  if (!isValidPassword(password)) return fail("密码需 6-64 位");
+  if (!isValidPassword(password)) return fail("密码需 8-64 位，且包含字母和数字");
 
   const ip = getClientIp(c);
   if (await isBlacklisted(c.env.DB, ip)) return fail("请求被拒绝", 403);
@@ -186,7 +186,7 @@ app.post("/reset", async (c) => {
   const email = str(body.email, 100).trim().toLowerCase();
   const code = str(body.code, 10).trim().toUpperCase();
   const newPassword = str(body.new_password, 64);
-  if (!isValidPassword(newPassword)) return fail("密码需 6-64 位");
+  if (!isValidPassword(newPassword)) return fail("密码需 8-64 位，且包含字母和数字");
 
   // 防暴力破解：同一 IP 30 次/10 分钟，同一邮箱 10 次/10 分钟
   const ip = getClientIp(c);

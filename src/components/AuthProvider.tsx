@@ -18,6 +18,8 @@ export interface Me {
   status: string;
   avatar: string | null;
   bio: string;
+  qq: string;
+  discord: string;
   created_at: string;
   last_login_at: string | null;
   last_login_ip: string;
@@ -69,6 +71,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // 任意页面 API 返回 401（会话过期/被封禁）时统一回登录页
+  useEffect(() => {
+    const onUnauthorized = () => {
+      setUser(null);
+      if (window.location.pathname !== "/login") {
+        window.location.href = "/login";
+      }
+    };
+    window.addEventListener("auth:unauthorized", onUnauthorized);
+    return () => window.removeEventListener("auth:unauthorized", onUnauthorized);
+  }, []);
 
   const login = useCallback(
     async (account: string, password: string) => {

@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { AdminShell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { Badge, Btn, Card, Empty, ErrorNote, StatusBadge, SuccessNote, TextArea, fmtTime } from "@/components/ui";
+import { AttachmentList, AttachmentUploader, type TicketAttachment } from "@/components/TicketAttachments";
 
 interface TicketRow {
   id: number;
@@ -18,7 +19,7 @@ interface TicketRow {
 
 interface TicketDetail {
   ticket: { id: number; subject: string; category: string; priority: string; status: string; user_id: number; created_at: string; updated_at: string };
-  replies: Array<{ id: number; user_id: number; content: string; is_staff: number; created_at: string }>;
+  replies: Array<{ id: number; user_id: number; content: string; attachments: TicketAttachment[]; is_staff: number; created_at: string }>;
 }
 
 export default function AdminTicketsPage() {
@@ -28,6 +29,7 @@ export default function AdminTicketsPage() {
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
   const [reply, setReply] = useState("");
+  const [replyFiles, setReplyFiles] = useState<TicketAttachment[]>([]);
   const [statusFilter, setStatusFilter] = useState("");
 
   const load = useCallback(async () => {
@@ -55,16 +57,22 @@ export default function AdminTicketsPage() {
   const closeDetail = () => {
     setDetail(null);
     setReply("");
+    setReplyFiles([]);
   };
 
   const sendReply = async (e: FormEvent) => {
     e.preventDefault();
     if (!detail) return;
     setError("");
+    if (!reply.trim() && replyFiles.length === 0) {
+      setError("请输入回复内容或上传附件");
+      return;
+    }
     setBusy(true);
     try {
-      await api(`/ticket/${detail.ticket.id}/reply`, { method: "POST", body: JSON.stringify({ content: reply.trim() }) });
+      await api(`/ticket/${detail.ticket.id}/reply`, { method: "POST", body: JSON.stringify({ content: reply.trim(), attachments: replyFiles }) });
       setReply("");
+      setReplyFiles([]);
       await openDetail(detail.ticket.id);
       await load();
     } catch (err) {
@@ -130,6 +138,7 @@ export default function AdminTicketsPage() {
                   <span>{fmtTime(r.created_at)}</span>
                 </div>
                 <div className="whitespace-pre-wrap">{r.content}</div>
+                <AttachmentList items={r.attachments} />
               </div>
             ))}
           </div>
@@ -139,7 +148,8 @@ export default function AdminTicketsPage() {
 
           {detail.ticket.status !== "closed" && (
             <form onSubmit={sendReply} className="mt-4 flex flex-col gap-3">
-              <TextArea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="输入回复内容..." maxLength={5000} required />
+              <TextArea value={reply} onChange={(e) => setReply(e.target.value)} placeholder="输入回复内容..." maxLength={5000} />
+              <AttachmentUploader value={replyFiles} onChange={setReplyFiles} disabled={busy} />
               <div className="flex gap-2">
                 <Btn type="submit" disabled={busy}>{busy ? "发送中..." : "发送回复"}</Btn>
                 <Btn type="button" variant="ghost" onClick={() => setStatus("closed")} disabled={busy}>关闭工单</Btn>

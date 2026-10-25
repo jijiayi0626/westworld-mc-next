@@ -13,6 +13,8 @@ CREATE TABLE IF NOT EXISTS users (
   status TEXT NOT NULL DEFAULT 'active',       -- active / banned / pending
   avatar TEXT,
   bio TEXT DEFAULT '',
+  qq TEXT DEFAULT '',
+  discord TEXT DEFAULT '',
   ua_fingerprint TEXT DEFAULT '',
   csrf_token TEXT DEFAULT '',
   register_ip TEXT DEFAULT '',                 -- 注册时 IP（管理后台可见）
@@ -110,6 +112,7 @@ CREATE TABLE IF NOT EXISTS support_ticket_replies (
   ticket_id INTEGER NOT NULL,
   user_id INTEGER NOT NULL,
   content TEXT NOT NULL,
+  attachments TEXT DEFAULT '',                 -- 附件 JSON：[{key,url,name,size,type}]
   is_staff INTEGER NOT NULL DEFAULT 0,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -173,6 +176,8 @@ CREATE TABLE IF NOT EXISTS shop_products (
   category TEXT DEFAULT 'general',             -- vip / item / whitelist ...
   sort INTEGER NOT NULL DEFAULT 0,
   active INTEGER NOT NULL DEFAULT 1,           -- 0/1
+  stock INTEGER NOT NULL DEFAULT -1,           -- -1 = 不限库存
+  delivery_cmd TEXT DEFAULT '',                -- 自动发货 RCON 指令模板，支持 {player} {qty} {order_no} {product}
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
@@ -190,7 +195,13 @@ CREATE TABLE IF NOT EXISTS shop_orders (
   status TEXT NOT NULL DEFAULT 'pending',      -- pending / paid / completed / cancelled / refunded
   provider TEXT DEFAULT '',                    -- manual / creem / stripe
   payment_id TEXT DEFAULT '',
+  mc_name TEXT DEFAULT '',                     -- 下单时绑定的游戏名快照（发货用）
   delivery TEXT DEFAULT '',
+  delivery_cmd TEXT DEFAULT '',                -- 下单时的发货指令快照，避免商品改动影响历史订单
+  delivery_status TEXT DEFAULT '',             -- '' / pending / sent / failed / exhausted / skipped
+  delivery_attempts INTEGER NOT NULL DEFAULT 0,
+  delivery_log TEXT DEFAULT '',
+  next_retry_at TEXT,
   paid_at TEXT,
   completed_at TEXT,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
