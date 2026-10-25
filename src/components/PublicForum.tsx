@@ -10,7 +10,7 @@ import type { ChatLimits } from "@/components/ChatPanel";
 // 聊天室按需加载：不进论坛首屏包体
 const ChatPanel = dynamic(() => import("@/components/ChatPanel"), {
   ssr: false,
-  loading: () => <div className="py-16 text-center font-mono text-[0.8rem] text-zinc-500">LOADING CHAT…</div>,
+  loading: () => <div className="py-16 text-center font-mono text-[0.8rem] text-zinc-400">LOADING CHAT…</div>,
 });
 
 interface HomeAnnouncement {
@@ -93,7 +93,7 @@ const COMPOSE_BOARDS = ["general", "qa", "share", "guide"];
 
 const PANEL = "border border-zinc-800 bg-[#0b0b0d]";
 const FIELD =
-  "w-full rounded-[2px] border border-zinc-800 bg-[#08080a] px-3.5 py-2.5 text-[0.92rem] text-zinc-100 placeholder:text-zinc-500 transition-colors focus:border-emerald-500/60 focus:outline-none";
+  "w-full rounded-[2px] border border-zinc-800 bg-[#08080a] px-3.5 py-2.5 text-[0.92rem] text-zinc-100 placeholder:text-zinc-400 transition-colors focus:border-emerald-500/60 focus:outline-none";
 const BTN_PRIMARY =
   "inline-flex h-9 items-center justify-center gap-1.5 rounded-[2px] bg-emerald-500 px-4 text-[0.82rem] font-semibold text-[#04120c] transition-colors hover:bg-emerald-400 disabled:opacity-40 cursor-pointer";
 const BTN_GHOST =
@@ -495,24 +495,22 @@ export default function PublicForum() {
             <h1 className="text-[clamp(2rem,5.4vw,3.3rem)] font-black leading-[0.95] tracking-tight text-white">
               社区论坛
             </h1>
-            <p className="mt-3 max-w-[560px] text-[0.92rem] leading-relaxed text-zinc-500">
+            <p className="mt-3 max-w-[560px] text-[0.92rem] leading-relaxed text-zinc-400">
               分区讨论、玩家发帖、问答互助与作品分享；登录后可发帖、回帖、点赞，也可进入聊天室实时交流。
             </p>
           </div>
 
           <dl className="grid grid-cols-3 gap-px overflow-hidden border border-zinc-800 bg-zinc-800 text-center md:min-w-[300px]">
             <div className="bg-[#0b0b0d] px-4 py-3">
-              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-500">Boards</dt>
+              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-400">Boards</dt>
               <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-zinc-100">05</dd>
             </div>
             <div className="bg-[#0b0b0d] px-4 py-3">
-              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-500">Threads</dt>
-              <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-zinc-100">
-                {board === "announcement" ? shownAnnouncements.length : total || 0}
-              </dd>
+              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-400">Threads</dt>
+              <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-zinc-100">{total || 0}</dd>
             </div>
             <div className="bg-[#0b0b0d] px-4 py-3">
-              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-500">Access</dt>
+              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-400">Access</dt>
               <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-emerald-400">PUBLIC</dd>
             </div>
           </dl>
@@ -531,13 +529,13 @@ export default function PublicForum() {
               className={`border px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.18em] transition-colors cursor-pointer ${
                 view === v.key
                   ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                  : "border-zinc-800 text-zinc-500 hover:border-zinc-600 hover:text-zinc-200"
+                  : "border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
               }`}
             >
               {v.label}
             </button>
           ))}
-          <span className="ml-auto hidden font-mono text-[0.62rem] uppercase tracking-[0.22em] text-zinc-600 sm:inline">
+          <span className="ml-auto hidden font-mono text-[0.62rem] uppercase tracking-[0.22em] text-zinc-500 sm:inline">
             Forum / v1.0
           </span>
         </div>
@@ -551,15 +549,15 @@ export default function PublicForum() {
         {view === "chat" ? (
           <motion.section
             key="chat"
-            className="mx-auto max-w-[880px]"
+            className="mx-auto max-w-[880px] lg:mx-0"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.24 }}
           >
             <div className={PANEL}>
               <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.26em] text-zinc-500">Chat / 聊天室</span>
-                <span className="font-mono text-[0.62rem] text-zinc-600">polling 4s</span>
+                <span className="font-mono text-[0.64rem] uppercase tracking-[0.26em] text-zinc-400">Chat / 聊天室</span>
+                <span className="font-mono text-[0.62rem] text-zinc-500">polling 4s</span>
               </div>
               <div className="bg-[#f4f4f5] p-3 sm:p-4">
                 <ChatPanel />
@@ -576,7 +574,7 @@ export default function PublicForum() {
             <button
               type="button"
               onClick={closeDetail}
-              className="mb-5 inline-flex items-center gap-1.5 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-zinc-500 transition-colors hover:text-emerald-400 cursor-pointer"
+              className="mb-5 inline-flex items-center gap-1.5 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-zinc-400 transition-colors hover:text-emerald-400 cursor-pointer"
             >
               <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M19 12H5" />
@@ -586,7 +584,7 @@ export default function PublicForum() {
             </button>
 
             {detailLoading ? (
-              <div className={`${PANEL} py-14 text-center font-mono text-[0.8rem] text-zinc-500`}>LOADING…</div>
+              <div className={`${PANEL} py-14 text-center font-mono text-[0.8rem] text-zinc-400`}>LOADING…</div>
             ) : detailError ? (
               <div className="border border-red-500/30 bg-red-500/[0.06] px-4 py-3 text-[0.86rem] text-red-300">
                 {detailError}
@@ -603,7 +601,7 @@ export default function PublicForum() {
                     <BoardTag board={detail.post.board} />
                   </div>
                   <h2 className="mb-3 break-words text-[1.45rem] font-bold leading-snug text-white">{detail.post.title}</h2>
-                  <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-800 pb-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-zinc-500">
+                  <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-800 pb-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-zinc-400">
                     <span>{detail.post.author_name || "匿名"}</span>
                     <span>{fmtTime(detail.post.created_at)}</span>
                     <span>VIEW {detail.post.views ?? 0}</span>
@@ -629,7 +627,7 @@ export default function PublicForum() {
                       {detail.liked ? "已点赞" : "点赞"} {detail.post.like_count}
                     </button>
                     {!user && (
-                      <a href="/login" className="font-mono text-[0.68rem] uppercase tracking-[0.12em] text-zinc-500 transition-colors hover:text-emerald-400">
+                      <a href="/login" className="font-mono text-[0.68rem] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-emerald-400">
                         登录后可点赞
                       </a>
                     )}
@@ -646,18 +644,18 @@ export default function PublicForum() {
                 </article>
 
                 <section className="mt-7">
-                  <h3 className="mb-3 font-mono text-[0.66rem] uppercase tracking-[0.26em] text-zinc-500">
+                  <h3 className="mb-3 font-mono text-[0.66rem] uppercase tracking-[0.26em] text-zinc-400">
                     Replies / 全部回复（{detail.replies.length}）
                   </h3>
                   {detail.replies.length === 0 ? (
-                    <div className={`${PANEL} py-9 text-center text-[0.84rem] text-zinc-500`}>还没有回复，来抢沙发吧</div>
+                    <div className={`${PANEL} py-9 text-center text-[0.84rem] text-zinc-400`}>还没有回复，来抢沙发吧</div>
                   ) : (
                     <div className="flex flex-col gap-2">
                       {detail.replies.map((r, i) => (
                         <div key={r.id} className="border border-zinc-800 bg-[#0b0b0d] px-4 py-3 transition-colors hover:border-zinc-700">
-                          <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-zinc-500">
+                          <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-zinc-400">
                             <span className="flex items-center gap-2">
-                              <span className="text-zinc-600">{String(i + 1).padStart(2, "0")}</span>
+                              <span className="text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
                               <span className="text-zinc-400">{r.author_name || "匿名"}</span>
                               <span>{fmtTime(r.created_at)}</span>
                             </span>
@@ -695,7 +693,7 @@ export default function PublicForum() {
                       </div>
                     </>
                   ) : (
-                    <div className="py-2 text-center text-[0.86rem] text-zinc-500">
+                    <div className="py-2 text-center text-[0.86rem] text-zinc-400">
                       <a href="/login" className="text-emerald-400 hover:underline">
                         登录
                       </a>{" "}
@@ -722,7 +720,7 @@ export default function PublicForum() {
               <button
                 type="button"
                 onClick={() => setComposing(false)}
-                className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-zinc-500 transition-colors hover:text-zinc-200 cursor-pointer"
+                className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-200 cursor-pointer"
               >
                 Cancel / 取消
               </button>
@@ -730,7 +728,7 @@ export default function PublicForum() {
 
             <div className={`${PANEL} flex flex-col gap-4 p-5 sm:p-6`}>
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-500">Board / 分区</span>
+                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-400">Board / 分区</span>
                 <select value={newBoard} onChange={(e) => setNewBoard(e.target.value)} className={FIELD}>
                   {COMPOSE_BOARDS.map((b) => (
                     <option key={b} value={b} className="bg-[#08080a]">
@@ -740,7 +738,7 @@ export default function PublicForum() {
                 </select>
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-500">Title / 标题（5-120 字）</span>
+                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-400">Title / 标题（5-120 字）</span>
                 <input
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value.slice(0, 120))}
@@ -749,7 +747,7 @@ export default function PublicForum() {
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-500">Content / 内容（5-10000 字）</span>
+                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-400">Content / 内容（5-10000 字）</span>
                 <textarea
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value.slice(0, 10000))}
@@ -777,7 +775,7 @@ export default function PublicForum() {
           <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
             <section className="min-w-0">
               {/* 分区 Tab */}
-              <div className="mb-5 flex gap-px overflow-x-auto border border-zinc-800 bg-zinc-800">
+              <div className="mb-5 flex gap-px overflow-x-auto border border-zinc-800 bg-zinc-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {TABS.map((t) => (
                   <button
                     key={t.key}
@@ -786,19 +784,19 @@ export default function PublicForum() {
                     className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap px-4 py-2.5 font-mono text-[0.72rem] uppercase tracking-[0.12em] transition-colors cursor-pointer ${
                       board === t.key
                         ? "bg-emerald-500/10 text-emerald-300"
-                        : "bg-[#0b0b0d] text-zinc-500 hover:bg-[#101012] hover:text-zinc-200"
+                        : "bg-[#0b0b0d] text-zinc-400 hover:bg-[#101012] hover:text-zinc-200"
                     }`}
                   >
-                    <span className={board === t.key ? "text-emerald-500/70" : "text-zinc-600"}>{t.code}</span>
+                    <span className={board === t.key ? "text-emerald-500/70" : "text-zinc-500"}>{t.code}</span>
                     <span className="font-sans tracking-normal">{t.name}</span>
                   </button>
                 ))}
               </div>
 
               {/* 工具栏 */}
-              <div className="mb-5 flex flex-wrap items-center gap-2">
-                <div className="flex min-w-[220px] flex-1 items-center gap-2 border border-zinc-800 bg-[#0b0b0d] px-3 py-1.5">
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-500" aria-hidden="true">
+              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
+                <div className="flex w-full items-center gap-2 border border-zinc-800 bg-[#0b0b0d] px-3 py-1.5 sm:min-w-[220px] sm:flex-1">
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-400" aria-hidden="true">
                     <circle cx="11" cy="11" r="7" />
                     <path d="m21 21-3.5-3.5" />
                   </svg>
@@ -812,7 +810,7 @@ export default function PublicForum() {
                       }
                     }}
                     placeholder="搜索标题或内容…"
-                    className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[0.88rem] text-zinc-100 outline-none placeholder:text-zinc-500"
+                    className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[0.88rem] text-zinc-100 outline-none placeholder:text-zinc-400"
                   />
                   <button
                     type="button"
@@ -822,31 +820,33 @@ export default function PublicForum() {
                     Search
                   </button>
                 </div>
-                {user ? (
-                  <span className="px-1 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-zinc-500">
-                    AS <span className="text-emerald-400">{user.username}</span>
-                  </span>
-                ) : (
-                  <a href="/login" className={`${BTN_GHOST} text-[0.8rem]`}>
-                    登录后可发帖
-                  </a>
-                )}
-                <button type="button" onClick={openCompose} className={BTN_PRIMARY}>
-                  <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                    <path d="M12 5v14" />
-                    <path d="M5 12h14" />
-                  </svg>
-                  发布新帖
-                </button>
+                <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
+                  {user ? (
+                    <span className="px-1 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-zinc-400">
+                      AS <span className="text-emerald-400">{user.username}</span>
+                    </span>
+                  ) : (
+                    <a href="/login" className={`${BTN_GHOST} text-[0.8rem]`}>
+                      登录后可发帖
+                    </a>
+                  )}
+                  <button type="button" onClick={openCompose} className={BTN_PRIMARY}>
+                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M12 5v14" />
+                      <path d="M5 12h14" />
+                    </svg>
+                    发布新帖
+                  </button>
+                </div>
               </div>
 
               {/* 官方公告 */}
               {board === "announcement" ? (
                 <div className={`${PANEL} divide-y divide-zinc-800`}>
                   {announcements === null ? (
-                    <div className="py-14 text-center font-mono text-[0.8rem] text-zinc-500">LOADING…</div>
+                    <div className="py-14 text-center font-mono text-[0.8rem] text-zinc-400">LOADING…</div>
                   ) : shownAnnouncements.length === 0 ? (
-                    <div className="py-14 text-center text-[0.84rem] text-zinc-500">暂无公告</div>
+                    <div className="py-14 text-center text-[0.84rem] text-zinc-400">暂无公告</div>
                   ) : (
                     shownAnnouncements.map((a, i) => (
                       <details
@@ -858,7 +858,7 @@ export default function PublicForum() {
                         }`}
                       >
                         <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-                          <span className="w-6 flex-shrink-0 font-mono text-[0.66rem] text-zinc-600">{String(i + 1).padStart(2, "0")}</span>
+                          <span className="w-6 flex-shrink-0 font-mono text-[0.66rem] text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
                           {a.pinned === 1 && (
                             <span className="flex-shrink-0 border border-red-500/40 px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400">
                               TOP
@@ -868,16 +868,16 @@ export default function PublicForum() {
                             {a.tag === "home" ? "SITE" : "FORUM"}
                           </span>
                           <span className="min-w-0 flex-1 truncate text-[0.98rem] font-semibold text-zinc-100">{a.title}</span>
-                          <span className="hidden flex-shrink-0 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-zinc-500 sm:inline">
+                          <span className="hidden flex-shrink-0 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-zinc-400 sm:inline">
                             {fmtTime(a.created_at)}
                           </span>
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-500 transition-transform group-open:rotate-180" aria-hidden="true">
+                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-400 transition-transform group-open:rotate-180" aria-hidden="true">
                             <path d="m6 9 6 6 6-6" />
                           </svg>
                         </summary>
                         <div className="border-t border-zinc-800 px-4 pb-5 pt-4 sm:px-5">
                           <p className="whitespace-pre-wrap text-[0.93rem] leading-[1.8] text-zinc-300">{a.content}</p>
-                          <div className="mt-3 font-mono text-[0.64rem] uppercase tracking-[0.1em] text-zinc-500">
+                          <div className="mt-3 font-mono text-[0.64rem] uppercase tracking-[0.1em] text-zinc-400">
                             {a.author} · {fmtTime(a.created_at)}
                           </div>
                         </div>
@@ -894,11 +894,11 @@ export default function PublicForum() {
                 >
                   <div className={`${PANEL} divide-y divide-zinc-800`}>
                     {listLoading ? (
-                      <div className="py-14 text-center font-mono text-[0.8rem] text-zinc-500">LOADING…</div>
+                      <div className="py-14 text-center font-mono text-[0.8rem] text-zinc-400">LOADING…</div>
                     ) : listError ? (
                       <div className="px-4 py-3 text-[0.86rem] text-red-300">{listError}</div>
                     ) : !items || items.length === 0 ? (
-                      <div className="py-14 text-center text-[0.84rem] text-zinc-500">
+                      <div className="py-14 text-center text-[0.84rem] text-zinc-400">
                         {keyword ? "没有找到匹配的帖子" : "这个分区还没有帖子，来发第一帖吧"}
                       </div>
                     ) : (
@@ -909,7 +909,7 @@ export default function PublicForum() {
                           onClick={() => openDetail(p.id)}
                           className="group flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-[#101012] sm:gap-4 sm:px-5 cursor-pointer"
                         >
-                          <span className="w-6 flex-shrink-0 pt-1 font-mono text-[0.66rem] text-zinc-600">
+                          <span className="w-6 flex-shrink-0 pt-1 font-mono text-[0.66rem] text-zinc-500">
                             {String((page - 1) * PAGE_SIZE + i + 1).padStart(2, "0")}
                           </span>
                           <div className="min-w-0 flex-1">
@@ -924,10 +924,10 @@ export default function PublicForum() {
                                 {p.title}
                               </span>
                             </div>
-                            <p className="line-clamp-2 whitespace-pre-wrap break-words text-[0.85rem] leading-relaxed text-zinc-500">
+                            <p className="line-clamp-2 whitespace-pre-wrap break-words text-[0.85rem] leading-relaxed text-zinc-400">
                               {p.content}
                             </p>
-                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-zinc-500">
+                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-zinc-400">
                               <span>{p.author_name || "匿名"}</span>
                               <span>{fmtTime(p.created_at)}</span>
                               <span>RE {p.reply_count}</span>
@@ -944,7 +944,7 @@ export default function PublicForum() {
                             strokeWidth="2"
                             strokeLinecap="round"
                             strokeLinejoin="round"
-                            className="mt-1 flex-shrink-0 text-zinc-600 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:text-emerald-400 group-hover:opacity-100"
+                            className="mt-1 flex-shrink-0 text-zinc-500 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:text-emerald-400 group-hover:opacity-100"
                             aria-hidden="true"
                           >
                             <path d="M5 12h14" />
@@ -965,7 +965,7 @@ export default function PublicForum() {
                       >
                         Prev
                       </button>
-                      <span className="px-2 font-mono text-[0.7rem] text-zinc-500">
+                      <span className="px-2 font-mono text-[0.7rem] text-zinc-400">
                         {String(page).padStart(2, "0")} / {String(pageCount).padStart(2, "0")}
                       </span>
                       <button
@@ -986,12 +986,12 @@ export default function PublicForum() {
             <aside className="hidden flex-col gap-4 lg:flex">
               <div className={PANEL}>
                 <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-zinc-500">Notices</span>
-                  <span className="font-mono text-[0.62rem] text-zinc-600">{shownAnnouncements.length}</span>
+                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-zinc-400">Notices</span>
+                  <span className="font-mono text-[0.62rem] text-zinc-500">{shownAnnouncements.length}</span>
                 </div>
                 <div className="divide-y divide-zinc-800">
                   {latestAnnouncements.length === 0 ? (
-                    <div className="px-4 py-6 text-[0.8rem] text-zinc-500">暂无公告</div>
+                    <div className="px-4 py-6 text-[0.8rem] text-zinc-400">暂无公告</div>
                   ) : (
                     latestAnnouncements.map((a) => (
                       <button
@@ -1007,7 +1007,7 @@ export default function PublicForum() {
                           {a.pinned === 1 && <span className="mt-0.5 h-1 w-1 flex-shrink-0 bg-red-400" />}
                           <span className="line-clamp-2 text-[0.85rem] font-medium leading-snug text-zinc-300">{a.title}</span>
                         </div>
-                        <div className="mt-1 pl-3 font-mono text-[0.62rem] uppercase tracking-[0.08em] text-zinc-500">
+                        <div className="mt-1 pl-3 font-mono text-[0.62rem] uppercase tracking-[0.08em] text-zinc-400">
                           {a.tag === "home" ? "SITE" : "FORUM"} · {fmtTime(a.created_at)}
                         </div>
                       </button>
@@ -1018,7 +1018,7 @@ export default function PublicForum() {
 
               <div className={PANEL}>
                 <div className="border-b border-zinc-800 px-4 py-2.5">
-                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-zinc-500">Index / 分区</span>
+                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-zinc-400">Index / 分区</span>
                 </div>
                 <div className="divide-y divide-zinc-800">
                   {TABS.filter((t) => t.key !== "all").map((t) => {
@@ -1032,10 +1032,10 @@ export default function PublicForum() {
                           board === t.key ? "text-emerald-300" : "text-zinc-400"
                         }`}
                       >
-                        <span className="font-mono text-[0.62rem] text-zinc-600">{meta.code}</span>
+                        <span className="font-mono text-[0.62rem] text-zinc-500">{meta.code}</span>
                         <span className="min-w-0 flex-1">
                           <span className="block text-[0.84rem] font-medium">{meta.name}</span>
-                          <span className="mt-0.5 block truncate text-[0.72rem] text-zinc-500">{meta.desc}</span>
+                          <span className="mt-0.5 block truncate text-[0.72rem] text-zinc-400">{meta.desc}</span>
                         </span>
                       </button>
                     );
@@ -1053,7 +1053,7 @@ export default function PublicForum() {
                     <span className="mb-1 block font-mono text-[0.62rem] uppercase tracking-[0.22em] text-emerald-400/80">Chat Room</span>
                     <span className="block text-[0.86rem] font-medium text-zinc-200">进入聊天室</span>
                   </span>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-500 transition-colors group-hover:text-emerald-400" aria-hidden="true">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 transition-colors group-hover:text-emerald-400" aria-hidden="true">
                     <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4h.6A8.4 8.4 0 0 1 21 11.5z" />
                   </svg>
                 </button>
