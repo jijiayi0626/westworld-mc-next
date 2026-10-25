@@ -444,7 +444,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     { href: "/user", label: "个人中心", icon: "person" },
     { href: "/user/application", label: "入服申请", icon: "edit_note" },
     { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
-    { href: "/user/forum", label: "论坛", icon: "forum" },
+    { href: "/forum", label: "论坛", icon: "forum" },
     { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
     { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
     { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },

@@ -10,6 +10,7 @@ import ServerStatus from "../../ServerStatus";
 // 与模板一共用同一套导航结构，视觉语言改为「暗夜绿光」
 export const FW2_MAIN_ITEMS = [
   { label: "首页", href: "/" },
+  { label: "论坛", href: "/forum" },
   { label: "配置", href: "/specs" },
   { label: "下载", href: "/help" },
   { label: "相册", href: "/gallery" },
@@ -21,7 +22,6 @@ export const FW2_MORE_ITEMS = [
   { label: "规则", href: "/rules" },
   { label: "FAQ", href: "/faq" },
   { label: "社区", href: "/community" },
-  { label: "论坛", href: "/forum" },
   { label: "联系", href: "/contact" },
 ];
 
