@@ -10,7 +10,7 @@ import type { ChatLimits } from "@/components/ChatPanel";
 // 聊天室按需加载：不进论坛首屏包体
 const ChatPanel = dynamic(() => import("@/components/ChatPanel"), {
   ssr: false,
-  loading: () => <div className="py-16 text-center font-mono text-[0.8rem] text-zinc-400">LOADING CHAT…</div>,
+  loading: () => <div className="py-16 text-center text-white/60 text-[0.88rem]">加载中...</div>,
 });
 
 interface HomeAnnouncement {
@@ -72,32 +72,24 @@ type ViewKey = "board" | "chat";
 
 const PAGE_SIZE = 15;
 
-const TABS: { key: BoardKey; name: string; code: string }[] = [
-  { key: "all", name: "全部", code: "ALL" },
-  { key: "general", name: "综合讨论", code: "GEN" },
-  { key: "announcement", name: "官方公告", code: "ANN" },
-  { key: "qa", name: "问答求助", code: "QA" },
-  { key: "share", name: "作品分享", code: "SHR" },
-  { key: "guide", name: "攻略教程", code: "GDE" },
+const TABS: { key: BoardKey; name: string }[] = [
+  { key: "all", name: "全部" },
+  { key: "general", name: "综合讨论" },
+  { key: "announcement", name: "官方公告" },
+  { key: "qa", name: "问答求助" },
+  { key: "share", name: "作品分享" },
+  { key: "guide", name: "攻略教程" },
 ];
 
-const BOARD_META: Record<string, { name: string; code: string; desc: string }> = {
-  general: { name: "综合讨论", code: "GEN", desc: "日常闲聊与自由讨论" },
-  announcement: { name: "官方公告", code: "ANN", desc: "维护、活动与重要通知" },
-  qa: { name: "问答求助", code: "QA", desc: "游戏问题与互助解答" },
-  share: { name: "作品分享", code: "SHR", desc: "建筑、截图与视频创作" },
-  guide: { name: "攻略教程", code: "GDE", desc: "玩法攻略与生存技巧" },
+const BOARD_META: Record<string, { name: string; cls: string }> = {
+  general: { name: "综合讨论", cls: "bg-sky-500/15 border-sky-400/40 text-sky-300" },
+  announcement: { name: "官方公告", cls: "bg-amber-500/15 border-amber-400/40 text-amber-300" },
+  qa: { name: "问答求助", cls: "bg-violet-500/15 border-violet-400/40 text-violet-300" },
+  share: { name: "作品分享", cls: "bg-pink-500/15 border-pink-400/40 text-pink-300" },
+  guide: { name: "攻略教程", cls: "bg-accent-emerald/15 border-accent-emerald/40 text-accent-emerald" },
 };
 
 const COMPOSE_BOARDS = ["general", "qa", "share", "guide"];
-
-const PANEL = "border border-zinc-800 bg-[#0b0b0d]";
-const FIELD =
-  "w-full rounded-[2px] border border-zinc-800 bg-[#08080a] px-3.5 py-2.5 text-[0.92rem] text-zinc-100 placeholder:text-zinc-400 transition-colors focus:border-emerald-500/60 focus:outline-none";
-const BTN_PRIMARY =
-  "inline-flex h-9 items-center justify-center gap-1.5 rounded-[2px] bg-emerald-500 px-4 text-[0.82rem] font-semibold text-[#04120c] transition-colors hover:bg-emerald-400 disabled:opacity-40 cursor-pointer";
-const BTN_GHOST =
-  "inline-flex h-9 items-center justify-center rounded-[2px] border border-zinc-800 bg-transparent px-4 text-[0.82rem] text-zinc-400 transition-colors hover:border-zinc-600 hover:text-zinc-100 cursor-pointer";
 
 function ts(s: string): number {
   const d = new Date(s.replace(" ", "T") + "Z");
@@ -117,25 +109,8 @@ function fmtTime(s: string): string {
   });
 }
 
-function boardMeta(board: string): { name: string; code: string; desc: string } {
-  return BOARD_META[board] || { name: board || "其他", code: "ETC", desc: "其他讨论" };
-}
-
-/** 分区标签：工业风描边小标签 */
-function BoardTag({ board, className = "" }: { board: string; className?: string }) {
-  const meta = boardMeta(board);
-  const active = board === "announcement";
-  return (
-    <span
-      className={`inline-flex items-center gap-1.5 border px-1.5 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.14em] ${
-        active ? "border-emerald-500/40 text-emerald-400" : "border-zinc-700 text-zinc-400"
-      } ${className}`}
-    >
-      <span className={`h-1 w-1 ${active ? "bg-emerald-400" : "bg-zinc-500"}`} />
-      {meta.code}
-      <span className="font-sans tracking-normal">{meta.name}</span>
-    </span>
-  );
+function boardMeta(board: string): { name: string; cls: string } {
+  return BOARD_META[board] || { name: board || "其他", cls: "bg-white/10 border-white/20 text-white/70" };
 }
 
 /** 官网公开论坛页：分区浏览、帖子详情、登录后发帖 / 回帖 / 点赞；含聊天室 */
@@ -215,8 +190,12 @@ export default function PublicForum() {
     const postId = Number(params.get("post")) || 0;
     const focus = params.get("focus") || "";
     if (params.get("tab") === "chat") setView("chat");
-    if (postId > 0) setDetailId(postId);
+    if (postId > 0) {
+      setView("board");
+      setDetailId(postId);
+    }
     if (focus) {
+      setView("board");
       setFocusKey(focus);
       setBoard("announcement");
     }
@@ -300,7 +279,6 @@ export default function PublicForum() {
   }, [focusKey, board, announcements]);
 
   const shownAnnouncements = useMemo(() => announcements ?? [], [announcements]);
-  const latestAnnouncements = useMemo(() => shownAnnouncements.slice(0, 4), [shownAnnouncements]);
 
   const switchView = (v: ViewKey) => {
     setView(v);
@@ -323,7 +301,6 @@ export default function PublicForum() {
   };
 
   const openDetail = (id: number) => {
-    setView("board");
     setComposing(false);
     setDetailId(id);
     setActionError("");
@@ -344,7 +321,6 @@ export default function PublicForum() {
       window.location.href = "/login";
       return;
     }
-    setView("board");
     setDetailId(null);
     setDetail(null);
     setComposing(true);
@@ -464,109 +440,67 @@ export default function PublicForum() {
   const canDeletePost = !!detail && !!user && (user.role === "admin" || user.id === detail.post.author_id);
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#08080a] text-zinc-300">
+    <main className="forum-public-page relative bg-bg-dark min-h-screen overflow-hidden">
       <div className="h-nav" />
-
-      {/* 背景：技术网格 + 顶部光源 */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-0"
-        style={{
-          backgroundImage:
-            "linear-gradient(to right, rgba(255,255,255,0.032) 1px, transparent 1px), linear-gradient(to bottom, rgba(255,255,255,0.032) 1px, transparent 1px)",
-          backgroundSize: "72px 72px",
-          maskImage: "radial-gradient(ellipse at 50% 0%, #000 30%, transparent 78%)",
-          WebkitMaskImage: "radial-gradient(ellipse at 50% 0%, #000 30%, transparent 78%)",
-        }}
-      />
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute -top-40 left-1/2 h-[420px] w-[760px] -translate-x-1/2 rounded-full bg-emerald-500/[0.07] blur-[120px]"
-      />
-
-      <div className="relative z-[2] container-mc py-10 sm:py-14">
-        {/* 头部 */}
-        <header className="mb-8 flex flex-col gap-6 border-b border-zinc-800 pb-7 md:flex-row md:items-end md:justify-between">
-          <div>
-            <div className="mb-3 flex items-center gap-3 font-mono text-[0.64rem] uppercase tracking-[0.32em] text-emerald-400/90">
-              <span className="inline-block h-px w-8 bg-emerald-500/60" />
-              Westworld / Community
-            </div>
-            <h1 className="text-[clamp(2rem,5.4vw,3.3rem)] font-black leading-[0.95] tracking-tight text-white">
-              社区论坛
-            </h1>
-            <p className="mt-3 max-w-[560px] text-[0.92rem] leading-relaxed text-zinc-400">
-              分区讨论、玩家发帖、问答互助与作品分享；登录后可发帖、回帖、点赞，也可进入聊天室实时交流。
-            </p>
-          </div>
-
-          <dl className="grid grid-cols-3 gap-px overflow-hidden border border-zinc-800 bg-zinc-800 text-center md:min-w-[300px]">
-            <div className="bg-[#0b0b0d] px-4 py-3">
-              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-400">Boards</dt>
-              <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-zinc-100">05</dd>
-            </div>
-            <div className="bg-[#0b0b0d] px-4 py-3">
-              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-400">Threads</dt>
-              <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-zinc-100">{total || 0}</dd>
-            </div>
-            <div className="bg-[#0b0b0d] px-4 py-3">
-              <dt className="font-mono text-[0.6rem] uppercase tracking-[0.24em] text-zinc-400">Access</dt>
-              <dd className="mt-1 font-mono text-[1.15rem] font-semibold text-emerald-400">PUBLIC</dd>
-            </div>
-          </dl>
-        </header>
-
-        {/* 一级视图：讨论区 / 聊天室 */}
-        <div className="mb-7 flex flex-wrap items-center gap-2">
-          {([
-            { key: "board" as ViewKey, label: "讨论区" },
-            { key: "chat" as ViewKey, label: "聊天室" },
-          ]).filter((v) => v.key !== "chat" || showChat).map((v) => (
-            <button
-              key={v.key}
-              type="button"
-              onClick={() => switchView(v.key)}
-              className={`border px-4 py-2 font-mono text-[0.72rem] uppercase tracking-[0.18em] transition-colors cursor-pointer ${
-                view === v.key
-                  ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                  : "border-zinc-800 text-zinc-400 hover:border-zinc-600 hover:text-zinc-200"
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
-          <span className="ml-auto hidden font-mono text-[0.62rem] uppercase tracking-[0.22em] text-zinc-500 sm:inline">
-            Forum / v1.0
-          </span>
+      <div className="absolute inset-0 pointer-events-none rules-glow" aria-hidden="true" />
+      <div className="relative z-[2] container-mc py-14">
+        <div className="section-header mb-8 text-center">
+          <h1 className="section-title text-[clamp(2rem,5vw,3rem)] font-extrabold text-white mb-4 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+            社区论坛
+          </h1>
+          <p className="text-[1.1rem] text-white/80 max-w-[660px] mx-auto">
+            分区讨论、玩家发帖、问答互助与作品分享；登录后可发帖、回帖与点赞
+          </p>
         </div>
 
         {notice && (
-          <div className="mb-5 border border-emerald-500/30 bg-emerald-500/[0.06] px-4 py-3 font-mono text-[0.78rem] text-emerald-300">
+          <div className="max-w-[860px] mx-auto mb-4 px-4 py-3 rounded-[12px] bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-[0.88rem]">
             {notice}
+          </div>
+        )}
+
+        {/* 一级视图：讨论区 / 聊天室 */}
+        {showChat && !detailId && !composing && (
+          <div className="flex justify-center mb-5">
+            <div className="inline-flex gap-1 bg-white/5 border border-white/10 rounded-[12px] p-1 backdrop-blur-glass">
+              <button
+                type="button"
+                onClick={() => switchView("board")}
+                className={`px-4 py-2 rounded-[9px] text-[0.86rem] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  view === "board"
+                    ? "bg-accent-emerald text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]"
+                    : "text-white/70 hover:text-white"
+                }`}
+              >
+                讨论区
+              </button>
+              <button
+                type="button"
+                onClick={() => switchView("chat")}
+                className={`px-4 py-2 rounded-[9px] text-[0.86rem] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+                  view === "chat"
+                    ? "bg-accent-emerald text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]"
+                    : "text-white/70 hover:text-white"
+                }`}
+              >
+                聊天室
+              </button>
+            </div>
           </div>
         )}
 
         {view === "chat" ? (
           <motion.section
-            key="chat"
-            className="max-w-[880px]"
-            initial={{ opacity: 0, y: 8 }}
+            className="max-w-[860px] mx-auto"
+            initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.24 }}
+            transition={{ duration: 0.26 }}
           >
-            <div className={PANEL}>
-              <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.26em] text-zinc-400">Chat / 聊天室</span>
-                <span className="font-mono text-[0.62rem] text-zinc-500">polling 4s</span>
-              </div>
-              <div className="bg-[#f4f4f5] p-3 sm:p-4">
-                <ChatPanel />
-              </div>
-            </div>
+            <ChatPanel />
           </motion.section>
         ) : detailId ? (
           <motion.section
-            className="mx-auto max-w-[860px]"
+            className="max-w-[860px] mx-auto"
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.26 }}
@@ -574,60 +508,62 @@ export default function PublicForum() {
             <button
               type="button"
               onClick={closeDetail}
-              className="mb-5 inline-flex items-center gap-1.5 font-mono text-[0.72rem] uppercase tracking-[0.18em] text-zinc-400 transition-colors hover:text-emerald-400 cursor-pointer"
+              className="mb-5 inline-flex items-center gap-1.5 text-[0.88rem] text-white/60 hover:text-accent-emerald transition-colors cursor-pointer"
             >
-              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                 <path d="M19 12H5" />
                 <path d="m12 19-7-7 7-7" />
               </svg>
-              Back / 返回列表
+              返回列表
             </button>
 
             {detailLoading ? (
-              <div className={`${PANEL} py-14 text-center font-mono text-[0.8rem] text-zinc-400`}>LOADING…</div>
+              <div className="text-center text-white/60 py-12">加载中...</div>
             ) : detailError ? (
-              <div className="border border-red-500/30 bg-red-500/[0.06] px-4 py-3 text-[0.86rem] text-red-300">
+              <div className="px-4 py-3 rounded-[10px] bg-red-500/10 border border-red-400/30 text-red-300 text-[0.88rem]">
                 {detailError}
               </div>
             ) : detail ? (
               <>
-                <article className={`${PANEL} p-6 sm:p-8`}>
-                  <div className="mb-3 flex flex-wrap items-center gap-2">
+                <article className="bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6">
+                  <div className="flex items-center gap-2 mb-3 flex-wrap">
                     {detail.post.pinned === 1 && (
-                      <span className="border border-red-500/40 px-1.5 py-0.5 font-mono text-[0.62rem] uppercase tracking-[0.14em] text-red-400">
-                        PINNED / 置顶
+                      <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 border border-red-400/40 text-red-300 text-[0.68rem] font-semibold">
+                        置顶
                       </span>
                     )}
-                    <BoardTag board={detail.post.board} />
+                    <span className={`px-1.5 py-0.5 rounded-full border text-[0.68rem] font-semibold ${boardMeta(detail.post.board).cls}`}>
+                      {boardMeta(detail.post.board).name}
+                    </span>
                   </div>
-                  <h2 className="mb-3 break-words text-[1.45rem] font-bold leading-snug text-white">{detail.post.title}</h2>
-                  <div className="mb-6 flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-zinc-800 pb-4 font-mono text-[0.68rem] uppercase tracking-[0.12em] text-zinc-400">
-                    <span>{detail.post.author_name || "匿名"}</span>
-                    <span>{fmtTime(detail.post.created_at)}</span>
-                    <span>VIEW {detail.post.views ?? 0}</span>
-                    <span>REPLY {detail.post.reply_count}</span>
+                  <h2 className="text-[1.4rem] font-bold text-white mb-3 break-words">{detail.post.title}</h2>
+                  <div className="text-[0.78rem] text-white/45 mb-5">
+                    {detail.post.author_name || "匿名"} · {fmtTime(detail.post.created_at)}
                   </div>
-                  <p className="whitespace-pre-wrap break-words text-[0.94rem] leading-[1.8] text-zinc-300">
+                  <p className="text-[0.95rem] text-white/80 whitespace-pre-wrap leading-relaxed break-words">
                     {detail.post.content}
                   </p>
-                  <div className="mt-7 flex flex-wrap items-center gap-3 border-t border-zinc-800 pt-5">
+                  <div className="mt-6 flex items-center gap-3 flex-wrap">
                     <button
                       type="button"
                       onClick={() => void toggleLike()}
                       disabled={liking}
-                      className={`inline-flex items-center gap-1.5 border px-3.5 py-2 text-[0.82rem] font-medium transition-colors cursor-pointer disabled:opacity-50 ${
+                      className={`inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] border text-[0.85rem] font-medium transition-colors cursor-pointer disabled:opacity-50 ${
                         detail.liked
-                          ? "border-emerald-500/50 bg-emerald-500/10 text-emerald-300"
-                          : "border-zinc-800 text-zinc-400 hover:border-emerald-500/40 hover:text-zinc-100"
+                          ? "bg-accent-emerald/20 border-accent-emerald/50 text-accent-emerald"
+                          : "bg-white/5 border-white/15 text-white/70 hover:text-white hover:border-accent-emerald/40"
                       }`}
                     >
-                      <svg viewBox="0 0 24 24" width="15" height="15" fill={detail.liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="16" height="16" fill={detail.liked ? "currentColor" : "none"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.7l-1-1.1a5.5 5.5 0 0 0-7.8 7.8l1 1.1L12 21l7.8-7.5 1-1.1a5.5 5.5 0 0 0 0-7.8z" />
                       </svg>
                       {detail.liked ? "已点赞" : "点赞"} {detail.post.like_count}
                     </button>
+                    <span className="text-white/40 text-[0.8rem]">
+                      回复 {detail.post.reply_count} · 浏览 {detail.post.views ?? 0}
+                    </span>
                     {!user && (
-                      <a href="/login" className="font-mono text-[0.68rem] uppercase tracking-[0.12em] text-zinc-400 transition-colors hover:text-emerald-400">
+                      <a href="/login" className="text-[0.8rem] text-white/50 hover:text-accent-emerald transition-colors">
                         登录后可点赞
                       </a>
                     )}
@@ -635,7 +571,7 @@ export default function PublicForum() {
                       <button
                         type="button"
                         onClick={() => void removePost()}
-                        className="ml-auto text-[0.8rem] text-red-400/80 transition-colors hover:text-red-400 cursor-pointer"
+                        className="ml-auto text-[0.82rem] text-red-300/80 hover:text-red-300 transition-colors cursor-pointer"
                       >
                         删除帖子
                       </button>
@@ -643,40 +579,40 @@ export default function PublicForum() {
                   </div>
                 </article>
 
-                <section className="mt-7">
-                  <h3 className="mb-3 font-mono text-[0.66rem] uppercase tracking-[0.26em] text-zinc-400">
-                    Replies / 全部回复（{detail.replies.length}）
+                <section className="mt-6">
+                  <h3 className="text-white/80 font-semibold mb-3 text-[0.95rem]">
+                    全部回复（{detail.replies.length}）
                   </h3>
                   {detail.replies.length === 0 ? (
-                    <div className={`${PANEL} py-9 text-center text-[0.84rem] text-zinc-400`}>还没有回复，来抢沙发吧</div>
+                    <div className="text-center text-white/50 py-8 text-[0.85rem] bg-white/5 border border-white/10 rounded-xl">
+                      还没有回复，来抢沙发吧～
+                    </div>
                   ) : (
-                    <div className="flex flex-col gap-2">
-                      {detail.replies.map((r, i) => (
-                        <div key={r.id} className="border border-zinc-800 bg-[#0b0b0d] px-4 py-3 transition-colors hover:border-zinc-700">
-                          <div className="mb-1 flex items-center justify-between gap-2 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-zinc-400">
-                            <span className="flex items-center gap-2">
-                              <span className="text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
-                              <span className="text-zinc-400">{r.author_name || "匿名"}</span>
-                              <span>{fmtTime(r.created_at)}</span>
+                    <div className="flex flex-col gap-2.5">
+                      {detail.replies.map((r) => (
+                        <div key={r.id} className="bg-white/5 border border-white/10 rounded-xl px-4 py-3">
+                          <div className="flex items-center justify-between gap-2 text-[0.75rem] text-white/45 mb-1">
+                            <span>
+                              {r.author_name || "匿名"} · {fmtTime(r.created_at)}
                             </span>
                             {user && (user.role === "admin" || user.id === r.author_id) && (
                               <button
                                 type="button"
                                 onClick={() => void removeReply(r.id)}
-                                className="text-red-400/70 transition-colors hover:text-red-400 cursor-pointer"
+                                className="text-red-300/70 hover:text-red-300 transition-colors cursor-pointer"
                               >
                                 删除
                               </button>
                             )}
                           </div>
-                          <p className="whitespace-pre-wrap break-words text-[0.9rem] leading-relaxed text-zinc-300">{r.content}</p>
+                          <p className="text-[0.9rem] text-white/80 whitespace-pre-wrap break-words">{r.content}</p>
                         </div>
                       ))}
                     </div>
                   )}
                 </section>
 
-                <div className={`${PANEL} mt-6 p-4`}>
+                <div className="mt-5 bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-4">
                   {user ? (
                     <>
                       <textarea
@@ -684,17 +620,22 @@ export default function PublicForum() {
                         onChange={(e) => setReplyText(e.target.value.slice(0, 5000))}
                         rows={4}
                         placeholder="写下你的回复…（2-5000 字）"
-                        className={`${FIELD} resize-y`}
+                        className="w-full resize-y bg-white/5 border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white text-[0.92rem] placeholder:text-white/35 focus:outline-none focus:border-accent-emerald/60 transition-colors"
                       />
-                      <div className="mt-3 flex items-center justify-end">
-                        <button type="button" onClick={() => void submitReply()} disabled={submitting} className={BTN_PRIMARY}>
+                      <div className="flex items-center justify-end mt-2">
+                        <button
+                          type="button"
+                          onClick={() => void submitReply()}
+                          disabled={submitting}
+                          className="h-9 px-5 rounded-[10px] bg-accent-emerald text-white font-semibold text-[0.86rem] disabled:opacity-40 transition-colors hover:bg-emerald-600 cursor-pointer"
+                        >
                           {submitting ? "提交中" : "发表回复"}
                         </button>
                       </div>
                     </>
                   ) : (
-                    <div className="py-2 text-center text-[0.86rem] text-zinc-400">
-                      <a href="/login" className="text-emerald-400 hover:underline">
+                    <div className="text-center py-2 text-white/60 text-[0.88rem]">
+                      <a href="/login" className="text-accent-emerald hover:underline">
                         登录
                       </a>{" "}
                       后参与回复
@@ -703,7 +644,7 @@ export default function PublicForum() {
                 </div>
 
                 {actionError && (
-                  <div className="mt-4 border border-red-500/30 bg-red-500/[0.06] px-4 py-3 text-[0.86rem] text-red-300">
+                  <div className="mt-4 px-4 py-3 rounded-[10px] bg-red-500/10 border border-red-400/30 text-red-300 text-[0.88rem]">
                     {actionError}
                   </div>
                 )}
@@ -711,355 +652,283 @@ export default function PublicForum() {
             ) : null}
           </motion.section>
         ) : composing ? (
-          <section className="mx-auto max-w-[760px]">
-            <div className="mb-4 flex items-end justify-between border-b border-zinc-800 pb-3">
-              <div>
-                <div className="mb-1.5 font-mono text-[0.62rem] uppercase tracking-[0.28em] text-emerald-400/80">New Thread</div>
-                <h2 className="text-[1.15rem] font-bold text-white">发布新帖</h2>
-              </div>
+          <section className="max-w-[720px] mx-auto">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-white font-bold text-[1.1rem]">发布新帖</h2>
               <button
                 type="button"
                 onClick={() => setComposing(false)}
-                className="font-mono text-[0.7rem] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:text-zinc-200 cursor-pointer"
+                className="text-[0.85rem] text-white/60 hover:text-white transition-colors cursor-pointer"
               >
-                Cancel / 取消
+                取消
               </button>
             </div>
-
-            <div className={`${PANEL} flex flex-col gap-4 p-5 sm:p-6`}>
+            <div className="bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-5 flex flex-col gap-4">
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-400">Board / 分区</span>
-                <select value={newBoard} onChange={(e) => setNewBoard(e.target.value)} className={FIELD}>
+                <span className="text-white/70 text-[0.85rem] font-medium">分区</span>
+                <select
+                  value={newBoard}
+                  onChange={(e) => setNewBoard(e.target.value)}
+                  className="w-full bg-[#0f172a] border border-white/15 rounded-[10px] px-3.5 py-2.5 text-white text-[0.92rem] focus:outline-none focus:border-accent-emerald/60"
+                >
                   {COMPOSE_BOARDS.map((b) => (
-                    <option key={b} value={b} className="bg-[#08080a]">
-                      {boardMeta(b).code} · {boardMeta(b).name}
+                    <option key={b} value={b} className="bg-[#0f172a]">
+                      {boardMeta(b).name}
                     </option>
                   ))}
                 </select>
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-400">Title / 标题（5-120 字）</span>
+                <span className="text-white/70 text-[0.85rem] font-medium">标题（5-120 字）</span>
                 <input
                   value={newTitle}
                   onChange={(e) => setNewTitle(e.target.value.slice(0, 120))}
                   placeholder="一句话说明你的帖子主题"
-                  className={FIELD}
+                  className="w-full bg-white/5 border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white text-[0.95rem] placeholder:text-white/35 focus:outline-none focus:border-accent-emerald/60 transition-colors"
                 />
               </label>
               <label className="flex flex-col gap-1.5">
-                <span className="font-mono text-[0.64rem] uppercase tracking-[0.2em] text-zinc-400">Content / 内容（5-10000 字）</span>
+                <span className="text-white/70 text-[0.85rem] font-medium">内容（5-10000 字）</span>
                 <textarea
                   value={newContent}
                   onChange={(e) => setNewContent(e.target.value.slice(0, 10000))}
                   rows={10}
                   placeholder="详细描述你想讨论的内容…"
-                  className={`${FIELD} resize-y`}
+                  className="w-full resize-y bg-white/5 border border-white/10 rounded-[10px] px-3.5 py-2.5 text-white text-[0.92rem] placeholder:text-white/35 focus:outline-none focus:border-accent-emerald/60 transition-colors"
                 />
               </label>
               {actionError && (
-                <div className="border border-red-500/30 bg-red-500/[0.06] px-4 py-3 text-[0.86rem] text-red-300">
+                <div className="px-4 py-3 rounded-[10px] bg-red-500/10 border border-red-400/30 text-red-300 text-[0.88rem]">
                   {actionError}
                 </div>
               )}
-              <div className="flex items-center justify-end gap-2 border-t border-zinc-800 pt-4">
-                <button type="button" onClick={() => setComposing(false)} className={BTN_GHOST}>
+              <div className="flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setComposing(false)}
+                  className="h-9 px-4 rounded-[10px] bg-white/5 border border-white/15 text-white/70 text-[0.86rem] hover:text-white transition-colors cursor-pointer"
+                >
                   取消
                 </button>
-                <button type="button" onClick={() => void submitPost()} disabled={submitting} className={BTN_PRIMARY}>
+                <button
+                  type="button"
+                  onClick={() => void submitPost()}
+                  disabled={submitting}
+                  className="h-9 px-5 rounded-[10px] bg-accent-emerald text-white font-semibold text-[0.86rem] disabled:opacity-40 transition-colors hover:bg-emerald-600 cursor-pointer"
+                >
                   {submitting ? "发布中" : "发布"}
                 </button>
               </div>
             </div>
           </section>
         ) : (
-          <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_290px]">
-            <section className="min-w-0">
-              {/* 分区 Tab */}
-              <div className="mb-5 flex gap-px overflow-x-auto border border-zinc-800 bg-zinc-800 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          <section className="max-w-[860px] mx-auto">
+            {/* 分区 Tab */}
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex gap-1 bg-white/5 border border-white/10 rounded-[12px] p-1 backdrop-blur-glass max-w-full overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
                 {TABS.map((t) => (
                   <button
                     key={t.key}
                     type="button"
                     onClick={() => changeBoard(t.key)}
-                    className={`flex flex-1 items-center justify-center gap-2 whitespace-nowrap px-4 py-2.5 font-mono text-[0.72rem] uppercase tracking-[0.12em] transition-colors cursor-pointer ${
+                    className={`px-4 py-2 rounded-[9px] text-[0.86rem] font-medium whitespace-nowrap transition-colors cursor-pointer ${
                       board === t.key
-                        ? "bg-emerald-500/10 text-emerald-300"
-                        : "bg-[#0b0b0d] text-zinc-400 hover:bg-[#101012] hover:text-zinc-200"
+                        ? "bg-accent-emerald text-white shadow-[0_4px_15px_rgba(16,185,129,0.3)]"
+                        : "text-white/70 hover:text-white"
                     }`}
                   >
-                    <span className={board === t.key ? "text-emerald-500/70" : "text-zinc-500"}>{t.code}</span>
-                    <span className="font-sans tracking-normal">{t.name}</span>
+                    {t.name}
                   </button>
                 ))}
               </div>
+            </div>
 
-              {/* 工具栏 */}
-              <div className="mb-5 flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center">
-                <div className="flex w-full items-center gap-2 border border-zinc-800 bg-[#0b0b0d] px-3 py-1.5 sm:min-w-[220px] sm:flex-1">
-                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-400" aria-hidden="true">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m21 21-3.5-3.5" />
-                  </svg>
-                  <input
-                    value={keywordInput}
-                    onChange={(e) => setKeywordInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" && !e.nativeEvent.isComposing) {
-                        e.preventDefault();
-                        doSearch();
-                      }
-                    }}
-                    placeholder="搜索标题或内容…"
-                    className="min-w-0 flex-1 border-0 bg-transparent py-1 text-[0.88rem] text-zinc-100 outline-none placeholder:text-zinc-400"
-                  />
-                  <button
-                    type="button"
-                    onClick={doSearch}
-                    className="border border-zinc-800 px-2.5 py-1 font-mono text-[0.64rem] uppercase tracking-[0.14em] text-zinc-400 transition-colors hover:border-emerald-500/40 hover:text-emerald-300 cursor-pointer"
-                  >
-                    Search
-                  </button>
-                </div>
-                <div className="flex w-full items-center justify-end gap-2 sm:w-auto">
-                  {user ? (
-                    <span className="px-1 font-mono text-[0.66rem] uppercase tracking-[0.1em] text-zinc-400">
-                      AS <span className="text-emerald-400">{user.username}</span>
-                    </span>
-                  ) : (
-                    <a href="/login" className={`${BTN_GHOST} text-[0.8rem]`}>
-                      登录后可发帖
-                    </a>
-                  )}
-                  <button type="button" onClick={openCompose} className={BTN_PRIMARY}>
-                    <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                      <path d="M12 5v14" />
-                      <path d="M5 12h14" />
-                    </svg>
-                    发布新帖
-                  </button>
-                </div>
-              </div>
-
-              {/* 官方公告 */}
-              {board === "announcement" ? (
-                <div className={`${PANEL} divide-y divide-zinc-800`}>
-                  {announcements === null ? (
-                    <div className="py-14 text-center font-mono text-[0.8rem] text-zinc-400">LOADING…</div>
-                  ) : shownAnnouncements.length === 0 ? (
-                    <div className="py-14 text-center text-[0.84rem] text-zinc-400">暂无公告</div>
-                  ) : (
-                    shownAnnouncements.map((a, i) => (
-                      <details
-                        key={a.key}
-                        id={`ann-${a.key}`}
-                        open={focusKey === a.key ? true : undefined}
-                        className={`group transition-colors ${
-                          focusKey === a.key ? "bg-emerald-500/[0.05]" : "hover:bg-[#101012]"
-                        }`}
-                      >
-                        <summary className="flex cursor-pointer list-none flex-wrap items-center gap-3 px-4 py-4 sm:px-5 [&::-webkit-details-marker]:hidden">
-                          <span className="w-6 flex-shrink-0 font-mono text-[0.66rem] text-zinc-500">{String(i + 1).padStart(2, "0")}</span>
-                          {a.pinned === 1 && (
-                            <span className="flex-shrink-0 border border-red-500/40 px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400">
-                              TOP
-                            </span>
-                          )}
-                          <span className="flex-shrink-0 border border-zinc-700 px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-zinc-400">
-                            {a.tag === "home" ? "SITE" : "FORUM"}
-                          </span>
-                          <span className="min-w-0 flex-1 truncate text-[0.98rem] font-semibold text-zinc-100">{a.title}</span>
-                          <span className="hidden flex-shrink-0 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-zinc-400 sm:inline">
-                            {fmtTime(a.created_at)}
-                          </span>
-                          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-zinc-400 transition-transform group-open:rotate-180" aria-hidden="true">
-                            <path d="m6 9 6 6 6-6" />
-                          </svg>
-                        </summary>
-                        <div className="border-t border-zinc-800 px-4 pb-5 pt-4 sm:px-5">
-                          <p className="whitespace-pre-wrap text-[0.93rem] leading-[1.8] text-zinc-300">{a.content}</p>
-                          <div className="mt-3 font-mono text-[0.64rem] uppercase tracking-[0.1em] text-zinc-400">
-                            {a.author} · {fmtTime(a.created_at)}
-                          </div>
-                        </div>
-                      </details>
-                    ))
-                  )}
-                </div>
-              ) : (
-                <motion.div
-                  key={`${board}-${page}-${keyword}-${items?.length ?? 0}`}
-                  initial={{ opacity: 0, y: 8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.24 }}
-                >
-                  <div className={`${PANEL} divide-y divide-zinc-800`}>
-                    {listLoading ? (
-                      <div className="py-14 text-center font-mono text-[0.8rem] text-zinc-400">LOADING…</div>
-                    ) : listError ? (
-                      <div className="px-4 py-3 text-[0.86rem] text-red-300">{listError}</div>
-                    ) : !items || items.length === 0 ? (
-                      <div className="py-14 text-center text-[0.84rem] text-zinc-400">
-                        {keyword ? "没有找到匹配的帖子" : "这个分区还没有帖子，来发第一帖吧"}
-                      </div>
-                    ) : (
-                      items.map((p, i) => (
-                        <button
-                          key={p.id}
-                          type="button"
-                          onClick={() => openDetail(p.id)}
-                          className="group flex w-full items-start gap-3 px-4 py-4 text-left transition-colors hover:bg-[#101012] sm:gap-4 sm:px-5 cursor-pointer"
-                        >
-                          <span className="w-6 flex-shrink-0 pt-1 font-mono text-[0.66rem] text-zinc-500">
-                            {String((page - 1) * PAGE_SIZE + i + 1).padStart(2, "0")}
-                          </span>
-                          <div className="min-w-0 flex-1">
-                            <div className="mb-1.5 flex flex-wrap items-center gap-2">
-                              {p.pinned === 1 && (
-                                <span className="flex-shrink-0 border border-red-500/40 px-1.5 py-0.5 font-mono text-[0.6rem] uppercase tracking-[0.14em] text-red-400">
-                                  TOP
-                                </span>
-                              )}
-                              <BoardTag board={p.board} />
-                              <span className="min-w-0 flex-1 truncate text-[0.98rem] font-semibold text-zinc-100 transition-colors group-hover:text-emerald-300">
-                                {p.title}
-                              </span>
-                            </div>
-                            <p className="line-clamp-2 whitespace-pre-wrap break-words text-[0.85rem] leading-relaxed text-zinc-400">
-                              {p.content}
-                            </p>
-                            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-[0.64rem] uppercase tracking-[0.08em] text-zinc-400">
-                              <span>{p.author_name || "匿名"}</span>
-                              <span>{fmtTime(p.created_at)}</span>
-                              <span>RE {p.reply_count}</span>
-                              <span>LIKE {p.like_count}</span>
-                              <span>VIEW {p.views ?? 0}</span>
-                            </div>
-                          </div>
-                          <svg
-                            viewBox="0 0 24 24"
-                            width="15"
-                            height="15"
-                            fill="none"
-                            stroke="currentColor"
-                            strokeWidth="2"
-                            strokeLinecap="round"
-                            strokeLinejoin="round"
-                            className="mt-1 flex-shrink-0 text-zinc-500 opacity-0 transition-all group-hover:translate-x-0.5 group-hover:text-emerald-400 group-hover:opacity-100"
-                            aria-hidden="true"
-                          >
-                            <path d="M5 12h14" />
-                            <path d="m12 5 7 7-7 7" />
-                          </svg>
-                        </button>
-                      ))
-                    )}
-                  </div>
-
-                  {!listLoading && !listError && total > PAGE_SIZE && (
-                    <div className="mt-4 flex items-center justify-center gap-2">
-                      <button
-                        type="button"
-                        disabled={page <= 1}
-                        onClick={() => setPage((p) => Math.max(1, p - 1))}
-                        className={`${BTN_GHOST} font-mono text-[0.7rem] uppercase tracking-[0.12em]`}
-                      >
-                        Prev
-                      </button>
-                      <span className="px-2 font-mono text-[0.7rem] text-zinc-400">
-                        {String(page).padStart(2, "0")} / {String(pageCount).padStart(2, "0")}
-                      </span>
-                      <button
-                        type="button"
-                        disabled={page >= pageCount}
-                        onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
-                        className={`${BTN_GHOST} font-mono text-[0.7rem] uppercase tracking-[0.12em]`}
-                      >
-                        Next
-                      </button>
-                    </div>
-                  )}
-                </motion.div>
-              )}
-            </section>
-
-            {/* 侧栏 */}
-            <aside className="hidden flex-col gap-4 lg:flex">
-              <div className={PANEL}>
-                <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-2.5">
-                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-zinc-400">Notices</span>
-                  <span className="font-mono text-[0.62rem] text-zinc-500">{shownAnnouncements.length}</span>
-                </div>
-                <div className="divide-y divide-zinc-800">
-                  {latestAnnouncements.length === 0 ? (
-                    <div className="px-4 py-6 text-[0.8rem] text-zinc-400">暂无公告</div>
-                  ) : (
-                    latestAnnouncements.map((a) => (
-                      <button
-                        key={a.key}
-                        type="button"
-                        onClick={() => {
-                          changeBoard("announcement");
-                          setFocusKey(a.key);
-                        }}
-                        className="block w-full px-4 py-3 text-left transition-colors hover:bg-[#101012] cursor-pointer"
-                      >
-                        <div className="flex items-start gap-2">
-                          {a.pinned === 1 && <span className="mt-0.5 h-1 w-1 flex-shrink-0 bg-red-400" />}
-                          <span className="line-clamp-2 text-[0.85rem] font-medium leading-snug text-zinc-300">{a.title}</span>
-                        </div>
-                        <div className="mt-1 pl-3 font-mono text-[0.62rem] uppercase tracking-[0.08em] text-zinc-400">
-                          {a.tag === "home" ? "SITE" : "FORUM"} · {fmtTime(a.created_at)}
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-
-              <div className={PANEL}>
-                <div className="border-b border-zinc-800 px-4 py-2.5">
-                  <span className="font-mono text-[0.62rem] uppercase tracking-[0.24em] text-zinc-400">Index / 分区</span>
-                </div>
-                <div className="divide-y divide-zinc-800">
-                  {TABS.filter((t) => t.key !== "all").map((t) => {
-                    const meta = boardMeta(t.key);
-                    return (
-                      <button
-                        key={t.key}
-                        type="button"
-                        onClick={() => changeBoard(t.key)}
-                        className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors hover:bg-[#101012] cursor-pointer ${
-                          board === t.key ? "text-emerald-300" : "text-zinc-400"
-                        }`}
-                      >
-                        <span className="font-mono text-[0.62rem] text-zinc-500">{meta.code}</span>
-                        <span className="min-w-0 flex-1">
-                          <span className="block text-[0.84rem] font-medium">{meta.name}</span>
-                          <span className="mt-0.5 block truncate text-[0.72rem] text-zinc-400">{meta.desc}</span>
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-
-              {showChat && (
+            {/* 工具栏 */}
+            <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-5">
+              <div className="flex flex-1 min-w-0 items-center gap-2 bg-white/5 border border-white/10 rounded-[10px] px-3 py-1.5 backdrop-blur-glass">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/40 flex-shrink-0" aria-hidden="true">
+                  <circle cx="11" cy="11" r="7" />
+                  <path d="m21 21-3.5-3.5" />
+                </svg>
+                <input
+                  value={keywordInput}
+                  onChange={(e) => setKeywordInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.nativeEvent.isComposing) {
+                      e.preventDefault();
+                      doSearch();
+                    }
+                  }}
+                  placeholder="搜索标题或内容…"
+                  className="flex-1 min-w-0 bg-transparent border-0 outline-none text-white text-[0.9rem] placeholder:text-white/35 py-1"
+                />
                 <button
                   type="button"
-                  onClick={() => switchView("chat")}
-                  className={`${PANEL} group flex items-center justify-between px-4 py-4 text-left transition-colors hover:border-emerald-500/40 cursor-pointer`}
+                  onClick={doSearch}
+                  className="px-3 py-1 rounded-[7px] bg-white/10 text-white/80 text-[0.8rem] hover:bg-accent-emerald hover:text-white transition-colors cursor-pointer"
                 >
-                  <span>
-                    <span className="mb-1 block font-mono text-[0.62rem] uppercase tracking-[0.22em] text-emerald-400/80">Chat Room</span>
-                    <span className="block text-[0.86rem] font-medium text-zinc-200">进入聊天室</span>
-                  </span>
-                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" className="text-zinc-400 transition-colors group-hover:text-emerald-400" aria-hidden="true">
-                    <path d="M21 11.5a8.4 8.4 0 0 1-9 8.4 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5a8.4 8.4 0 0 1-.9-3.8 8.4 8.4 0 0 1 8.4-8.4h.6A8.4 8.4 0 0 1 21 11.5z" />
-                  </svg>
+                  搜索
                 </button>
-              )}
-            </aside>
-          </div>
+              </div>
+              <div className="flex items-center gap-2 justify-end flex-wrap">
+                {user ? (
+                  <span className="text-[0.82rem] text-white/50 px-1">
+                    以 <span className="text-accent-emerald">{user.username}</span> 的身份参与
+                  </span>
+                ) : (
+                  <a
+                    href="/login"
+                    className="h-9 px-4 inline-flex items-center rounded-[10px] bg-white/5 border border-white/15 text-[0.84rem] text-white/70 hover:text-white hover:border-accent-emerald/40 transition-colors"
+                  >
+                    登录后可发帖
+                  </a>
+                )}
+                <button
+                  type="button"
+                  onClick={openCompose}
+                  className="h-9 px-4 inline-flex items-center gap-1.5 rounded-[10px] bg-accent-emerald text-white font-semibold text-[0.84rem] hover:bg-emerald-600 transition-colors cursor-pointer"
+                >
+                  <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M12 5v14" />
+                    <path d="M5 12h14" />
+                  </svg>
+                  发布新帖
+                </button>
+              </div>
+            </div>
+
+            {/* 官方公告：合并官网公告 + 论坛公告，内联展开 */}
+            {board === "announcement" ? (
+              <div className="flex flex-col gap-3.5">
+                {announcements === null ? (
+                  <div className="text-center text-white/60 py-12">加载中...</div>
+                ) : shownAnnouncements.length === 0 ? (
+                  <div className="text-center text-white/60 py-12">暂无公告</div>
+                ) : (
+                  shownAnnouncements.map((a) => (
+                    <details
+                      key={a.key}
+                      id={`ann-${a.key}`}
+                      open={focusKey === a.key ? true : undefined}
+                      className={`group bg-white/5 backdrop-blur-glass border rounded-2xl overflow-hidden transition-all duration-300 hover:bg-white/[0.08] ${
+                        focusKey === a.key
+                          ? "border-accent-emerald/70 shadow-[0_0_0_3px_rgba(16,185,129,0.25)]"
+                          : "border-white/10 hover:border-accent-emerald/40"
+                      }`}
+                    >
+                      <summary className="cursor-pointer list-none [&::-webkit-details-marker]:hidden px-5 py-4 flex items-center gap-3">
+                        {a.pinned === 1 && (
+                          <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 border border-red-400/40 text-red-300 text-[0.68rem] font-semibold flex-shrink-0">
+                            置顶
+                          </span>
+                        )}
+                        <span
+                          className={`px-1.5 py-0.5 rounded-full text-[0.68rem] font-semibold flex-shrink-0 border ${
+                            a.tag === "home"
+                              ? "bg-sky-500/15 border-sky-400/40 text-sky-300"
+                              : "bg-accent-emerald/15 border-accent-emerald/40 text-accent-emerald"
+                          }`}
+                        >
+                          {a.tag === "home" ? "官网公告" : "论坛公告"}
+                        </span>
+                        <span className="text-[1rem] font-semibold text-white truncate flex-1">{a.title}</span>
+                        <span className="text-[0.75rem] text-white/50 flex-shrink-0 hidden sm:inline">{fmtTime(a.created_at)}</span>
+                        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/50 flex-shrink-0 transition-transform group-open:rotate-180" aria-hidden="true">
+                          <path d="m6 9 6 6 6-6" />
+                        </svg>
+                      </summary>
+                      <div className="px-5 pb-5 pt-3 border-t border-white/10">
+                        <p className="text-[0.95rem] text-white/80 whitespace-pre-wrap leading-relaxed mt-1">{a.content}</p>
+                        <div className="mt-3 text-[0.75rem] text-white/40">
+                          {a.author} · {fmtTime(a.created_at)}
+                        </div>
+                      </div>
+                    </details>
+                  ))
+                )}
+              </div>
+            ) : (
+              <motion.div
+                key={`${board}-${page}-${keyword}-${items?.length ?? 0}`}
+                className="flex flex-col gap-3"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.24 }}
+              >
+                {listLoading ? (
+                  <div className="text-center text-white/60 py-12">加载中...</div>
+                ) : listError ? (
+                  <div className="px-4 py-3 rounded-[10px] bg-red-500/10 border border-red-400/30 text-red-300 text-[0.88rem]">
+                    {listError}
+                  </div>
+                ) : !items || items.length === 0 ? (
+                  <div className="text-center text-white/60 py-12">
+                    {keyword ? "没有找到匹配的帖子" : "这个分区还没有帖子，来发第一帖吧"}
+                  </div>
+                ) : (
+                  items.map((p) => {
+                    const meta = boardMeta(p.board);
+                    return (
+                      <button
+                        key={p.id}
+                        type="button"
+                        onClick={() => openDetail(p.id)}
+                        className="group w-full text-left bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl px-5 py-4 transition-all duration-300 hover:bg-white/[0.08] hover:border-accent-emerald/40 cursor-pointer"
+                      >
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
+                          {p.pinned === 1 && (
+                            <span className="px-1.5 py-0.5 rounded-full bg-red-500/15 border border-red-400/40 text-red-300 text-[0.68rem] font-semibold flex-shrink-0">
+                              置顶
+                            </span>
+                          )}
+                          <span className={`px-1.5 py-0.5 rounded-full border text-[0.68rem] font-semibold flex-shrink-0 ${meta.cls}`}>
+                            {meta.name}
+                          </span>
+                          <span className="text-[1rem] font-semibold text-white truncate flex-1 min-w-0 group-hover:text-accent-emerald transition-colors">
+                            {p.title}
+                          </span>
+                        </div>
+                        <p className="text-[0.86rem] text-white/60 line-clamp-2 whitespace-pre-wrap break-words">
+                          {p.content}
+                        </p>
+                        <div className="mt-3 flex items-center gap-x-4 gap-y-1 flex-wrap text-[0.74rem] text-white/45">
+                          <span>{p.author_name || "匿名"}</span>
+                          <span>{fmtTime(p.created_at)}</span>
+                          <span>回复 {p.reply_count}</span>
+                          <span>点赞 {p.like_count}</span>
+                          <span>浏览 {p.views ?? 0}</span>
+                        </div>
+                      </button>
+                    );
+                  })
+                )}
+
+                {!listLoading && !listError && total > PAGE_SIZE && (
+                  <div className="flex items-center justify-center gap-3 mt-4">
+                    <button
+                      type="button"
+                      disabled={page <= 1}
+                      onClick={() => setPage((p) => Math.max(1, p - 1))}
+                      className="px-4 py-2 rounded-[9px] bg-white/5 border border-white/10 text-[0.85rem] text-white/70 hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      上一页
+                    </button>
+                    <span className="text-[0.82rem] text-white/50">
+                      {page} / {pageCount}
+                    </span>
+                    <button
+                      type="button"
+                      disabled={page >= pageCount}
+                      onClick={() => setPage((p) => Math.min(pageCount, p + 1))}
+                      className="px-4 py-2 rounded-[9px] bg-white/5 border border-white/10 text-[0.85rem] text-white/70 hover:text-white disabled:opacity-40 transition-colors cursor-pointer"
+                    >
+                      下一页
+                    </button>
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </section>
         )}
       </div>
     </main>

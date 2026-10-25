@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
-import { ErrorNote } from "@/components/ui";
 import { motion } from "motion/react";
 
 export interface ChatMessage {
@@ -212,18 +211,22 @@ export default function ChatPanel() {
   return (
     <div>
       <div className="flex items-center justify-between gap-3 mb-3">
-        <span className="text-[0.82rem] text-slate-500">共 {messages.length} 条消息</span>
-        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-100 border border-slate-200 text-[0.78rem] text-slate-600">
+        <span className="text-[0.82rem] text-white/50">共 {messages.length} 条消息</span>
+        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-[0.78rem] text-white/60">
           <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
           近 5 分钟活跃 {online} 人
         </span>
       </div>
 
-      <ErrorNote message={error} />
+      {error && (
+        <div className="mb-3 px-4 py-3 rounded-[10px] bg-red-500/10 border border-red-400/30 text-red-300 text-[0.88rem]">
+          {error}
+        </div>
+      )}
 
       {/* 欢迎公告 */}
       {limits?.welcome && (
-        <div className="mb-3 px-4 py-2.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem] flex items-start gap-2">
+        <div className="mb-3 px-4 py-2.5 rounded-[12px] bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald text-[0.85rem] flex items-start gap-2">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0" aria-hidden="true">
             <path d="M3 11 21 4v16L3 13v-2z" />
             <path d="M7 13v5a2 2 0 0 0 4 0v-3" />
@@ -234,7 +237,7 @@ export default function ChatPanel() {
 
       {/* 已关闭提示 */}
       {limits && !limits.enabled && (
-        <div className="mb-3 px-4 py-2.5 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.85rem] flex items-center gap-2">
+        <div className="mb-3 px-4 py-2.5 rounded-[12px] bg-amber-500/10 border border-amber-400/30 text-amber-300 text-[0.85rem] flex items-center gap-2">
           <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
             <circle cx="12" cy="12" r="9" />
             <path d="M5.7 5.7l12.6 12.6" />
@@ -247,17 +250,17 @@ export default function ChatPanel() {
       <div className="relative mb-3">
         <div
           ref={listRef}
-          className="chat-scroll bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-y-auto p-4"
+          className="chat-scroll bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl overflow-y-auto p-4"
           style={{ height: "clamp(340px, 54vh, 640px)" }}
         >
         {!loaded ? (
-          <div className="h-full flex items-center justify-center text-slate-500 text-[0.85rem]">加载中...</div>
+          <div className="h-full flex items-center justify-center text-white/50 text-[0.85rem]">加载中...</div>
         ) : loadFailed ? (
-          <div className="h-full flex items-center justify-center text-slate-500 text-[0.85rem]">
+          <div className="h-full flex items-center justify-center text-white/50 text-[0.85rem]">
             消息加载失败，请稍后刷新
           </div>
         ) : messages.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-slate-500 text-[0.85rem]">
+          <div className="h-full flex items-center justify-center text-white/50 text-[0.85rem]">
             还没有人发言，来抢个沙发吧～
           </div>
         ) : (
@@ -274,26 +277,26 @@ export default function ChatPanel() {
                 >
                   {m.avatar_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={m.avatar_url} alt={m.username} className="w-9 h-9 rounded-[10px] object-cover border border-slate-200 shrink-0" loading="lazy" />
+                    <img src={m.avatar_url} alt={m.username} className="w-9 h-9 rounded-[10px] object-cover border border-white/15 shrink-0" loading="lazy" />
                   ) : (
-                    <div className="w-9 h-9 rounded-[10px] bg-gradient-to-br from-emerald-100 to-teal-100 border border-slate-200 flex items-center justify-center text-[0.8rem] font-bold text-emerald-700 shrink-0">
+                    <div className="w-9 h-9 rounded-[10px] bg-accent-emerald/15 border border-accent-emerald/30 flex items-center justify-center text-[0.8rem] font-bold text-accent-emerald shrink-0">
                       {m.username.slice(0, 1).toUpperCase()}
                     </div>
                   )}
                   <div className={`chat-bubble-wrap max-w-[76%] ${isSelf ? "items-end flex flex-col" : ""}`}>
                     <div className={`flex items-center gap-2 mb-1 text-[0.74rem] ${isSelf ? "flex-row-reverse" : ""}`}>
-                      <span className="text-slate-600 font-medium">{m.username}</span>
+                      <span className="text-white/70 font-medium">{m.username}</span>
                       {m.role === "admin" && (
-                        <span className="px-1.5 py-0.5 rounded-full bg-amber-50 border border-amber-200 text-amber-600 text-[0.62rem]">管理员</span>
+                        <span className="px-1.5 py-0.5 rounded-full bg-amber-500/15 border border-amber-400/40 text-amber-300 text-[0.62rem]">管理员</span>
                       )}
-                      <span className="text-slate-400">{fmtTime(m.created_at)}</span>
+                      <span className="text-white/40">{fmtTime(m.created_at)}</span>
                       {isSelf && (
                         <button
                           type="button"
                           onClick={() => void recall(m.id)}
                           disabled={recallingId === m.id}
                           title="撤回这条消息（10 分钟内）"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-400 hover:text-red-500 text-[0.7rem] cursor-pointer disabled:opacity-50"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity text-white/40 hover:text-red-300 text-[0.7rem] cursor-pointer disabled:opacity-50"
                         >
                           {recallingId === m.id ? "撤回中" : "撤回"}
                         </button>
@@ -302,8 +305,8 @@ export default function ChatPanel() {
                     <div
                       className={`rounded-[14px] px-3.5 py-2.5 text-[0.9rem] leading-relaxed break-words ${
                         isSelf
-                          ? "bg-emerald-500 text-white border border-emerald-500"
-                          : "bg-slate-50 text-slate-700 border border-slate-200"
+                          ? "bg-accent-emerald text-white border border-accent-emerald"
+                          : "bg-white/[0.07] text-white/80 border border-white/10"
                       }`}
                     >
                       {m.content && <p className="whitespace-pre-wrap">{m.content}</p>}
@@ -337,7 +340,7 @@ export default function ChatPanel() {
               setShowJump(false);
               scrollToBottom(true);
             }}
-            className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-white/95 border border-slate-200 shadow-[0_4px_14px_rgba(0,0,0,0.12)] text-slate-600 text-[0.78rem] hover:text-emerald-600 hover:border-emerald-300 transition-colors cursor-pointer"
+            className="absolute bottom-3 right-3 inline-flex items-center gap-1 px-3 py-1.5 rounded-full bg-[#0f172a]/95 backdrop-blur border border-white/15 shadow-[0_4px_14px_rgba(0,0,0,0.35)] text-white/70 text-[0.78rem] hover:text-accent-emerald hover:border-accent-emerald/40 transition-colors cursor-pointer"
           >
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M12 5v14" />
@@ -360,7 +363,7 @@ export default function ChatPanel() {
             onClick={() => insertEmoji(emoji)}
             disabled={!!limits && !limits.enabled}
             title={`插入 ${emoji}`}
-            className="w-8 h-8 rounded-[8px] text-[1.05rem] leading-none flex items-center justify-center hover:bg-slate-100 disabled:opacity-40 transition-colors cursor-pointer"
+            className="w-8 h-8 rounded-[8px] text-[1.05rem] leading-none flex items-center justify-center hover:bg-white/10 disabled:opacity-40 transition-colors cursor-pointer"
           >
             {emoji}
           </motion.button>
@@ -369,8 +372,8 @@ export default function ChatPanel() {
 
       {/* 输入区 */}
       {attached && (
-        <div className="flex items-center gap-2 mb-2 text-[0.82rem] text-slate-600">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 max-w-[280px]">
+        <div className="flex items-center gap-2 mb-2 text-[0.82rem] text-white/60">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-accent-emerald/10 border border-accent-emerald/30 text-accent-emerald max-w-[280px]">
             <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0" aria-hidden="true">
               <path d="m21.4 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" />
             </svg>
@@ -383,13 +386,13 @@ export default function ChatPanel() {
               setAttached(null);
               if (fileRef.current) fileRef.current.value = "";
             }}
-            className="text-slate-400 hover:text-slate-700 cursor-pointer"
+            className="text-white/40 hover:text-white cursor-pointer"
           >
             移除
           </button>
         </div>
       )}
-      <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-3 flex items-end gap-2">
+      <div className="bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-3 flex items-end gap-2">
         <input
           ref={fileRef}
           type="file"
@@ -401,7 +404,7 @@ export default function ChatPanel() {
           type="button"
           onClick={() => fileRef.current?.click()}
           title="发送图片"
-          className="w-10 h-10 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-500 hover:text-emerald-600 hover:border-emerald-300 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
+          className="w-10 h-10 rounded-[10px] bg-white/5 border border-white/10 text-white/60 hover:text-accent-emerald hover:border-accent-emerald/40 flex items-center justify-center shrink-0 transition-colors cursor-pointer"
         >
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <rect x="3" y="3" width="18" height="18" rx="3" />
@@ -422,13 +425,13 @@ export default function ChatPanel() {
           placeholder={limits && !limits.enabled ? "聊天室已关闭，暂时无法发言" : `说点什么…（Enter 发送，Shift+Enter 换行，最多 ${limits?.max_text ?? 400} 字）`}
           rows={1}
           disabled={!!limits && !limits.enabled}
-          className="flex-1 resize-none bg-transparent border-0 outline-none text-slate-800 placeholder:text-slate-400 text-[0.92rem] py-2.5 max-h-32 disabled:opacity-50"
+          className="flex-1 resize-none bg-transparent border-0 outline-none text-white placeholder:text-white/35 text-[0.92rem] py-2.5 max-h-32 disabled:opacity-50"
         />
         <button
           type="button"
           onClick={() => void send()}
           disabled={sending || (!text.trim() && !attached) || (!!limits && !limits.enabled)}
-          className="h-10 px-5 rounded-[10px] bg-emerald-500 text-white font-semibold text-[0.88rem] disabled:opacity-40 shrink-0 transition-colors hover:bg-emerald-600 cursor-pointer"
+          className="h-10 px-5 rounded-[10px] bg-accent-emerald text-white font-semibold text-[0.88rem] disabled:opacity-40 shrink-0 transition-colors hover:bg-emerald-600 cursor-pointer"
         >
           {sending ? "发送中" : "发送"}
         </button>
