@@ -94,7 +94,7 @@ app.post("/create", requireAuth, async (c) => {
 // —— 易支付异步通知（GET / POST 均支持，返回 success 表示已处理） ——
 async function handleEpayNotify(c: Context<AppEnv>) {
   const cfg = await loadEpayConfig(c.env.DB);
-  if (!epayEnabled(cfg)) return c.json("fail", 503);
+  if (!epayEnabled(cfg)) return c.text("fail", 503);
 
   const query = c.req.query();
   let body: Record<string, string> = {};
@@ -107,19 +107,20 @@ async function handleEpayNotify(c: Context<AppEnv>) {
   const params = { ...query, ...body };
 
   const orderNo = String(params.out_trade_no || "").trim();
-  if (!orderNo) return c.json("fail", 400);
+  if (!orderNo) return c.text("fail", 400);
 
   const order = await c.env.DB.prepare(
     "SELECT id, total, status FROM shop_orders WHERE order_no = ?",
   ).bind(orderNo).first<{ id: number; total: number; status: string }>();
-  if (!order) return c.json("fail", 404);
-  if (order.status !== "pending") return c.json("success"); // 幂等：已处理直接应答
+  if (!order) return c.text("fail", 404);
 
+  // 先验签再判断是否已支付，避免伪造通知探测订单状态
   const checked = verifyEpayNotify(params, cfg, order.total);
   if (!checked.ok) {
     await logOp(c.env.DB, c, null, "pay_epay_notify_reject", orderNo, checked.reason);
-    return c.json("fail", 400);
+    return c.text("fail", 400);
   }
+  if (order.status !== "pending") return c.text("success"); // 幂等：已处理直接应答
 
   const result = await c.env.DB.prepare(
     `UPDATE shop_orders SET status = 'paid', paid_at = datetime('now'), provider = ?, payment_id = ?
@@ -127,7 +128,7 @@ async function handleEpayNotify(c: Context<AppEnv>) {
   ).bind(`epay:${params.type || "unknown"}`, String(params.trade_no || ""), orderNo).run();
 
   await logOp(c.env.DB, c, null, "pay_epay_notify", orderNo, `changes=${result.meta.changes} money=${params.money}`);
-  return c.json("success");
+  return c.text("success");
 }
 
 app.get("/notify", handleEpayNotify);

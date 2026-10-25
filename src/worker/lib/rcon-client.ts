@@ -8,8 +8,8 @@ import net from "node:net";
 const TYPE_AUTH = 3;
 const TYPE_EXEC = 2;
 const TYPE_RESPONSE = 0;
-
-const AUTH_OK = -1;
+// Minecraft RCON 用请求 ID -1 表示认证失败，客户端不得主动使用 -1
+const AUTH_FAILED = -1;
 
 const encoder = new TextEncoder();
 const decoder = new TextDecoder("utf-8");
@@ -47,6 +47,7 @@ function concat(a: Uint8Array, b: Uint8Array): Uint8Array {
 
 interface PendingReq {
   id: number;
+  type: number;
   resolve: (out: string) => void;
   reject: (e: Error) => void;
   timer: ReturnType<typeof setTimeout>;
@@ -102,10 +103,21 @@ export class RconClient {
       const pkt = decodePacket(this.buf);
       if (!pkt) break;
       this.buf = this.buf.subarray(pkt.length + 4);
+      // -1 是认证失败信号，不属于任何正常请求
+      if (pkt.requestId === AUTH_FAILED) {
+        for (const [id, p] of this.pending) {
+          if (p.type !== TYPE_AUTH) continue;
+          clearTimeout(p.timer);
+          this.pending.delete(id);
+          this.authed = false;
+          p.reject(new Error("RCON 密码错误或认证失败"));
+        }
+        continue;
+      }
       const p = this.pending.get(pkt.requestId);
       if (!p) continue;
       clearTimeout(p.timer);
-      if (pkt.requestId === AUTH_OK) {
+      if (p.type === TYPE_AUTH) {
         this.pending.delete(pkt.requestId);
         this.authed = true;
         p.resolve("");
@@ -120,7 +132,7 @@ export class RconClient {
   }
 
   private async auth(): Promise<void> {
-    await this.exchange(AUTH_OK, TYPE_AUTH, this.password);
+    await this.exchange(this.nextId(), TYPE_AUTH, this.password);
   }
 
   command(cmd: string): Promise<string> {
@@ -138,7 +150,7 @@ export class RconClient {
         this.pending.delete(requestId);
         reject(new Error("RCON 响应超时"));
       }, this.timeoutMs);
-      this.pending.set(requestId, { id: requestId, resolve, reject, timer });
+      this.pending.set(requestId, { id: requestId, type, resolve, reject, timer });
       sock.write(encodePacket(requestId, type, body));
     });
   }

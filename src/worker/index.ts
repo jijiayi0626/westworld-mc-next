@@ -27,24 +27,64 @@ import { RconDO } from "./do/rcon-do";
 
 const app = new Hono<AppEnv>();
 
-// CORS（默认同域部署不开启；仅当配置 CORS_ORIGINS/SITE_URL 时按白名单放行，防止任意站点携带 Cookie 跨域调用）
+// CORS + CSRF 同源校验（默认同域部署不开启 CORS；配置 CORS_ORIGINS/SITE_URL 时按白名单放行）
 app.use("/api/*", async (c, next) => {
-  const origin = c.req.header("origin");
+  const origin = c.req.header("origin") || "";
   const siteUrl = c.env.SITE_URL ? String(c.env.SITE_URL).replace(/\/$/, "") : "";
   const allowList = String(c.env.CORS_ORIGINS || "")
     .split(",")
     .map((s) => s.trim().replace(/\/$/, ""))
     .filter(Boolean);
-  if (origin && (allowList.includes(origin) || (siteUrl && origin === siteUrl))) {
-    c.header("Access-Control-Allow-Origin", origin);
-    c.header("Access-Control-Allow-Credentials", "true");
-    c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-    c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  }
+  const allowedOrigin =
+    origin && (allowList.includes(origin) || (siteUrl && origin === siteUrl)) ? origin : "";
+
   if (c.req.method === "OPTIONS") {
+    if (allowedOrigin) {
+      c.header("Access-Control-Allow-Origin", allowedOrigin);
+      c.header("Access-Control-Allow-Credentials", "true");
+      c.header("Access-Control-Allow-Headers", "Content-Type, Authorization, X-CSRF-Token");
+      c.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
+      c.header("Vary", "Origin");
+    }
     return c.body(null, 204);
   }
+
+  // CSRF：Cookie 鉴权的写操作必须来自同源（或显式 CORS 白名单）；Bearer 客户端不受影响
+  const bearer = (c.req.header("authorization") || "").startsWith("Bearer ");
+  if (!bearer && !["GET", "HEAD"].includes(c.req.method)) {
+    const fetchSite = c.req.header("sec-fetch-site");
+    if (fetchSite === "cross-site") {
+      return c.json({ code: 403, message: "跨站请求已拒绝", data: null }, 403);
+    }
+    let source = origin;
+    if (!source) {
+      const referer = c.req.header("referer");
+      if (referer) {
+        try {
+          source = new URL(referer).origin;
+        } catch {
+          source = "";
+        }
+      }
+    }
+    if (source) {
+      const reqOrigin = new URL(c.req.url).origin;
+      const trusted =
+        source === reqOrigin || (!!siteUrl && source === siteUrl) || allowList.includes(source);
+      if (!trusted) {
+        return c.json({ code: 403, message: "跨站请求已拒绝", data: null }, 403);
+      }
+    }
+  }
+
   await next();
+
+  // 必须在 next() 之后写入：ok()/fail() 返回裸 Response，之前的 c.header 会被丢弃
+  if (allowedOrigin) {
+    c.header("Access-Control-Allow-Origin", allowedOrigin);
+    c.header("Access-Control-Allow-Credentials", "true");
+    c.header("Vary", "Origin");
+  }
 });
 
 app.route("/api/auth", authRoutes);
@@ -87,6 +127,15 @@ export default {
             `INSERT INTO site_settings (key, value, updated_at) VALUES ('last_cron_run', datetime('now'), datetime('now'))
              ON CONFLICT(key) DO UPDATE SET value = datetime('now'), updated_at = datetime('now')`,
           ).run();
+
+          // 清理过期限流记录，避免 rate_limits 无限增长
+          try {
+            await env.DB.prepare("DELETE FROM rate_limits WHERE expires_at < ?")
+              .bind(Math.floor(Date.now() / 1000) - 3600)
+              .run();
+          } catch {
+            /* 表不存在时忽略 */
+          }
 
           const intervalRow = await env.DB.prepare(
             "SELECT value FROM site_settings WHERE key = 'monitor_interval_minutes'",

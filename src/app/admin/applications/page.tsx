@@ -101,19 +101,24 @@ function RconWizard() {
   };
 
   const insertPlaceholder = (ph: string) => {
-    const input = lastFocusTarget === "reject" ? rejectRef.current : approveRef.current;
-    if (!input) return;
-    const start = input.selectionStart ?? input.value.length;
-    const end = input.selectionEnd ?? input.value.length;
-    input.value = input.value.slice(0, start) + ph + input.value.slice(end);
+    const target = lastFocusTarget;
+    const input = target === "reject" ? rejectRef.current : approveRef.current;
+    const current = target === "reject" ? cfg.reject_template : cfg.approve_template;
+    const start = input?.selectionStart ?? current.length;
+    const end = input?.selectionEnd ?? current.length;
+    const next = current.slice(0, start) + ph + current.slice(end);
+    // 受控 input 必须走 React state，直接改 DOM value 会被下一次渲染覆盖
+    set(target === "reject" ? { reject_template: next } : { approve_template: next });
     const pos = start + ph.length;
-    input.focus();
-    try {
-      input.setSelectionRange(pos, pos);
-    } catch {
-      /* ignore */
-    }
-    input.dispatchEvent(new Event("input", { bubbles: true }));
+    requestAnimationFrame(() => {
+      const el = target === "reject" ? rejectRef.current : approveRef.current;
+      el?.focus();
+      try {
+        el?.setSelectionRange(pos, pos);
+      } catch {
+        /* ignore */
+      }
+    });
   };
 
   const renderPreview = (tpl: string) => {

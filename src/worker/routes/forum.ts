@@ -228,7 +228,7 @@ app.post("/posts", requireAuth, async (c) => {
     .run();
   const id = Number(result.meta.last_row_id);
 
-  await logUserAction(db, user.id, "forum_post", `#${id} ${title.slice(0, 50)}`);
+  await logUserAction(c.env.DB, user.id, "forum_post", `#${id} ${title.slice(0, 50)}`);
   return ok({ id });
 });
 
@@ -267,7 +267,7 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
     content,
     created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
   };
-  await logUserAction(db, user.id, "forum_reply", `#${postId}`);
+  await logUserAction(c.env.DB, user.id, "forum_reply", `#${postId}`);
   return ok(reply);
 });
 
@@ -329,7 +329,7 @@ app.post("/posts/:id/delete", requireAuth, async (c) => {
     db.prepare("DELETE FROM forum_posts WHERE id = ?").bind(postId),
   ]);
 
-  await logUserAction(db, user.id, "forum_post_delete", `#${postId}`);
+  await logUserAction(c.env.DB, user.id, "forum_post_delete", `#${postId}`);
   return ok({ deleted: true });
 });
 
@@ -348,7 +348,7 @@ app.post("/replies/:id/delete", requireAuth, async (c) => {
   if (reply.author_id !== user.id && user.role !== "admin") return fail("无权限删除该回复", 403);
 
   await db.prepare("DELETE FROM forum_replies WHERE id = ?").bind(replyId).run();
-  await logUserAction(db, user.id, "forum_reply_delete", `#${reply.post_id}/${replyId}`);
+  await logUserAction(c.env.DB, user.id, "forum_reply_delete", `#${reply.post_id}/${replyId}`);
   return ok({ deleted: true });
 });
 

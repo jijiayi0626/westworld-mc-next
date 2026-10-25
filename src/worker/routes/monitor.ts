@@ -131,7 +131,13 @@ app.get("/status", async (c) => {
     for (const s of servers) {
       if (!stale(s)) continue;
       const probed = await probeServer(s.host, s.port, c.env.DB);
-      if (!probed) continue;
+      if (!probed) {
+        // 探测失败也刷新 last_check，避免公开接口被反复触发外呼放大
+        await c.env.DB.prepare("UPDATE game_servers SET last_check = datetime('now') WHERE id = ?")
+          .bind(s.id)
+          .run();
+        continue;
+      }
       await c.env.DB.prepare(
         `UPDATE game_servers
          SET status = ?, players_online = ?, max_players = ?, version = ?, motd = ?, last_check = datetime('now')

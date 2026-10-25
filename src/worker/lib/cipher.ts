@@ -55,15 +55,17 @@ export async function encryptSecret(plain: string, appSecret: string): Promise<s
 
 export async function decryptSecret(stored: string, appSecret: string): Promise<string> {
   if (!stored) return "";
-  const parts = stored.split(":");
-  if (parts.length !== 4 || parts[0] !== PREFIX) return stored; // 旧明文兜底
+  // 前缀本身含冒号（enc:v1），必须先剥掉前缀再按剩余 3 段解析
+  if (!stored.startsWith(`${PREFIX}:`)) return stored; // 旧明文兜底
+  const parts = stored.slice(PREFIX.length + 1).split(":");
+  if (parts.length !== 3) return "";
   try {
     const key = await deriveKey(appSecret);
-    const ivBytes = base64ToBytes(parts[1]);
+    const ivBytes = base64ToBytes(parts[0]);
     const ivBuf = new ArrayBuffer(ivBytes.length);
     new Uint8Array(ivBuf).set(ivBytes);
-    const tag = base64ToBytes(parts[2]);
-    const body = base64ToBytes(parts[3]);
+    const tag = base64ToBytes(parts[1]);
+    const body = base64ToBytes(parts[2]);
     const combined = new Uint8Array(body.length + tag.length);
     combined.set(body, 0);
     combined.set(tag, body.length);

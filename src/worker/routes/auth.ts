@@ -188,6 +188,16 @@ app.post("/reset", async (c) => {
   const newPassword = str(body.new_password, 64);
   if (!isValidPassword(newPassword)) return fail("密码需 6-64 位");
 
+  // 防暴力破解：同一 IP 30 次/10 分钟，同一邮箱 10 次/10 分钟
+  const ip = getClientIp(c);
+  if (
+    !(await rateLimit(c.env.DB, `reset-ip:${ip}`, 30, 600)) ||
+    !(await rateLimit(c.env.DB, `reset:${email}`, 10, 600))
+  ) {
+    return fail("尝试次数过多，请稍后再试", 429);
+  }
+  if (!/^\d{6}$/.test(code)) return fail("重置码无效或已过期", 400);
+
   const user = await c.env.DB.prepare("SELECT id, username FROM users WHERE email = ?")
     .bind(email)
     .first<{ id: number; username: string }>();
