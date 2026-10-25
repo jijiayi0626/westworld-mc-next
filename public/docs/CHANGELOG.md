@@ -4,6 +4,17 @@
 
 ---
 
+## v2.7.1（2026-10-25）
+
+### 修复
+- **登录后无法进入**：远程 D1 缺少 `users.qq`、`users.discord` 等迁移列，登录接口本身成功，但随后 `/api/user/me` 查询报错返回 500，前端因此在登录页与用户中心之间静默跳回。已补齐用户社交信息、工单附件、商城自动发货三组迁移
+- **登录错误不再静默**：`AuthProvider.refresh()` 在非 401 失败时会向调用方抛出错误，登录页可直接显示「拉取用户信息失败」的具体原因，而不是无提示地留在登录页
+
+### 数据库迁移
+- 已对远程库执行：`migrate-user-socials.sql`、`migrate-ticket-attachments.sql`、`migrate-shop-delivery.sql`；新建部署按顺序执行 `schema.sql` 与 `scripts/migrate-*.sql` 即可
+
+---
+
 ## v2.7.0（2026-10-25）
 
 ### 新增

@@ -32,7 +32,7 @@ interface AuthCtx {
   loading: boolean;
   /** 网络/服务器错误（不同于「未登录」），供页面提示重试 */
   error: string | null;
-  refresh: () => Promise<void>;
+  refresh: () => Promise<Me | null>;
   login: (account: string, password: string) => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
@@ -51,25 +51,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (): Promise<Me | null> => {
     try {
       const me = await api<Me>("/user/me");
       setUser(me);
       setError(null);
+      return me;
     } catch (e) {
       setUser(null);
       if (e instanceof ApiError && e.status === 401) {
         setError(null); // 未登录是正常态
-      } else {
-        setError(e instanceof Error ? e.message : "获取登录状态失败");
+        return null;
       }
+      const message = e instanceof Error ? e.message : "获取登录状态失败";
+      setError(message);
+      // 登录成功后拉取用户信息失败时，必须让调用方感知，否则会静默跳回登录页
+      throw e instanceof Error ? e : new Error(message);
     } finally {
       setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void refresh();
+    void refresh().catch(() => {});
   }, [refresh]);
 
   // 任意页面 API 返回 401（会话过期/被封禁）时统一回登录页
