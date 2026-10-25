@@ -549,7 +549,7 @@ export default function PublicForum() {
         {view === "chat" ? (
           <motion.section
             key="chat"
-            className="mx-auto max-w-[880px] lg:mx-0"
+            className="max-w-[880px]"
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.24 }}
