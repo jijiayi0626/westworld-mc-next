@@ -13,7 +13,6 @@ export default function CommunitySection() {
       className="community-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px] z-[1]"
       style={{ backgroundImage: `url('${community.bg_image}')` }}
     >
-      <div className="absolute inset-0 z-[1] bg-black/60" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">

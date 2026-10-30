@@ -53,7 +53,6 @@ export default function ContactForm() {
       className="contact-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
       style={{ backgroundImage: `url('${contact.bg_image}')` }}
     >
-      <div className="absolute inset-0 z-[1] bg-black/60" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">

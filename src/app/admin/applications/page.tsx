@@ -31,7 +31,16 @@ interface RconConfig {
   timeout: number;
 }
 
-type Tab = "pending" | "approved" | "rejected";
+type Tab = "all" | "pending" | "approved" | "rejected";
+
+interface AppStats {
+  total: number;
+  pending: number;
+  needs_info: number;
+  approved: number;
+  rejected: number;
+  unsynced: number;
+}
 
 const PLACEHOLDERS: { key: string; label: string }[] = [
   { key: "mc_name", label: "游戏 ID" },
@@ -404,6 +413,7 @@ function RconWizard() {
 export default function AdminApplicationsPage() {
   const [tab, setTab] = useState<Tab>("pending");
   const [list, setList] = useState<Application[] | null>(null);
+  const [stats, setStats] = useState<AppStats | null>(null);
   const [error, setError] = useState("");
   const [busyId, setBusyId] = useState(0);
   const [note, setNote] = useState("");
@@ -412,7 +422,9 @@ export default function AdminApplicationsPage() {
 
   const load = useCallback(async () => {
     try {
-      setList(await api<Application[]>(`/application/admin/list?status=${tab}`));
+      const data = await api<{ items: Application[]; stats: AppStats }>(`/application/admin/list?status=${tab}`);
+      setList(data.items);
+      setStats(data.stats);
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     }
@@ -449,10 +461,11 @@ export default function AdminApplicationsPage() {
     }
   };
 
-  const tabs: { key: Tab; label: string }[] = [
-    { key: "pending", label: "待审核" },
-    { key: "approved", label: "已通过" },
-    { key: "rejected", label: "已拒绝" },
+  const tabs: { key: Tab; label: string; count?: number }[] = [
+    { key: "all", label: "全部", count: stats?.total },
+    { key: "pending", label: "待审核", count: stats?.pending },
+    { key: "approved", label: "已通过", count: stats?.approved },
+    { key: "rejected", label: "已拒绝", count: stats?.rejected },
   ];
 
   return (
@@ -470,6 +483,9 @@ export default function AdminApplicationsPage() {
             }`}
           >
             {t.label}
+            {typeof t.count === "number" && (
+              <span className={`ml-1.5 text-[0.75rem] ${tab === t.key ? "text-white/75" : "text-slate-400"}`}>{t.count}</span>
+            )}
           </button>
         ))}
       </div>
@@ -477,12 +493,12 @@ export default function AdminApplicationsPage() {
       {/* 申请统计卡（图12） */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
         {[
-          { label: "全部", value: list?.length ?? 0, tone: "slate" },
-          { label: "待审核", value: (list ?? []).filter((a) => a.status === "pending").length, tone: "amber" },
-          { label: "需补充", value: (list ?? []).filter((a) => a.status === "pending" && a.review_note).length, tone: "blue" },
-          { label: "已通过", value: (list ?? []).filter((a) => a.status === "approved").length, tone: "green" },
-          { label: "已拒绝", value: (list ?? []).filter((a) => a.status === "rejected").length, tone: "pink" },
-          { label: "未同步", value: (list ?? []).filter((a) => a.status === "approved" && (!a.sync_status || a.sync_status === "failed")).length, tone: "amber" },
+          { label: "全部", value: stats?.total ?? 0, tone: "slate" },
+          { label: "待审核", value: stats?.pending ?? 0, tone: "amber" },
+          { label: "需补充", value: stats?.needs_info ?? 0, tone: "blue" },
+          { label: "已通过", value: stats?.approved ?? 0, tone: "green" },
+          { label: "已拒绝", value: stats?.rejected ?? 0, tone: "pink" },
+          { label: "未同步", value: stats?.unsynced ?? 0, tone: "amber" },
         ].map((c) => (
           <div key={c.label} className={`stat-card sc-${c.tone} rounded-[12px] p-3 text-center`}>
             <div className="text-[1.4rem] font-extrabold">{c.value}</div>
@@ -494,7 +510,7 @@ export default function AdminApplicationsPage() {
       <RconWizard />
       <ErrorNote message={error} />
 
-      {tab === "pending" && (
+      {(tab === "pending" || tab === "all") && (
         <Card className="mb-4">
           <label className="flex flex-col gap-1.5 text-left">
             <span className="text-slate-500 text-[0.85rem] font-medium ml-1">审核备注（选填，随操作一并提交）</span>
@@ -506,7 +522,7 @@ export default function AdminApplicationsPage() {
       {list === null ? (
         <Empty text="加载中..." />
       ) : list.length === 0 ? (
-        <Empty text={`暂无${tab === "pending" ? "待审核" : tab === "approved" ? "已通过" : "已拒绝"}的申请`} />
+        <Empty text={tab === "all" ? "暂无入服申请" : "该分类暂无申请，可切换到「全部」查看"} />
       ) : (
         <div className="flex flex-col gap-4">
           {list.map((a) => (
@@ -538,7 +554,7 @@ export default function AdminApplicationsPage() {
                   备注：{a.review_note}
                 </div>
               )}
-              {tab === "pending" && (
+              {a.status === "pending" && (
                 <div className="mt-4">
                   <div className="flex gap-2 flex-wrap">
                     <Btn variant="primary" size="sm" disabled={busyId === a.id} onClick={() => review(a.id, "approved")}>

@@ -14,7 +14,7 @@ export default function Hero() {
       className="hero relative h-screen w-full bg-cover bg-center flex items-center overflow-hidden"
       style={{ backgroundImage: `url('${hero.bg_image}')` }}
     >
-      <div className="absolute inset-0 bg-gradient-to-b from-black/45 via-black/25 to-black/65" />
+      <div className="absolute inset-0 bg-gradient-to-b from-black/35 via-black/18 to-black/55" />
       {/* 光效背景层：网格 + 径向光晕 */}
       <div
         className="hero-glow absolute inset-0 pointer-events-none"
