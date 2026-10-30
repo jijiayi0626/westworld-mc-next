@@ -110,7 +110,8 @@ app.get("/authorize-url", requireAuth, async (c) => {
   if (!cfg.enabled || !cfg.clientId || !cfg.authorizeUrl) {
     return fail("UPOP 绑定未启用。请管理员在后台「网站设置 → 三方接口预留」中填写 upop_* 配置。", 503);
   }
-  const state = await signToken({ sub: String(user.id), username: user.username, role: "oauth" }, getSecret(c));
+  // state 必须短时有效（OAuth 回调应在数分钟内完成），避免泄露后被长期滥用绑定他人账号
+  const state = await signToken({ sub: String(user.id), username: user.username, role: "oauth" }, getSecret(c), 10 / 60);
   const url =
     `${cfg.authorizeUrl}${cfg.authorizeUrl.includes("?") ? "&" : "?"}` +
     `client_id=${encodeURIComponent(cfg.clientId)}` +

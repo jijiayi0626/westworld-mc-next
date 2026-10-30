@@ -68,7 +68,8 @@ app.get("/authorize-url", requireAuth, async (c) => {
   }
 
   const redirectUri = `${c.env.SITE_URL || ""}/api/microsoft/callback`;
-  const state = await signToken({ sub: String(user.id), username: user.username, role: "oauth" }, getSecret(c));
+  // state 必须短时有效（OAuth 回调应在数分钟内完成），避免泄露后被长期滥用绑定他人账号
+  const state = await signToken({ sub: String(user.id), username: user.username, role: "oauth" }, getSecret(c), 10 / 60);
   const url =
     `${MS_AUTHORIZE}?client_id=${encodeURIComponent(ms.clientId)}` +
     `&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}` +
