@@ -116,16 +116,48 @@ app.get("/mine", requireAuth, async (c) => {
 app.use("/admin/*", requireAuth, requireAdmin);
 
 app.get("/admin/list", async (c) => {
-  const status = c.req.query("status") || "pending";
+  const status = c.req.query("status") || "all";
   const allowed = ["pending", "approved", "rejected"];
-  const cond = allowed.includes(status) ? `WHERE w.status = '${status}'` : "";
-  const { results } = await c.env.DB.prepare(
+  const useFilter = allowed.includes(status);
+  const sql =
     `SELECT w.id, w.mc_name, w.type, w.intro, w.channel, w.status, w.created_at,
             w.review_note, w.sync_status, w.sync_log, w.ip, u.id AS user_id, u.username
-     FROM whitelist_applications w JOIN users u ON u.id = w.user_id ${cond}
-     ORDER BY w.id DESC LIMIT 100`,
-  ).all();
-  return ok(results);
+     FROM whitelist_applications w JOIN users u ON u.id = w.user_id` +
+    (useFilter ? " WHERE w.status = ?" : "") +
+    " ORDER BY w.id DESC LIMIT 100";
+  const stmt = c.env.DB.prepare(sql);
+  const { results } = await (useFilter ? stmt.bind(status) : stmt).all();
+
+  // 统计与当前筛选无关，避免默认 tab 为空时所有卡片都显示 0
+  const stats = await c.env.DB.prepare(
+    `SELECT
+       COUNT(*) AS total,
+       COALESCE(SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END), 0) AS pending,
+       COALESCE(SUM(CASE WHEN status = 'pending' AND review_note IS NOT NULL AND review_note <> '' THEN 1 ELSE 0 END), 0) AS needs_info,
+       COALESCE(SUM(CASE WHEN status = 'approved' THEN 1 ELSE 0 END), 0) AS approved,
+       COALESCE(SUM(CASE WHEN status = 'rejected' THEN 1 ELSE 0 END), 0) AS rejected,
+       COALESCE(SUM(CASE WHEN status = 'approved' AND (sync_status IS NULL OR sync_status = '' OR sync_status = 'failed') THEN 1 ELSE 0 END), 0) AS unsynced
+     FROM whitelist_applications`,
+  ).first<{
+    total: number;
+    pending: number;
+    needs_info: number;
+    approved: number;
+    rejected: number;
+    unsynced: number;
+  }>();
+
+  return ok({
+    items: results,
+    stats: {
+      total: Number(stats?.total || 0),
+      pending: Number(stats?.pending || 0),
+      needs_info: Number(stats?.needs_info || 0),
+      approved: Number(stats?.approved || 0),
+      rejected: Number(stats?.rejected || 0),
+      unsynced: Number(stats?.unsynced || 0),
+    },
+  });
 });
 
 // AI 预审：只返回建议，不自动改变申请状态

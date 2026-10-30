@@ -148,6 +148,51 @@ export const DEFAULT_AI_SCENARIOS: AiScenario[] = [
   },
 ];
 
+/**
+ * 部分第三方模型会自带人格名/署名（例如 MacDonald）。
+ * 统一追加身份约束，并在输出与历史回灌时清洗，保证前台只出现站点自己的助手身份。
+ */
+const AI_IDENTITY_GUARD = [
+  "",
+  "【身份约束】",
+  "你只以“西域之光 AI 助手”的身份回答，禁止扮演、自称或提及其他任何角色、模型、人格或厂商（包括但不限于 MacDonald、Claude、ChatGPT、GPT、Qwen、DeepSeek、Gemini、Llama）。",
+  "不要在回复开头或结尾添加任何署名、落款、模型名，也不要写“我是 xxx”式的自我介绍。",
+].join("\n");
+
+const PERSONA_ALIASES = [
+  "MacDonald", "Macdonald", "macdonald", "McDonald", "McDonalds",
+  "Claude", "ChatGPT", "GPT-4o", "GPT-4", "GPT-3.5", "OpenAI",
+  "Qwen", "DeepSeek", "Gemini", "Llama", "Copilot", "Gemma", "Mistral", "Grok",
+  "麦当劳", "麦当劳叔叔", "麦当当", "通义千问", "文心一言", "豆包", "Kimi", "智谱清言",
+];
+const PERSONA_ALT = PERSONA_ALIASES.map((s) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")).join("|");
+const PERSONA_ONLY_RE = new RegExp(
+  `^(?:[\\s>*_\\-—–|【】\\[\\]()（）]+)?(?:${PERSONA_ALT})(?:[\\s>*_\\-—–|【】\\[\\]()（）]+)?$`,
+  "i",
+);
+const PERSONA_TRAIL_RE = new RegExp(`\\s*(?:——|--|—|–|\\|)\\s*(?:${PERSONA_ALT})\\s*$`, "i");
+const PERSONA_LEAD_RE = new RegExp(`^\\s*(?:【\\s*)?(?:${PERSONA_ALT})(?:\\s*】)?\\s*[:：]\\s*`, "i");
+const PERSONA_SELF_RE = new RegExp(`(?:我是|我叫|这里是)\\s*(?:${PERSONA_ALT})\\s*[，,。.!！:：]?`, "gi");
+const PERSONA_PAREN_RE = new RegExp(`[（(]\\s*(?:${PERSONA_ALT})\\s*[）)]`, "gi");
+
+/** 清理整行署名、行尾落款、行首名字、括号署名与“我是 xxx” */
+export function sanitizeAiText(input: string): string {
+  if (!input) return input;
+  const kept: string[] = [];
+  for (const line of input.replace(/\r\n/g, "\n").split("\n")) {
+    const trimmed = line.trim();
+    if (trimmed && PERSONA_ONLY_RE.test(trimmed)) continue;
+    kept.push(
+      line
+        .replace(PERSONA_TRAIL_RE, "")
+        .replace(PERSONA_LEAD_RE, "")
+        .replace(PERSONA_PAREN_RE, "")
+        .replace(PERSONA_SELF_RE, ""),
+    );
+  }
+  return kept.join("\n").replace(/[ \t]+\n/g, "\n").replace(/\n{3,}/g, "\n\n").trim();
+}
+
 function clamp(n: unknown, min: number, max: number, fallback: number): number {
   const v = Number(n);
   if (!Number.isFinite(v)) return fallback;
@@ -230,14 +275,15 @@ export async function aiComplete(
         temperature: scenario.temperature,
         max_tokens: scenario.max_tokens,
         messages: [
-          { role: "system", content: scenario.system_prompt },
+          { role: "system", content: `${scenario.system_prompt}${AI_IDENTITY_GUARD}` },
           ...messages
             .filter((m) => m && typeof m.content === "string" && m.content)
             .slice(-24)
             .map((m) => ({
               role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
-              content: m.content.slice(0, 8000),
-            })),
+              content: sanitizeAiText(m.content).slice(0, 8000),
+            }))
+            .filter((m) => m.content),
         ],
       }),
       signal: AbortSignal.timeout(30_000),
@@ -246,7 +292,7 @@ export async function aiComplete(
       return { ok: false, text: "", message: `AI 服务异常：${await upstreamError(resp)}` };
     }
     const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = data.choices?.[0]?.message?.content?.trim() || "";
+    const text = sanitizeAiText(data.choices?.[0]?.message?.content || "");
     if (!text) return { ok: false, text: "", message: "AI 响应为空，请稍后重试" };
     return { ok: true, text, model: cfg.model };
   } catch (e) {
@@ -433,7 +479,7 @@ app.post("/chat", requireAuth, async (c) => {
       history.map((m) => ({ role: m.role, content: m.content })),
     );
     if (!result.ok) return fail(result.message || "AI 服务异常", 502);
-    reply = result.text;
+    reply = sanitizeAiText(result.text);
   } else {
     reply =
       "你好！我是西域之光的人工智能助手（演示模式）。\n" +
@@ -476,8 +522,9 @@ app.get("/conversations/:id", requireAuth, async (c) => {
   if (!convo || convo.user_id !== user.id) return fail("会话不存在", 404);
   const { results } = await c.env.DB.prepare(
     "SELECT id, role, content, created_at FROM ai_conversation_messages WHERE conversation_id = ? ORDER BY id ASC",
-  ).bind(id).all();
-  return ok(results);
+  ).bind(id).all<{ id: number; role: string; content: string; created_at: string }>();
+  // 历史数据里可能残留模型人格名，返回前统一清洗
+  return ok(results.map((m) => ({ ...m, content: sanitizeAiText(m.content) })));
 });
 
 // 删除会话

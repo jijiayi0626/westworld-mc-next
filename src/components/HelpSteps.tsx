@@ -1,11 +1,62 @@
 "use client";
 
+import { useState } from "react";
 import ScrollFadeUp from "./ScrollFadeUp";
 import MotdQuery from "./MotdQuery";
 import { useSiteContent } from "./SiteContentProvider";
 
+type DownloadSource = "official" | "netdisk";
+
+interface LauncherLink {
+  label: string;
+  url: string;
+  note?: string;
+  source?: DownloadSource;
+}
+
+/** 旧数据没有 source 字段时，按文案/域名判断下载源，兼容后台已保存的内容 */
+function detectSource(link: LauncherLink): DownloadSource {
+  if (link.source === "official" || link.source === "netdisk") return link.source;
+  const label = link.label || "";
+  if (/官网|官方|作者|发布页|github/i.test(label)) return "official";
+  if (/网盘|云盘|夸克|迅雷|蓝奏|百度|提取码/i.test(label)) return "netdisk";
+  try {
+    const host = new URL(link.url).hostname.toLowerCase();
+    if (/huangyuhui|foldcraftlauncher|pclce|github/.test(host)) return "official";
+  } catch {
+    /* 非法 URL 交给默认值 */
+  }
+  return "official";
+}
+
+/** 页面第一步「下载启动器」使用的公共网盘 */
+const SHARED_NETDISK = "https://cloud.inumc.dpdns.org/s/a8c9ad73dc064495a352cbe25aa2561a";
+
+/** 从第一步文案里读取网盘密码（页面原文：下载密码：westworld） */
+function extractPassword(text: string): string {
+  const m = text.match(/下载密码[:：]\s*([^\s，。,.；;]+)/);
+  return m?.[1] ?? "";
+}
+
 export default function HelpSteps() {
   const { help, site } = useSiteContent();
+  const [downloadSource, setDownloadSource] = useState<DownloadSource>("netdisk");
+
+  // 复用页面第一步里已配置的「启动器下载网盘」，没有时回退到固定地址
+  const sharedStep = help.steps.find(
+    (s) => s.cta_href && /cloud|pan\.|lanzou|quark|xunlei|baidu|drive/i.test(s.cta_href)
+  );
+  const sharedNetdisk = sharedStep?.cta_href || SHARED_NETDISK;
+  const sharedPassword = extractPassword(sharedStep?.desc || "") || extractPassword(help.steps.map((s) => s.desc).join(" "));
+
+  const linksOf = (launcher: (typeof help.launchers)[number]): LauncherLink[] => {
+    const matched = (launcher.links ?? []).filter((link) => detectSource(link) === downloadSource);
+    if (matched.length > 0) return matched;
+    if (downloadSource === "netdisk") {
+      return [{ label: "我们的网盘", url: sharedNetdisk, note: sharedPassword ? `密码 ${sharedPassword}` : undefined, source: "netdisk" }];
+    }
+    return [];
+  };
 
   const handleCopy = async () => {
     try {
@@ -21,7 +72,6 @@ export default function HelpSteps() {
       className="help-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
       style={{ backgroundImage: `url('${help.bg_image}')` }}
     >
-      <div className="absolute inset-0 z-[1] bg-bg-dark/85 backdrop-blur-[5px]" />
       <div className="container-mc relative z-[2] text-center">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
@@ -131,14 +181,44 @@ export default function HelpSteps() {
           </ScrollFadeUp>
         </div>
 
-        <div className="launcher-section relative z-[2] mt-20">
+        <div id="launchers" className="launcher-section relative z-[2] mt-20 scroll-mt-24">
           <ScrollFadeUp>
             <h3 className="text-[clamp(1.4rem,3vw,1.8rem)] font-bold text-white mb-2 text-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
               选择一个你喜欢的启动器
             </h3>
-            <p className="text-[1rem] text-white/70 mb-10">
+            <p className="text-[1rem] text-white/75 mb-6 text-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
               官方渠道与备用网盘均可下载，任选其一
             </p>
+            <div className="mb-10">
+              <div className="inline-flex items-center gap-1 p-1 rounded-full bg-black/30 border border-white/15 backdrop-blur-sm">
+                {(
+                  [
+                    { key: "netdisk", label: "我们的网盘", hint: "与第一步相同的网盘" },
+                    { key: "official", label: "官方源", hint: "启动器官网" },
+                  ] as const
+                ).map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => setDownloadSource(item.key)}
+                    aria-pressed={downloadSource === item.key}
+                    className={`px-5 py-2 rounded-full text-[0.9rem] font-semibold transition-all duration-300 border-0 cursor-pointer ${
+                      downloadSource === item.key
+                        ? "bg-accent-green text-bg-dark shadow-[0_4px_14px_rgba(0,230,118,0.35)]"
+                        : "bg-transparent text-white/70 hover:text-white hover:bg-white/10"
+                    }`}
+                    title={item.hint}
+                  >
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+              {downloadSource === "netdisk" && sharedPassword && (
+                <p className="text-[0.82rem] text-white/55 mt-3 mb-0">
+                  网盘下载密码：<span className="text-accent-gold font-semibold">{sharedPassword}</span>
+                </p>
+              )}
+            </div>
           </ScrollFadeUp>
 
           <div className="launcher-grid grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-[1200px] mx-auto">
@@ -158,7 +238,7 @@ export default function HelpSteps() {
                     {launcher.desc}
                   </p>
                   <div className="flex flex-col gap-2.5">
-                    {launcher.links.map((link) => (
+                    {linksOf(launcher).map((link) => (
                       <a
                         key={link.label + link.url}
                         href={link.url}
@@ -166,18 +246,27 @@ export default function HelpSteps() {
                         rel="noopener noreferrer"
                         className="group flex items-center justify-between gap-2 bg-white/10 hover:bg-white hover:text-bg-dark border border-white/10 rounded-lg px-3.5 py-2.5 text-[0.88rem] font-semibold text-white transition-all duration-300 no-underline"
                       >
-                        <span>{link.label}</span>
-                        {link.note && (
-                          <span className="text-[0.75rem] font-normal text-accent-gold group-hover:text-bg-dark/70">
-                            {link.note}
-                          </span>
-                        )}
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <span className="flex min-w-0 flex-col leading-tight">
+                          <span className="truncate">{link.label}</span>
+                          {link.note && (
+                            <span className="mt-0.5 text-[0.72rem] font-normal text-accent-gold group-hover:text-bg-dark/70">
+                              {link.note}
+                            </span>
+                          )}
+                        </span>
+                        <svg className="shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                           <path d="M7 17L17 7" />
                           <path d="M7 7H17V17" />
                         </svg>
                       </a>
                     ))}
+                    {linksOf(launcher).length === 0 && (
+                      <p className="text-[0.82rem] text-white/45 m-0">
+                        {downloadSource === "official"
+                          ? "该启动器暂无官方下载链接，请切换到「我们的网盘」"
+                          : "该启动器暂无网盘链接，请切换到「官方源」"}
+                      </p>
+                    )}
                   </div>
                 </div>
               </ScrollFadeUp>

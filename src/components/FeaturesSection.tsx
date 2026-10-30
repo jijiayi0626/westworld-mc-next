@@ -12,7 +12,6 @@ export default function FeaturesSection() {
       className="features-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
       style={{ backgroundImage: `url('${features.bg_image}')` }}
     >
-      <div className="absolute inset-0 z-[1] bg-bg-dark/60 backdrop-blur-[5px]" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">

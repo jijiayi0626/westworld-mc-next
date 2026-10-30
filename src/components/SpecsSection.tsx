@@ -15,7 +15,6 @@ export default function SpecsSection() {
       className="specs-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[60px] flex items-center"
       style={{ backgroundImage: `url('${specs.bg_image}')` }}
     >
-      <div className="absolute inset-0 z-[1] bg-bg-dark/70 backdrop-blur-[3px]" />
       <div className="container-mc relative z-[2] text-center">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">

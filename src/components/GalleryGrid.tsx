@@ -16,8 +16,13 @@ export default function GalleryGrid() {
   const [lightbox, setLightbox] = useState<GalleryItem | null>(null);
 
   return (
-    <section id="gallery" className="gallery-grid-section bg-bg-dark py-[100px]">
-      <div className="container-mc">
+    <section
+      id="gallery"
+      className="gallery-grid-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
+      style={{ backgroundImage: `url('${gallery.bg_image}')` }}
+    >
+      <div className="absolute inset-0 z-[1] bg-bg-dark/55 backdrop-blur-[2px]" />
+      <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
             <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
