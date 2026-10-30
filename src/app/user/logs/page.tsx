@@ -23,6 +23,7 @@ const actionLabel: Record<string, string> = {
   change_password: "修改密码",
   bind_microsoft: "绑定微软",
   unbind_microsoft: "解绑微软",
+  bind_game_name: "绑定游戏名",
 };
 
 export default function LogsPage() {

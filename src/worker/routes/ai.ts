@@ -507,7 +507,9 @@ app.get("/conversations", requireAuth, async (c) => {
   const { results } = await c.env.DB.prepare(
     `SELECT c.id, c.title, c.status, c.created_at,
             (SELECT COUNT(*) FROM ai_conversation_messages m WHERE m.conversation_id = c.id) AS messages
-     FROM ai_conversations c WHERE c.user_id = ? ORDER BY c.id DESC LIMIT 20`,
+     FROM ai_conversations c
+     WHERE c.user_id = ? AND (c.status IS NULL OR c.status <> 'deleted')
+     ORDER BY c.id DESC LIMIT 20`,
   ).bind(user.id).all();
   return ok(results);
 });

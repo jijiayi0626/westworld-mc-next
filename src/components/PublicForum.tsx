@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import dynamic from "next/dynamic";
 import { useAuth } from "@/components/AuthProvider";
+import { useSiteContent } from "@/components/SiteContentProvider";
 import { api } from "@/lib/api";
 import { motion } from "motion/react";
 import type { ChatLimits } from "@/components/ChatPanel";
@@ -116,6 +117,7 @@ function boardMeta(board: string): { name: string; cls: string } {
 /** 官网公开论坛页：分区浏览、帖子详情、登录后发帖 / 回帖 / 点赞；含聊天室 */
 export default function PublicForum() {
   const { user } = useAuth();
+  const { community } = useSiteContent();
 
   const [view, setView] = useState<ViewKey>("board");
   const [showChat, setShowChat] = useState(true);
@@ -440,8 +442,12 @@ export default function PublicForum() {
   const canDeletePost = !!detail && !!user && (user.role === "admin" || user.id === detail.post.author_id);
 
   return (
-    <main className="forum-public-page relative bg-bg-dark min-h-screen overflow-hidden">
+    <main
+      className="forum-public-page relative bg-bg-dark bg-fixed bg-cover bg-center min-h-screen overflow-hidden"
+      style={{ backgroundImage: `url('${community.bg_image}')` }}
+    >
       <div className="h-nav" />
+      <div className="absolute inset-0 z-[1] pointer-events-none bg-bg-dark/55 backdrop-blur-[2px]" aria-hidden="true" />
       <div className="absolute inset-0 pointer-events-none rules-glow" aria-hidden="true" />
       <div className="relative z-[2] container-mc py-14">
         <div className="section-header mb-8 text-center">

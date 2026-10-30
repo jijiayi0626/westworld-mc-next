@@ -12,7 +12,7 @@ export const FW2_MAIN_ITEMS = [
   { label: "首页", href: "/" },
   { label: "论坛", href: "/forum" },
   { label: "配置", href: "/specs" },
-  { label: "下载", href: "/help" },
+  { label: "下载", href: "/help#launchers" },
   { label: "相册", href: "/gallery" },
 ];
 

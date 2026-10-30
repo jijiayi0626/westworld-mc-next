@@ -14,9 +14,11 @@ interface LauncherLink {
   source?: DownloadSource;
 }
 
-/** 旧数据没有 source 字段时，按文案/域名判断下载源，兼容后台已保存的内容 */
-function detectSource(link: LauncherLink): DownloadSource {
+/** 旧数据没有 source 字段时，按启动器 / 文案 / 域名判断下载源，兼容后台已保存的内容 */
+function detectSource(link: LauncherLink, launcherName: string): DownloadSource {
   if (link.source === "official" || link.source === "netdisk") return link.source;
+  // PCL2 的三个网盘就是作者发布的官方下载渠道
+  if (/PCL2|PCL 2/i.test(launcherName)) return "official";
   const label = link.label || "";
   if (/官网|官方|作者|发布页|github/i.test(label)) return "official";
   if (/网盘|云盘|夸克|迅雷|蓝奏|百度|提取码/i.test(label)) return "netdisk";
@@ -50,7 +52,7 @@ export default function HelpSteps() {
   const sharedPassword = extractPassword(sharedStep?.desc || "") || extractPassword(help.steps.map((s) => s.desc).join(" "));
 
   const linksOf = (launcher: (typeof help.launchers)[number]): LauncherLink[] => {
-    const matched = (launcher.links ?? []).filter((link) => detectSource(link) === downloadSource);
+    const matched = (launcher.links ?? []).filter((link) => detectSource(link, launcher.name) === downloadSource);
     if (matched.length > 0) return matched;
     if (downloadSource === "netdisk") {
       return [{ label: "我们的网盘", url: sharedNetdisk, note: sharedPassword ? `密码 ${sharedPassword}` : undefined, source: "netdisk" }];
@@ -122,7 +124,7 @@ export default function HelpSteps() {
         </p>
                   {step.cta && (
                     <a
-                      href={step.cta_href || "#"}
+                      href={i === 0 ? "#launchers" : step.cta_href || "#"}
                       className="btn-step inline-block px-6 py-2.5 bg-white text-bg-dark rounded-lg font-bold text-[0.9rem] transition-all duration-300 border-none cursor-pointer no-underline relative z-[1] hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-[0_5px_15px_rgba(255,255,255,0.2)]"
                     >
                       {step.cta}
@@ -181,7 +183,7 @@ export default function HelpSteps() {
           </ScrollFadeUp>
         </div>
 
-        <div id="launchers" className="launcher-section relative z-[2] mt-20 scroll-mt-24">
+        <div id="launchers" className="launcher-section relative z-[2] mt-20">
           <ScrollFadeUp>
             <h3 className="text-[clamp(1.4rem,3vw,1.8rem)] font-bold text-white mb-2 text-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
               选择一个你喜欢的启动器

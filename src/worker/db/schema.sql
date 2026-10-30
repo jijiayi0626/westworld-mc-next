@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
   bio TEXT DEFAULT '',
   qq TEXT DEFAULT '',
   discord TEXT DEFAULT '',
+  mc_username TEXT DEFAULT '',                 -- 手动绑定的 Minecraft 游戏名（微软绑定优先回退）
   ua_fingerprint TEXT DEFAULT '',
   csrf_token TEXT DEFAULT '',
   register_ip TEXT DEFAULT '',                 -- 注册时 IP（管理后台可见）

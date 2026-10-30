@@ -228,6 +228,15 @@ app.post("/admin/:id/review", async (c) => {
     .bind(status, note, admin.id, id)
     .run();
 
+  // 审核通过后自动把游戏名写入用户资料（用户手动绑定过则不覆盖）
+  if (status === "approved") {
+    await c.env.DB.prepare(
+      "UPDATE users SET mc_username = ? WHERE id = ? AND (mc_username IS NULL OR mc_username = '')",
+    )
+      .bind(appRow.mc_name, appRow.user_id)
+      .run();
+  }
+
   // 通知用户
   const title = status === "approved" ? "入服申请已通过" : "入服申请被拒绝";
   const content = status === "approved"

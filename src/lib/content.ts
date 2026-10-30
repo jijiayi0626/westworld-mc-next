@@ -46,7 +46,7 @@ export interface SiteContent {
       name: string;
       desc: string;
       tag?: string;
-      links: Array<{ label: string; url: string; note?: string }>;
+      links: Array<{ label: string; url: string; note?: string; source?: "official" | "netdisk" }>;
     }>;
   };
   features: {
@@ -195,16 +195,19 @@ export const defaultContent: SiteContent = {
           {
             label: "夸克网盘",
             url: "https://pan.quark.cn/s/cb915afd9a91#/list/share",
+            source: "official",
           },
           {
             label: "迅雷网盘",
             url: "https://pan.xunlei.com/s/VO_leMclUGQL1OOKN1HCGssXA1?pwd=ktvg",
             note: "提取码 ktvg",
+            source: "official",
           },
           {
             label: "蓝奏云",
             url: "https://ltcat.lanzouv.com/b0aj6gsid",
             note: "密码 pcl2",
+            source: "official",
           },
         ],
       },
