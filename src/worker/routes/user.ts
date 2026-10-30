@@ -3,7 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { requireAuth } from "../lib/auth";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { ok, fail } from "../lib/http";
-import { isValidPassword, str } from "../lib/validate";
+import { isValidPassword, isValidPlayerName, str } from "../lib/validate";
 import { getClientIp, getUa } from "../lib/net";
 import { logUserAction } from "../lib/log";
 
@@ -17,7 +17,12 @@ app.get("/me", async (c) => {
   const row = await c.env.DB.prepare(
     `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio, u.qq, u.discord,
             u.created_at, u.last_login_at, u.last_login_ip,
-            (SELECT mc_username FROM microsoft_bindings WHERE user_id = u.id) AS mc_username,
+            COALESCE(
+              NULLIF(u.mc_username, ''),
+              (SELECT b.mc_username FROM microsoft_bindings b WHERE b.user_id = u.id),
+              (SELECT w.mc_name FROM whitelist_applications w
+               WHERE w.user_id = u.id AND w.status = 'approved' ORDER BY w.id DESC LIMIT 1)
+            ) AS mc_username,
             (SELECT mc_uuid FROM microsoft_bindings WHERE user_id = u.id) AS mc_uuid
      FROM users u WHERE u.id = ?`,
   )
@@ -27,7 +32,7 @@ app.get("/me", async (c) => {
   return ok(row);
 });
 
-// 修改资料（bio/avatar/qq/discord）
+// 修改资料（bio/avatar/qq/discord/mc_username）
 app.post("/profile", async (c) => {
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
@@ -35,11 +40,35 @@ app.post("/profile", async (c) => {
   const avatar = str(body.avatar, 500);
   const qq = str(body.qq, 20).replace(/[^\d]/g, "");
   const discord = str(body.discord, 50).replace(/[^\w.#-]/g, "");
+  const mcUsername = str(body.mc_username, 32).trim();
+
+  if (mcUsername && !isValidPlayerName(mcUsername)) {
+    return fail("游戏名需 3-16 位（字母/数字/下划线）");
+  }
+  if (mcUsername) {
+    const used = await c.env.DB.prepare(
+      "SELECT id FROM users WHERE id <> ? AND mc_username = ? COLLATE NOCASE",
+    )
+      .bind(user.id, mcUsername)
+      .first();
+    if (used) return fail("该游戏名已绑定其他账号", 409);
+    const applied = await c.env.DB.prepare(
+      `SELECT id FROM whitelist_applications
+       WHERE user_id <> ? AND mc_name = ? COLLATE NOCASE AND status IN ('pending','approved')`,
+    )
+      .bind(user.id, mcUsername)
+      .first();
+    if (applied) return fail("该游戏名已被其他账号申请或通过审核", 409);
+  }
+
   await c.env.DB.prepare(
-    "UPDATE users SET bio = ?, avatar = ?, qq = ?, discord = ?, updated_at = datetime('now') WHERE id = ?",
+    "UPDATE users SET bio = ?, avatar = ?, qq = ?, discord = ?, mc_username = ?, updated_at = datetime('now') WHERE id = ?",
   )
-    .bind(bio, avatar, qq, discord, user.id)
+    .bind(bio, avatar, qq, discord, mcUsername, user.id)
     .run();
+  if (mcUsername) {
+    await logUserAction(c.env.DB, user.id, "bind_game_name", `绑定游戏名 ${mcUsername}`, getClientIp(c), getUa(c));
+  }
   return ok({ updated: true });
 });
 

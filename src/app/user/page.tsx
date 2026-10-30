@@ -12,6 +12,7 @@ export default function UserHomePage() {
   const { user, refresh } = useAuth();
   const [bio, setBio] = useState(user?.bio || "");
   const [avatar, setAvatar] = useState(user?.avatar || "");
+  const [mcName, setMcName] = useState("");
   const [qqAvatar, setQqAvatar] = useState("");
   const [qqId, setQqId] = useState("");
   const [discord, setDiscord] = useState("");
@@ -28,6 +29,7 @@ export default function UserHomePage() {
     loadedFor.current = user.id;
     setBio(user.bio || "");
     setAvatar(user.avatar || "");
+    setMcName(user.mc_username || "");
     setQqId(user.qq || "");
     setDiscord(user.discord || "");
     // 入服申请状态用于新人任务：失败不影响页面
@@ -60,7 +62,7 @@ export default function UserHomePage() {
     setSuccess("");
     setSaving(true);
     try {
-      await api("/user/profile", { method: "POST", body: JSON.stringify({ bio, avatar, qq: qqId, discord }) });
+      await api("/user/profile", { method: "POST", body: JSON.stringify({ bio, avatar, qq: qqId, discord, mc_username: mcName }) });
       setSuccess("资料已保存");
       await refresh();
     } catch (e) {
@@ -188,6 +190,14 @@ export default function UserHomePage() {
                     </span>
                   </label>
                 </div>
+              </Field>
+              <Field label="游戏名（Minecraft ID）" hint="3-16 位字母/数字/下划线；留空保存可解绑，入服申请通过后会自动绑定">
+                <Input
+                  value={mcName}
+                  onChange={(e) => setMcName(e.target.value.replace(/[^a-zA-Z0-9_]/g, "").slice(0, 16))}
+                  placeholder="例如 Steve"
+                  autoComplete="off"
+                />
               </Field>
               <Field label="QQ 头像" hint="输入 QQ 号，一键使用腾讯 QQ 头像">
                 <div className="flex items-center gap-3">

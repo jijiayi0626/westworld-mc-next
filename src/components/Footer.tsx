@@ -7,8 +7,8 @@ export default function Footer() {
   const { site } = useSiteContent();
 
   return (
-    <footer className="footer bg-bg-dark text-slate-400 pt-20 border-t border-white/10">
-      <div className="container-mc flex flex-wrap justify-between gap-10 pb-15">
+    <footer className="footer bg-bg-dark text-slate-400 pt-14 border-t border-white/10">
+      <div className="container-mc flex flex-wrap justify-between gap-10">
         <div className="footer-brand flex-1 min-w-[300px]">
           <Link href="/" className="footer-logo flex items-center gap-2.5 text-2xl font-bold text-white mb-5">
             <svg
@@ -152,7 +152,7 @@ export default function Footer() {
        </div>
      </div>
 
-      <div className="footer-bottom bg-bg-darker py-5 text-center text-[0.9rem] border-t border-white/5">
+      <div className="footer-bottom bg-bg-darker py-4 text-center text-[0.9rem] border-t border-white/5">
         <div className="container-mc">
           <p>{site.footer_copyright}</p>
           {site.footer_disclaimer && (
