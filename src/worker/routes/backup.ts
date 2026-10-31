@@ -57,7 +57,7 @@ const FORUM_TABLES: TableDef[] = [
 
 /** 配置内容备份中需要抹掉的敏感 settings key */
 function isSecretSettingKey(key: string): boolean {
-  return /(secret|api[_-]?key|token|password|passwd|smtp|mail_config|ai_config|ai_providers|ms_oauth|rainyun|epay|reset_code|turnstile)/i.test(
+  return /(secret|api[_-]?key|token|password|passwd|smtp|mail_config|ai_config|ai_providers|ms_oauth|inu_oauth|rainyun|epay|reset_code|turnstile)/i.test(
     key,
   );
 }

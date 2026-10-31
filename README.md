@@ -135,14 +135,16 @@ npx wrangler deploy
 
 1. 在 INU 超级管理台「应用接入」创建应用，回调地址填写：
    `https://westworld.inumc.dpdns.org/api/inu/callback`
-2. 配置环境变量（`INU_ORIGIN` / `INU_REDIRECT_URI` / `INU_SCOPES` 已在 `wrangler.jsonc` 中给出）：
+2. 两种配置方式，任选其一：
+   - **后台配置（推荐）**：管理后台 →「网站设置 → 三方集成 → INU 星际通行证」，填写 Client ID / Client Secret（公开客户端可留空）、Scope 与回调地址，勾选启用并保存，即时生效，无需重新部署。
+   - **环境变量**：`INU_ORIGIN` / `INU_REDIRECT_URI` / `INU_SCOPES` 已在 `wrangler.jsonc` 中给出，再执行：
+     ```bash
+     npx wrangler secret put INU_CLIENT_ID
+     npx wrangler secret put INU_CLIENT_SECRET   # 公开客户端可跳过
+     ```
+   站点设置优先，环境变量作为回退。
 
-   ```bash
-   npx wrangler secret put INU_CLIENT_ID
-   npx wrangler secret put INU_CLIENT_SECRET   # 公开客户端可跳过
-   ```
-
-3. 部署后登录页会出现「使用 INU 账号登录」；未配置 `INU_CLIENT_ID` 时按钮自动隐藏。
+3. 启用后登录页会出现「使用 INU 账号登录」；未配置 Client ID 或未启用时按钮自动隐藏。
 4. 用户可在「用户中心 → 安全中心」绑定 / 解绑 INU 账号；退出登录会调用 `/oauth/revoke` 撤销令牌。
 5. 首次用 INU 登录会自动创建本地账号（用户名取 INU 昵称，重复时自动加后缀）；已验证邮箱若已被本地账号占用，不会自动合并，需先用原账号登录后手动绑定。
 

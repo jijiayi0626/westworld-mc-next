@@ -11,6 +11,7 @@ import { rateLimit } from "../lib/ratelimit";
 import { logUserAction } from "../lib/log";
 import { encryptSecret, decryptSecret } from "../lib/cipher";
 import {
+  type InuConfig,
   inuStateCookie,
   loadInuConfig,
   pkceChallenge,
@@ -322,7 +323,7 @@ async function finishLogin(
 }
 
 async function exchangeToken(
-  cfg: ReturnType<typeof loadInuConfig>,
+  cfg: InuConfig,
   code: string,
   verifier: string,
 ): Promise<InuToken | null> {
@@ -340,12 +341,22 @@ async function exchangeToken(
   try {
     const resp = await fetch(`${cfg.origin}/oauth/token`, {
       method: "POST",
-      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      headers: {
+        "Content-Type": "application/x-www-form-urlencoded",
+        "User-Agent": "Westworld-INU/1.0",
+      },
       body,
       signal: controller.signal,
     });
     if (!resp.ok) {
-      console.log(`[inu] token exchange failed: HTTP ${resp.status}`);
+      let errCode = "";
+      try {
+        const j = (await resp.json()) as { error?: unknown };
+        errCode = typeof j.error === "string" ? j.error.slice(0, 60) : "";
+      } catch {
+        /* 非 JSON 错误体 */
+      }
+      console.log(`[inu] token exchange failed: HTTP ${resp.status}${errCode ? ` (${errCode})` : ""}`);
       return null;
     }
     const data = (await resp.json()) as Partial<InuToken>;
@@ -364,12 +375,12 @@ async function exchangeToken(
   }
 }
 
-async function fetchProfile(cfg: ReturnType<typeof loadInuConfig>, token: InuToken) {
+async function fetchProfile(cfg: InuConfig, token: InuToken) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), 10000);
   try {
     const resp = await fetch(`${cfg.origin}/oauth/userinfo`, {
-      headers: { Authorization: `Bearer ${token.access_token}` },
+      headers: { Authorization: `Bearer ${token.access_token}`, "User-Agent": "Westworld-INU/1.0" },
       signal: controller.signal,
     });
     if (!resp.ok) {
@@ -390,7 +401,7 @@ async function startFlow(
   mode: "login" | "bind",
   userId?: number,
 ): Promise<Response> {
-  const cfg = loadInuConfig(c.env, new URL(c.req.url).origin);
+  const cfg = await loadInuConfig(c.env, new URL(c.req.url).origin, c.env.DB);
   if (!cfg.enabled) return errorRedirect(c, mode, "config");
 
   const ip = getClientIp(c);
@@ -442,7 +453,7 @@ app.get("/bind", async (c) => {
 
 // 公开状态：登录页据此决定是否显示「使用 INU 账号登录」
 app.get("/status", async (c) => {
-  const cfg = loadInuConfig(c.env, new URL(c.req.url).origin);
+  const cfg = await loadInuConfig(c.env, new URL(c.req.url).origin, c.env.DB);
   return ok({
     enabled: cfg.enabled,
     redirect_uri: cfg.redirectUri,
@@ -467,7 +478,7 @@ app.get("/binding", async (c) => {
 
 // OAuth 回调
 app.get("/callback", async (c) => {
-  const cfg = loadInuConfig(c.env, new URL(c.req.url).origin);
+  const cfg = await loadInuConfig(c.env, new URL(c.req.url).origin, c.env.DB);
 
   let appSecret: string;
   try {
@@ -609,5 +620,27 @@ app.post("/unbind", async (c) => {
   await logUserAction(c.env.DB, user.id, "unbind_inu", "解绑 INU 账号", getClientIp(c), getUa(c));
   return ok({ unbound: true });
 });
+
+/** 管理后台「三方集成」展示用状态（不含任何密钥明文） */
+export async function inuAdminStatus(c: Context<AppEnv>) {
+  const cfg = await loadInuConfig(c.env, new URL(c.req.url).origin, c.env.DB);
+  const mask = (s: string) => (s ? `${s.slice(0, 8)}****` : "");
+  let bound = 0;
+  try {
+    const row = await c.env.DB.prepare("SELECT COUNT(*) AS n FROM inu_accounts").first<{ n: number }>();
+    bound = Number(row?.n) || 0;
+  } catch {
+    /* 表尚未建立时不阻塞状态展示 */
+  }
+  return {
+    enabled: cfg.enabled,
+    client_id: mask(cfg.clientId),
+    client_secret_set: !!cfg.clientSecret,
+    redirect_uri: cfg.redirectUri,
+    scopes: cfg.scopes,
+    origin: cfg.origin,
+    bound_users: bound,
+  };
+}
 
 export default app;

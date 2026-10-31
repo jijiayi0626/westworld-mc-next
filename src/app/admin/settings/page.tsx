@@ -27,6 +27,15 @@ interface Integrations {
     scope: string;
     callback_url: string;
   };
+  inu: {
+    enabled: boolean;
+    client_id: string;
+    client_secret_set: boolean;
+    redirect_uri: string;
+    scopes: string;
+    origin: string;
+    bound_users: number;
+  };
 }
 
 const UPOP_FIELDS: { key: string; label: string; hint?: string }[] = [
@@ -49,7 +58,7 @@ const TABS: { key: Tab; label: string; desc: string }[] = [
   { key: "forum", label: "论坛与聊天", desc: "论坛 Tab 显隐、聊天室开关、欢迎公告与发送限制" },
   { key: "mail", label: "邮件服务", desc: "接入 Resend 或 SMTP，用于找回密码验证码与批量通知投递" },
   { key: "payment", label: "支付配置", desc: "接入易支付（Epay 通用协议），支持支付宝 / 微信 / QQ 钱包" },
-  { key: "integrations", label: "三方集成", desc: "微软 OAuth 与 UPOP 统一认证的凭据配置" },
+  { key: "integrations", label: "三方集成", desc: "微软 OAuth、UPOP 统一认证与 INU 星际通行证的凭据配置" },
 ];
 
 // 前台可选模板（取值写入 site_settings.frontend_theme）
@@ -98,6 +107,8 @@ export default function AdminSettingsPage() {
     client_secret: "",
   });
   const [msBusy, setMsBusy] = useState(false);
+  const [inuForm, setInuForm] = useState({ enabled: false, client_id: "", client_secret: "", scopes: "profile email", redirect_uri: "" });
+  const [inuBusy, setInuBusy] = useState(false);
 
   const [chatCfg, setChatCfg] = useState<{ enabled: boolean; welcome: string; max_text: number; max_image_mb: number; show_announcements: boolean; show_chat: boolean } | null>(null);
   const [chatForm, setChatForm] = useState({ enabled: true, welcome: "", max_text: 400, max_image_mb: 4, show_announcements: true, show_chat: true });
@@ -182,6 +193,12 @@ export default function AdminSettingsPage() {
         upop_scope: data.upop.scope || "openid profile",
       }));
       setMsForm((prev) => ({ ...prev, enabled: data.microsoft.enabled }));
+      setInuForm((prev) => ({
+        ...prev,
+        enabled: data.inu.enabled,
+        scopes: data.inu.scopes || "profile email",
+        redirect_uri: data.inu.redirect_uri || "",
+      }));
     } catch {
       /* 接口预留状态加载失败不阻塞页面 */
     }
@@ -283,6 +300,32 @@ export default function AdminSettingsPage() {
       setError(err instanceof Error ? err.message : "微软配置保存失败");
     } finally {
       setMsBusy(false);
+    }
+  };
+
+  const saveInu = async (e: FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setSuccess("");
+    setInuBusy(true);
+    try {
+      await api("/admin/integrations/inu", {
+        method: "POST",
+        body: JSON.stringify({
+          enabled: inuForm.enabled,
+          client_id: inuForm.client_id,
+          client_secret: inuForm.client_secret,
+          scopes: inuForm.scopes,
+          redirect_uri: inuForm.redirect_uri,
+        }),
+      });
+      setSuccess("INU OAuth 配置已保存");
+      setInuForm((p) => ({ ...p, client_id: "", client_secret: "" }));
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "INU 配置保存失败");
+    } finally {
+      setInuBusy(false);
     }
   };
 
@@ -871,7 +914,7 @@ export default function AdminSettingsPage() {
       ) : (
         <Card>
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">三方接口预留</h3>
-          <p className="text-[0.82rem] text-slate-500 mb-4">微软 OAuth 与 UPOP 统一认证的绑定接口已预留完成，配置好凭据即可启用。</p>
+          <p className="text-[0.82rem] text-slate-500 mb-4">微软 OAuth、UPOP 统一认证与 INU 星际通行证的绑定接口已预留完成，配置好凭据即可启用。</p>
           {integrations === null ? (
             <Empty text="加载中..." />
           ) : (
@@ -938,6 +981,70 @@ export default function AdminSettingsPage() {
                 </div>
                 <p className="text-[0.78rem] text-slate-400">
                   下方配置保存到站点设置中，即时生效、无需重新部署。全部填好后将「启用」设为 true。
+                </p>
+              </div>
+
+              {/* INU OAuth */}
+              <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2.5 lg:col-span-2">
+                <div className="font-semibold text-slate-800 flex items-center gap-2">
+                  <StatusDot ok={integrations.inu.enabled} label="INU 星际通行证" />
+                </div>
+                <div className="text-[0.82rem] text-slate-500">
+                  当前状态：Client ID {integrations.inu.client_id || "未配置"} · Secret{" "}
+                  {integrations.inu.client_secret_set ? "已配置" : "未配置"} · 已绑定 {integrations.inu.bound_users} 人
+                </div>
+                <form onSubmit={saveInu} className="flex flex-col gap-3 mt-1">
+                  <label className="flex items-center gap-2 text-[0.85rem] text-slate-700 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={inuForm.enabled}
+                      onChange={(e) => setInuForm((p) => ({ ...p, enabled: e.target.checked }))}
+                      className="w-4 h-4 accent-emerald-500"
+                    />
+                    启用 INU 账号登录（登录页显示「使用 INU 账号登录」）
+                  </label>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+                    <input
+                      value={inuForm.client_id}
+                      onChange={(e) => setInuForm((p) => ({ ...p, client_id: e.target.value }))}
+                      placeholder={integrations.inu.client_id ? `Client ID（已保存 ${integrations.inu.client_id}，留空保留）` : "INU 应用 Client ID"}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    />
+                    <input
+                      type="password"
+                      value={inuForm.client_secret}
+                      onChange={(e) => setInuForm((p) => ({ ...p, client_secret: e.target.value }))}
+                      placeholder={integrations.inu.client_secret_set ? "Client Secret（已保存，留空保留）" : "Client Secret（公开客户端可留空）"}
+                      autoComplete="new-password"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    />
+                    <input
+                      value={inuForm.scopes}
+                      onChange={(e) => setInuForm((p) => ({ ...p, scopes: e.target.value }))}
+                      placeholder="授权范围，默认 profile email"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    />
+                    <input
+                      value={inuForm.redirect_uri}
+                      onChange={(e) => setInuForm((p) => ({ ...p, redirect_uri: e.target.value }))}
+                      placeholder="回调地址，例如 https://站点域名/api/inu/callback"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <button type="submit" disabled={inuBusy} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer">
+                      {inuBusy ? "保存中..." : "保存 INU 配置"}
+                    </button>
+                  </div>
+                </form>
+                <div className="text-[0.8rem] text-slate-500 mt-1">
+                  回调地址（填入 INU 后台）：
+                  <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
+                    {integrations.inu.redirect_uri}
+                  </code>
+                </div>
+                <p className="text-[0.78rem] text-slate-400">
+                  保存到站点设置并即时生效，无需重新部署；Secret 仅保存在服务端，不会回传到浏览器，环境变量仍可作为回退。
                 </p>
               </div>
             </div>
