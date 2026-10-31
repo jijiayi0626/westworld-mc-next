@@ -509,9 +509,20 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: "/admin/backup", label: "数据备份", icon: "backup" },
         { href: "/admin/visual", label: "可视化编辑", icon: "palette" },
         { href: "/admin/content", label: "内容管理", icon: "description" },
-        { href: "/admin/settings", label: "网站设置", icon: "language" },
         { href: "/admin/backend", label: "后台样式", icon: "tune" },
         { href: "/admin/about", label: "关于本站", icon: "info" },
+      ],
+    },
+    {
+      label: "网站设置",
+      icon: "language",
+      children: [
+        { href: "/admin/settings/basic", label: "基础配置", icon: "tune" },
+        { href: "/admin/settings/appearance", label: "外观模板", icon: "palette" },
+        { href: "/admin/settings/forum", label: "论坛与聊天", icon: "forum" },
+        { href: "/admin/settings/mail", label: "邮件服务", icon: "mail" },
+        { href: "/admin/settings/payment", label: "支付配置", icon: "payments" },
+        { href: "/admin/settings/integrations", label: "三方集成", icon: "hub" },
       ],
     },
   ];

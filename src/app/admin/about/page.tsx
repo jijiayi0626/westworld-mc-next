@@ -12,7 +12,7 @@ const PROJECT = {
   author: "jijiayi0626",
   email: "mr_jijiayi@outlook.com",
   stack: "Next.js + Tailwind CSS · Cloudflare Workers (Hono) · D1 ×2 · R2",
-  version: "v0.7.1",
+  version: "v0.7.2",
   desc: "本网站为全新重构项目，与旧版 PHP 项目（mc-original）无任何关系。内容由后台「内容管理」「可视化编辑」动态配置，前台刷新即时生效。",
 };
 
