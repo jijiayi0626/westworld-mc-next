@@ -288,6 +288,26 @@ CREATE TABLE IF NOT EXISTS microsoft_bindings (
 CREATE INDEX IF NOT EXISTS idx_ms_bindings_uuid ON microsoft_bindings(mc_uuid);
 CREATE INDEX IF NOT EXISTS idx_ms_bindings_ms ON microsoft_bindings(ms_account_id);
 
+-- INU 星际通行证 OAuth 登录（sub 为唯一标识；access_token 仅加密存储用于退出撤销）
+CREATE TABLE IF NOT EXISTS inu_accounts (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL UNIQUE,
+  inu_sub TEXT NOT NULL UNIQUE,
+  inu_id TEXT DEFAULT '',
+  name TEXT DEFAULT '',
+  preferred_username TEXT DEFAULT '',
+  orbit TEXT DEFAULT '',
+  avatar_text TEXT DEFAULT '',
+  tier TEXT DEFAULT '',
+  tier_label TEXT DEFAULT '',
+  email TEXT DEFAULT '',
+  email_verified INTEGER NOT NULL DEFAULT 0,
+  access_token_enc TEXT DEFAULT '',
+  token_expires_at INTEGER,
+  bound_at TEXT NOT NULL DEFAULT (datetime('now')),
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+
 -- UPOP 统一认证绑定（预留接口）
 CREATE TABLE IF NOT EXISTS upop_bindings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

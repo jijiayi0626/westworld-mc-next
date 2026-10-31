@@ -33,6 +33,11 @@ function getSecret(c: Context<AppEnv>): string {
   return s as string;
 }
 
+/** 统一会话 Cookie：HttpOnly + Secure + SameSite=Lax（登录 / INU OAuth 共用） */
+export function sessionCookie(token: string, maxAge = 7 * 86400): string {
+  return `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
+}
+
 // 从 Authorization: Bearer 或 Cookie auth_token 读取令牌
 function readToken(c: Context<AppEnv>): string | null {
   const auth = c.req.header("authorization");

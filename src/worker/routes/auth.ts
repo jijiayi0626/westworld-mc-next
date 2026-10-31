@@ -7,14 +7,11 @@ import { isEmail, isValidUsername, isValidPassword, str, timingSafeEqual } from 
 import { getClientIp, getUa, uaFingerprint, genCsrfToken, genCode } from "../lib/net";
 import { rateLimit, isBlacklisted } from "../lib/ratelimit";
 import { logUserAction } from "../lib/log";
-import { getSecret } from "../lib/auth";
+import { getSecret, sessionCookie, readToken } from "../lib/auth";
+import { revokeInuTokenForUser } from "../lib/inu";
 import { loadMailConfig, mailEnabled, sendMail, renderEmail } from "../lib/mail";
 
 const app = new Hono<AppEnv>();
-
-function authCookie(token: string, maxAge = 7 * 86400): string {
-  return `auth_token=${encodeURIComponent(token)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=${maxAge}`;
-}
 
 // 注册
 app.post("/register", async (c) => {
@@ -63,7 +60,7 @@ app.post("/register", async (c) => {
 
   await logUserAction(c.env.DB, userId, "register", "新用户注册", getClientIp(c), getUa(c));
 
-  return ok({ id: userId, username, email, csrf }, 200, { "Set-Cookie": authCookie(token) });
+  return ok({ id: userId, username, email, csrf }, 200, { "Set-Cookie": sessionCookie(token) });
 });
 
 // 登录
@@ -114,7 +111,7 @@ app.post("/login", async (c) => {
   return ok(
     { id: user.id, username: user.username, email: user.email, csrf: user.csrf_token },
     200,
-    { "Set-Cookie": authCookie(token) },
+    { "Set-Cookie": sessionCookie(token) },
   );
 });
 
@@ -240,7 +237,18 @@ app.post("/reset", async (c) => {
 
 // 登出
 app.post("/logout", async (c) => {
-  return ok({ loggedOut: true }, 200, { "Set-Cookie": authCookie("", 0) });
+  // INU OAuth 登录的会话：退出时先撤销 access_token（1 小时有效且无 refresh token）
+  try {
+    const token = readToken(c);
+    const payload = token ? await verifyToken(token, getSecret(c)) : null;
+    const userId = Number(payload?.sub);
+    if (Number.isInteger(userId) && userId > 0) {
+      await revokeInuTokenForUser(c.env, userId);
+    }
+  } catch {
+    // 令牌撤销失败不阻断本地登出
+  }
+  return ok({ loggedOut: true }, 200, { "Set-Cookie": sessionCookie("", 0) });
 });
 
 export default app;

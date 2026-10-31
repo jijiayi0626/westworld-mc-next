@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useAuth } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
+import { inuErrorText } from "@/lib/inu";
 
 type Tab = "login" | "register" | "forgot" | "reset";
 
@@ -66,10 +67,29 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [busy, setBusy] = useState(false);
+  const [inuEnabled, setInuEnabled] = useState(false);
 
   useEffect(() => {
     if (user) router.replace("/user");
   }, [user, router]);
+
+  useEffect(() => {
+    let alive = true;
+    api<{ enabled: boolean }>("/inu/status")
+      .then((data) => {
+        if (alive) setInuEnabled(!!data.enabled);
+      })
+      .catch(() => {});
+    const params = new URLSearchParams(window.location.search);
+    const code = params.get("inu_error");
+    if (code) {
+      setError(inuErrorText(code));
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -263,6 +283,23 @@ export default function LoginPage() {
                 {busy ? "提交中..." : tab === "login" ? "登录" : tab === "register" ? "创建账号" : "获取重置码"}
               </button>
             </form>
+          )}
+
+          {tab === "login" && inuEnabled && (
+            <>
+              <div className="flex items-center gap-3 my-5 text-[0.78rem] text-slate-400">
+                <span className="flex-1 h-px bg-slate-200" />
+                或
+                <span className="flex-1 h-px bg-slate-200" />
+              </div>
+              <a
+                href="/api/inu/start"
+                className="block w-full py-3 rounded-[10px] border border-slate-200 text-center text-[0.92rem] font-semibold text-slate-700 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+              >
+                使用 INU 账号登录
+              </a>
+              <p className="mt-2 text-center text-[0.75rem] text-slate-400">INU 无限宇宙 · 星际通行证</p>
+            </>
           )}
 
           <div className="login-footer">

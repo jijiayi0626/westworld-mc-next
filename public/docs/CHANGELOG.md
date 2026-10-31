@@ -6,6 +6,29 @@
 
 ---
 
+## v0.7.0（2026-10-31）
+
+### 新增
+- **INU 账号登录**：接入「INU 无限宇宙 · 星际通行证」OAuth 2.0，登录页新增「使用 INU 账号登录」；采用 Authorization Code + PKCE（S256），未配置 `INU_CLIENT_ID` 时按钮自动隐藏
+- **账号绑定**：安全中心新增 INU 绑定卡片，支持绑定 / 解绑，展示 INU ID、昵称与会员等级；已登录用户也可把 INU 账号绑定到现有本地账号
+- **自动建号**：首次用 INU 登录时以 `sub` 为唯一标识查找账号，不存在则自动创建本地用户（昵称重复自动加后缀；无已验证邮箱时使用 `@inu.invalid` 占位邮箱，不参与找回密码）
+- **退出撤销**：INU access_token 加密存入 `inu_accounts`，退出登录或解绑时调用 `/oauth/revoke` 撤销，成功后清除本地令牌
+
+### 安全
+- `state` 与 PKCE verifier 存放在 AES-GCM 加密的 HttpOnly Cookie 中，10 分钟过期、回调一次性消费；`state` 使用恒定时间比较
+- `client_secret` 只从服务端环境变量读取，公开客户端可省略；静态产物中不包含任何 INU 密钥
+- 用户唯一标识使用 `sub`，邮箱仅在 `email_verified === true` 时信任；已验证邮箱若已属于本地账号，不自动合并，需登录原账号后手动绑定
+- 发起授权与回调均按 IP 限流；回调失败只返回错误码，不把 `code`、token 或原始错误抛到页面
+- 绑定接口校验当前会话与用户状态；INU 账号已绑定其他本地账号时返回冲突提示
+
+### 数据库迁移
+- 新增 `inu_accounts` 表，已写入 `schema.sql` 与 `scripts/migrate-inu-oauth.sql`
+
+### 配置
+- 新增 `INU_ORIGIN`、`INU_CLIENT_ID`、`INU_CLIENT_SECRET`、`INU_REDIRECT_URI`、`INU_SCOPES`；回调地址为 `https://westworld.inumc.dpdns.org/api/inu/callback`
+
+---
+
 ## v0.6.1（2026-10-31）
 
 安全加固版本。对全部后端路由做了一轮纵深排查，重点修补支付、OAuth、RCON 与限流链路。
