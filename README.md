@@ -42,7 +42,7 @@
 | `/faq` | 常见问题 |
 | `/contact` | 联系表单（留言板） |
 | `/community` | 社区群二维码与加入入口 |
-| `/login` | 登录 / 注册 / 找回密码（支持微软 OAuth / UPOP 统一认证绑定） |
+| `/login` | 登录 / 注册 / 找回密码（支持 INU OAuth 登录、微软 OAuth / UPOP 绑定） |
 | `/user/*` | 用户中心：资料、改密、论坛（公告 + 聊天室）、入服申请、工单、AI 助手、订单、通知、操作日志、安全中心 |
 | `/admin/*` | 管理后台：统计、用户、内容、图库、公告、留言、论坛、工单、申请审核、AI（多场景）、商城、监控（RCON + MOTD）、风控看板、雨云面板、数据备份、设置、关于 |
 
@@ -55,7 +55,7 @@
 
 | 模块 | 说明 |
 |---|---|
-| 认证 | 账号密码 + 同源校验（CSRF 防护）+ HttpOnly Cookie；微软 OAuth 与 UPOP 统一认证绑定 |
+| 认证 | 账号密码 + 同源校验（CSRF 防护）+ HttpOnly Cookie；INU OAuth 登录（PKCE）、微软 OAuth 与 UPOP 绑定 |
 | 论坛 | 公告（管理端发布）+ 聊天室（文字 / 图片、频控、日限额），独立 D1 数据库 `westworld-forum` 存储 |
 | 工单 / 申请 | 支持往返回复；入服申请审核通过后可经 RCON 自动加白名单 |
 | 商城 | 商品 + 订单 + Creem 支付；支持对接服务器经济插件（RCON 查询 / 扣款指令模板） |
@@ -128,8 +128,23 @@ npx wrangler deploy
 - `wrangler.jsonc`：绑定主库 `DB`（mc-next）、论坛库 `FORUM_DB`（westworld-forum）、`ASSETS`（R2）、`RCON`（DO）、cron 触发器
 - 初始化建表：`npx wrangler d1 execute mc-next --remote --file src/worker/db/schema.sql`
 - 论坛库建表：`npx wrangler d1 execute westworld-forum --remote --file src/worker/db/schema-forum.sql`
-- 已有数据库升级：按需执行 `scripts/migrate-*.sql`（本次涉及 `migrate-user-socials.sql`、`migrate-shop-delivery.sql`、`migrate-ticket-attachments.sql`）
+- 已有数据库升级：按需执行 `scripts/migrate-*.sql`（本次涉及 `migrate-inu-oauth.sql`、`migrate-user-socials.sql`、`migrate-shop-delivery.sql`、`migrate-ticket-attachments.sql`）
 - 敏感配置（AI 密钥、微软 OAuth、UPOP、RCON 等）均在后台「网站设置」页配置，存数据库即时生效
+
+### INU OAuth 登录（可选）
+
+1. 在 INU 超级管理台「应用接入」创建应用，回调地址填写：
+   `https://westworld.inumc.dpdns.org/api/inu/callback`
+2. 配置环境变量（`INU_ORIGIN` / `INU_REDIRECT_URI` / `INU_SCOPES` 已在 `wrangler.jsonc` 中给出）：
+
+   ```bash
+   npx wrangler secret put INU_CLIENT_ID
+   npx wrangler secret put INU_CLIENT_SECRET   # 公开客户端可跳过
+   ```
+
+3. 部署后登录页会出现「使用 INU 账号登录」；未配置 `INU_CLIENT_ID` 时按钮自动隐藏。
+4. 用户可在「用户中心 → 安全中心」绑定 / 解绑 INU 账号；退出登录会调用 `/oauth/revoke` 撤销令牌。
+5. 首次用 INU 登录会自动创建本地账号（用户名取 INU 昵称，重复时自动加后缀）；已验证邮箱若已被本地账号占用，不会自动合并，需先用原账号登录后手动绑定。
 
 ---
 

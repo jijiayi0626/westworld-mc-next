@@ -56,6 +56,9 @@
     "AI_ENABLED": "true",
     "RCON_ENABLED": "false",
     "MONITOR_ENABLED": "true",
-    "TRUST_PROXY": "false"
+    "TRUST_PROXY": "false",
+    "INU_ORIGIN": "https://inu-space-pass.mr-jijiayi.workers.dev",
+    "INU_REDIRECT_URI": "https://westworld.inumc.dpdns.org/api/inu/callback",
+    "INU_SCOPES": "profile email"
   }
 }

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { UserShell } from "@/components/Shell";
 import { api } from "@/lib/api";
+import { inuErrorText } from "@/lib/inu";
 import { Btn, Card, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
 
 interface Binding {
@@ -25,6 +26,29 @@ interface UpopStatus {
   callback_url: string;
 }
 
+interface InuBinding {
+  id: number;
+  inu_sub: string;
+  inu_id: string;
+  name: string;
+  preferred_username: string;
+  orbit: string;
+  avatar_text: string;
+  tier: string;
+  tier_label: string;
+  email: string;
+  email_verified: number;
+  bound_at: string;
+  updated_at: string;
+}
+
+interface InuStatus {
+  enabled: boolean;
+  redirect_uri: string;
+  scopes: string;
+  client_id_set: boolean;
+}
+
 export default function UserSecurityPage() {
   const [oldPassword, setOldPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -35,6 +59,8 @@ export default function UserSecurityPage() {
   const [bindings, setBindings] = useState<Binding[] | null>(null);
   const [upopBinding, setUpopBinding] = useState<UpopBinding | null>(null);
   const [upopStatus, setUpopStatus] = useState<UpopStatus | null>(null);
+  const [inuBinding, setInuBinding] = useState<InuBinding | null>(null);
+  const [inuStatus, setInuStatus] = useState<InuStatus | null>(null);
 
   const loadBindings = useCallback(async () => {
     try {
@@ -59,18 +85,39 @@ export default function UserSecurityPage() {
     }
   }, []);
 
+  const loadInu = useCallback(async () => {
+    try {
+      setInuStatus(await api<InuStatus>("/inu/status"));
+    } catch {
+      setInuStatus(null);
+    }
+    try {
+      setInuBinding(await api<InuBinding | null>("/inu/binding"));
+    } catch {
+      setInuBinding(null);
+    }
+  }, []);
+
   useEffect(() => {
     void loadBindings();
     void loadUpop();
+    void loadInu();
     const params = new URLSearchParams(window.location.search);
-    if (params.get("upop_bound") === "1") {
+    const inuError = params.get("inu_error");
+    if (inuError) {
+      setError(inuErrorText(inuError));
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (params.get("upop_bound") === "1") {
       setSuccess("UPOP 账号绑定成功");
+      window.history.replaceState(null, "", window.location.pathname);
+    } else if (params.get("inu_bound") === "1") {
+      setSuccess("INU 账号绑定成功");
       window.history.replaceState(null, "", window.location.pathname);
     } else if (params.get("bound") === "1" || params.get("ms_bound") === "1") {
       setSuccess("微软账号绑定成功");
       window.history.replaceState(null, "", window.location.pathname);
     }
-  }, [loadBindings, loadUpop]);
+  }, [loadBindings, loadUpop, loadInu]);
 
   const changePassword = async (e: FormEvent) => {
     e.preventDefault();
@@ -136,6 +183,25 @@ export default function UserSecurityPage() {
     }
   };
 
+  const bindInu = () => {
+    setError("");
+    setSuccess("");
+    window.location.href = "/api/inu/bind";
+  };
+
+  const unbindInu = async () => {
+    if (!confirm("确定解绑 INU 账号？解绑后将不能再用 INU 一键登录。")) return;
+    setError("");
+    setSuccess("");
+    try {
+      await api("/inu/unbind", { method: "POST", body: JSON.stringify({}) });
+      setSuccess("已解绑 INU 账号");
+      await loadInu();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "解绑失败");
+    }
+  };
+
   const unbindUpop = async () => {
     if (!confirm("确定解绑 UPOP 账号？")) return;
     setError("");
@@ -198,6 +264,41 @@ export default function UserSecurityPage() {
                   <Btn size="sm" variant="danger" onClick={() => unbind(b.id)}>解绑</Btn>
                 </div>
               ))}
+            </div>
+          )}
+        </Card>
+
+        {/* INU 星际通行证登录 */}
+        <Card className="mt-5">
+          <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">INU 账号绑定</h3>
+          <p className="text-[0.85rem] text-slate-500 mb-4 leading-relaxed">
+            绑定 INU 无限宇宙 · 星际通行证后，可在登录页使用 INU 账号一键登录；INU 身份以通行证编号（sub）为准。
+          </p>
+          {inuBinding ? (
+            <div className="flex items-center justify-between gap-3 py-1">
+              <div>
+                <div className="text-slate-800 font-medium">
+                  {inuBinding.name || inuBinding.preferred_username || inuBinding.inu_id}
+                </div>
+                <div className="mt-1 text-[0.78rem] text-slate-500 font-mono">
+                  {inuBinding.inu_id || inuBinding.inu_sub}
+                  {inuBinding.tier_label ? ` · ${inuBinding.tier_label}` : ""}
+                </div>
+                {inuBinding.email && (
+                  <div className="mt-1 text-[0.75rem] text-slate-400">
+                    {inuBinding.email}
+                    {inuBinding.email_verified ? "（已验证）" : "（未验证）"}
+                  </div>
+                )}
+              </div>
+              <Btn size="sm" variant="danger" onClick={unbindInu}>解绑</Btn>
+            </div>
+          ) : inuStatus?.enabled ? (
+            <Btn variant="ghost" onClick={bindInu}>绑定 INU 账号</Btn>
+          ) : (
+            <div className="rounded-lg bg-slate-50 border border-slate-100 px-4 py-3 text-[0.85rem] text-slate-500">
+              INU 登录暂未启用
+              {inuStatus && !inuStatus.client_id_set ? <span className="text-slate-400">（待配置 INU_CLIENT_ID）</span> : null}
             </div>
           )}
         </Card>

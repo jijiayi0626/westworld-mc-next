@@ -4,6 +4,13 @@
 # —— 认证 ——
 APP_SECRET=please-generate-a-random-secret
 
+# —— INU 星际通行证 OAuth 登录（INU_CLIENT_ID 存在即生效）——
+# INU_ORIGIN=https://inu-space-pass.mr-jijiayi.workers.dev
+# INU_CLIENT_ID=inu_cl_xxxxxxxx
+# INU_CLIENT_SECRET=          # 公开客户端留空；机密客户端必填
+# INU_REDIRECT_URI=http://localhost:8788/api/inu/callback
+# INU_SCOPES=profile email
+
 # —— 微软 OAuth 绑定（MICROSOFT_OAUTH_ENABLED=true 时生效）——
 # MICROSOFT_CLIENT_ID=
 # MICROSOFT_CLIENT_SECRET=
