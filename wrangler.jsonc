@@ -55,6 +55,7 @@
     "MICROSOFT_OAUTH_ENABLED": "false",
     "AI_ENABLED": "true",
     "RCON_ENABLED": "false",
-    "MONITOR_ENABLED": "true"
+    "MONITOR_ENABLED": "true",
+    "TRUST_PROXY": "false"
   }
 }

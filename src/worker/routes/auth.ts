@@ -3,7 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { hashPassword, verifyPassword } from "../lib/password";
 import { signToken, verifyToken } from "../lib/jwt";
 import { ok, fail } from "../lib/http";
-import { isEmail, isValidUsername, isValidPassword, str } from "../lib/validate";
+import { isEmail, isValidUsername, isValidPassword, str, timingSafeEqual } from "../lib/validate";
 import { getClientIp, getUa, uaFingerprint, genCsrfToken, genCode } from "../lib/net";
 import { rateLimit, isBlacklisted } from "../lib/ratelimit";
 import { logUserAction } from "../lib/log";
@@ -44,11 +44,19 @@ app.post("/register", async (c) => {
   const passwordHash = await hashPassword(password);
   const csrf = genCsrfToken();
 
-  const result = await c.env.DB.prepare(
-    "INSERT INTO users (username, email, password_hash, ua_fingerprint, csrf_token, register_ip, last_login_ip, last_login_ua, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
-  )
-    .bind(username, email, passwordHash, fingerprint, csrf, getClientIp(c), getClientIp(c), getUa(c))
-    .run();
+  let result: D1Result;
+  try {
+    result = await c.env.DB.prepare(
+      "INSERT INTO users (username, email, password_hash, ua_fingerprint, csrf_token, register_ip, last_login_ip, last_login_ua, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+    )
+      .bind(username, email, passwordHash, fingerprint, csrf, getClientIp(c), getClientIp(c), getUa(c))
+      .run();
+  } catch (e) {
+    // 并发注册时预检查可能同时通过，最终由 UNIQUE 约束兜底
+    if (/UNIQUE|constraint/i.test(String(e))) return fail("用户名或邮箱已被占用", 409);
+    console.log("[register] insert failed:", e instanceof Error ? e.message : e);
+    return fail("注册失败，请稍后再试", 500);
+  }
 
   const userId = Number(result.meta.last_row_id);
   const token = await signToken({ sub: String(userId), username, role: "user" }, getSecret(c));
@@ -209,7 +217,7 @@ app.post("/reset", async (c) => {
   if (!row) return fail("重置码无效或已过期", 400);
 
   const [storedCode, expires, resetToken] = row.value.split(":");
-  if (storedCode !== code || Number(expires) < Date.now()) {
+  if (!storedCode || !timingSafeEqual(storedCode, code) || Number(expires) < Date.now()) {
     return fail("重置码无效或已过期", 400);
   }
 

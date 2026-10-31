@@ -5,6 +5,8 @@
 // 签名规则：参数按键名升序拼接 k=v&...，末尾直接拼商户密钥后取 MD5
 // ============================================================
 
+import { timingSafeEqual } from "./validate";
+
 export interface EpayConfig {
   enabled: boolean;
   api_url: string;
@@ -163,7 +165,7 @@ export function epaySign(params: Record<string, string>, key: string): string {
 export function verifyEpaySign(params: Record<string, string>, key: string): boolean {
   const got = (params.sign || "").toLowerCase();
   if (!got) return false;
-  return epaySign(params, key).toLowerCase() === got;
+  return timingSafeEqual(epaySign(params, key).toLowerCase(), got);
 }
 
 export interface EpayCreateInput {

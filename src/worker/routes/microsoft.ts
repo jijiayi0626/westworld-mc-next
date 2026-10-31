@@ -6,8 +6,42 @@ import { isValidPlayerName, isValidUuid, str } from "../lib/validate";
 import { signToken, verifyToken } from "../lib/jwt";
 import { logUserAction } from "../lib/log";
 import { getClientIp, getUa } from "../lib/net";
+import { encryptSecret, decryptSecret } from "../lib/cipher";
 
 const app = new Hono<AppEnv>();
+
+// 一次性 OAuth state + PKCE：state 里的 jti 存 D1，回调时原子删除，
+// 避免 state 被截获后重复使用；code_verifier 加密存储，只用于本次换票。
+let oauthStateReady = false;
+async function ensureOAuthStateSchema(db: D1Database): Promise<void> {
+  if (oauthStateReady) return;
+  await db
+    .prepare(
+      `CREATE TABLE IF NOT EXISTS oauth_states (
+        jti TEXT PRIMARY KEY,
+        user_id INTEGER NOT NULL,
+        verifier_enc TEXT NOT NULL,
+        expires_at INTEGER NOT NULL
+      )`,
+    )
+    .run();
+  oauthStateReady = true;
+}
+
+function b64url(bytes: Uint8Array): string {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function randomToken(bytes = 32): string {
+  return b64url(crypto.getRandomValues(new Uint8Array(bytes)));
+}
+
+async function pkceChallenge(verifier: string): Promise<string> {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(verifier));
+  return b64url(new Uint8Array(digest));
+}
 
 // 微软 OAuth 端点
 const MS_AUTHORIZE = "https://login.live.com/oauth20_authorize.srf";
@@ -68,11 +102,35 @@ app.get("/authorize-url", requireAuth, async (c) => {
   }
 
   const redirectUri = `${c.env.SITE_URL || ""}/api/microsoft/callback`;
-  const state = await signToken({ sub: String(user.id), username: user.username, role: "oauth" }, getSecret(c));
+  const secret = getSecret(c);
+  const jti = randomToken(18);
+  const verifier = randomToken(32);
+  const challenge = await pkceChallenge(verifier);
+
+  try {
+    await ensureOAuthStateSchema(c.env.DB);
+    await c.env.DB.prepare("DELETE FROM oauth_states WHERE expires_at < unixepoch()").run();
+    await c.env.DB.prepare(
+      "INSERT INTO oauth_states (jti, user_id, verifier_enc, expires_at) VALUES (?, ?, ?, ?)",
+    )
+      .bind(jti, user.id, await encryptSecret(verifier, secret), Math.floor(Date.now() / 1000) + 15 * 60)
+      .run();
+  } catch (e) {
+    console.log("[microsoft] oauth state init failed:", e instanceof Error ? e.message : e);
+    return fail("OAuth 状态初始化失败，请稍后再试", 500);
+  }
+
+  // state 仅 15 分钟有效，且 jti 会在回调时一次性消费
+  const state = await signToken(
+    { sub: String(user.id), username: user.username, role: "oauth", jti },
+    secret,
+    15 / 60,
+  );
   const url =
     `${MS_AUTHORIZE}?client_id=${encodeURIComponent(ms.clientId)}` +
     `&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}` +
-    `&scope=XboxLive.signin%20offline_access&state=${encodeURIComponent(state)}`;
+    `&scope=XboxLive.signin%20offline_access&state=${encodeURIComponent(state)}` +
+    `&code_challenge=${encodeURIComponent(challenge)}&code_challenge_method=S256`;
 
   return ok({ enabled: true, url });
 });
@@ -84,8 +142,23 @@ app.get("/callback", async (c) => {
   if (!code || !state) return fail("OAuth 回调参数缺失", 400);
 
   const payload = await verifyToken(state, getSecret(c));
-  if (!payload || payload.role !== "oauth") return fail("state 校验失败", 400);
+  if (!payload || payload.role !== "oauth" || !payload.jti) return fail("state 校验失败", 400);
   const userId = Number(payload.sub);
+  if (!userId) return fail("state 校验失败", 400);
+
+  // state 一次性消费：原子删除并取回本次 PKCE verifier
+  let stateRow: { verifier_enc: string } | null = null;
+  try {
+    stateRow = await c.env.DB.prepare(
+      "DELETE FROM oauth_states WHERE jti = ? AND user_id = ? AND expires_at > unixepoch() RETURNING verifier_enc",
+    )
+      .bind(payload.jti, userId)
+      .first<{ verifier_enc: string }>();
+  } catch {
+    stateRow = null;
+  }
+  if (!stateRow) return fail("state 已失效，请重新发起绑定", 400);
+  const verifier = await decryptSecret(stateRow.verifier_enc, getSecret(c));
 
   // 仅一个绑定入口：未登录时若携带 user context？本实现要求先登录再绑定
   // （简化：回调携带 user id；生产建议换成一次性的短时 state 绑定临时会话）
@@ -112,6 +185,7 @@ app.get("/callback", async (c) => {
       grant_type: "authorization_code",
       redirect_uri: redirectUri,
       scope: "XboxLive.signin offline_access",
+      ...(verifier ? { code_verifier: verifier } : {}),
     }),
   });
   if (!tokenResp.ok) return fail("获取 access_token 失败", 502);

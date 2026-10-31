@@ -26,3 +26,13 @@ export function isValidUuid(v: string): boolean {
 export function str(v: unknown, max = 5000): string {
   return typeof v === "string" ? v.slice(0, max) : "";
 }
+
+/** 恒定时间字符串比较：用于签名 / 验证码 / API Key 等敏感值 */
+export function timingSafeEqual(a: string, b: string): boolean {
+  const x = new TextEncoder().encode(a);
+  const y = new TextEncoder().encode(b);
+  const len = Math.max(x.length, y.length);
+  let diff = x.length ^ y.length;
+  for (let i = 0; i < len; i++) diff |= (x[i] ?? 0) ^ (y[i] ?? 0);
+  return diff === 0;
+}

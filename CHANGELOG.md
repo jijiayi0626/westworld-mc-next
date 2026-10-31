@@ -4,6 +4,32 @@
 
 ---
 
+## v2.7.5（2026-10-31）
+
+安全加固版本。对全部后端路由做了一轮纵深排查，重点修补支付、OAuth、RCON 与限流链路。
+
+### 安全加固
+- **AI 每日额度原子化**：额度检查与计数合并为一条 `INSERT ... ON CONFLICT ... WHERE count < ?`，并发请求无法再绕过上限
+- **支付回调校验**：Creem Webhook 改为校验 `creem-signature`（HMAC-SHA256 原始报文），并校验事件类型、订单号、币种与实付金额（分），只有金额匹配才发货；发货更新限定 `pending` 状态，重复回调不会重复发货
+- **Creem 下单接口修正**：改为官方 `POST /v1/checkouts`，字段使用 `product_id` / `units` / `request_id` / `success_url` / `metadata`，支持通过 `CREEM_API_BASE` 切换测试环境
+- **OAuth 一次性 state + PKCE**：微软绑定改为 15 分钟一次性 `jti`（原子 `DELETE ... RETURNING` 消费），并保存加密的 PKCE verifier，回调携带 `code_verifier`
+- **恒定时间比较**：易支付签名、密码重置码、Creem 回退密钥改用 `timingSafeEqual`，避免时序侧信道
+- **客户端 IP 防伪造**：`cf-connecting-ip` 优先；仅在显式设置 `TRUST_PROXY=true` 时才读取 `X-Forwarded-For`，默认 `false`
+- **论坛发帖/回复限流**：发帖单账号 10 分钟 6 帖、单 IP 20 帖；回复单账号 30 条、单 IP 60 条
+- **后台配置防串改**：`/api/admin/settings` 拒绝直接写入 `ai_config`、`ai_providers`、`ms_oauth_config`、`rainyun_config`、`pay_epay`、`rcon_whitelist`，必须走对应专用页面
+- **Markdown 协议白名单**：链接与图片仅允许 `http(s)`、`mailto`、站内路径和锚点，阻断 `javascript:` / `data:` 等伪协议
+- **RCON 密码加密**：旧明文密码在读取时自动升级为 AES-GCM `enc:v1:` 密文；余额查询等 RCON 错误不再把原始报文返回给用户，仅写入操作日志
+- **游戏币下单串行化**：新增 `shop_order_locks` 用户级锁（60 秒 TTL），同一用户并发下单串行执行，避免余额重复扣减
+- **注册并发兜底**：并发注册触发 UNIQUE 约束时返回 409，而不是 500
+
+### 优化
+- **Creem 下单失败日志**：下单失败会记录 HTTP 状态与响应摘要，便于排查配置问题
+
+### 数据库迁移
+- 新增 `oauth_states`（OAuth 一次性 state）与 `shop_order_locks`（下单锁）两张表，已写入 `schema.sql`，代码首次使用时也会自动建表
+
+---
+
 ## v2.7.4（2026-10-30）
 
 ### 新增

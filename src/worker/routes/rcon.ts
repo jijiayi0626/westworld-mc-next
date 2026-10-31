@@ -64,6 +64,20 @@ export async function resolveRconTarget(
   const db = c.env.DB;
   const secret = typeof c.env.APP_SECRET === "string" ? c.env.APP_SECRET : "";
   const decrypt = async (stored: string) => (stored ? decryptSecret(stored, secret) : "");
+  // 旧数据可能是明文：读取时顺手转为 enc:v1 密文，逐步消除明文密码
+  const decryptAndUpgrade = async (stored: string, serverId?: number): Promise<string> => {
+    if (!stored) return "";
+    if (serverId && secret && !stored.startsWith("enc:v1:")) {
+      try {
+        const enc = await encryptSecret(stored, secret);
+        await db.prepare("UPDATE game_servers SET password = ? WHERE id = ?").bind(enc, serverId).run();
+        return stored;
+      } catch {
+        /* 升级失败时继续用明文连接 */
+      }
+    }
+    return decrypt(stored);
+  };
 
   const fromConfig = async (
     name: string,
@@ -79,10 +93,10 @@ export async function resolveRconTarget(
 
   if (serverId) {
     const row = await db.prepare(
-      "SELECT server_name, host, port, password FROM game_servers WHERE id = ?",
-    ).bind(serverId).first<{ server_name: string; host: string; port: number; password: string }>();
+      "SELECT id, server_name, host, port, password FROM game_servers WHERE id = ?",
+    ).bind(serverId).first<{ id: number; server_name: string; host: string; port: number; password: string }>();
     if (!row) return null;
-    const password = await decrypt(row.password || "");
+    const password = await decryptAndUpgrade(row.password || "", row.id);
     if (password) {
       return { host: row.host, port: row.port, password, name: row.server_name };
     }
@@ -99,13 +113,13 @@ export async function resolveRconTarget(
   if (configured) return configured;
 
   const row = await db.prepare(
-    "SELECT server_name, host, port, password FROM game_servers WHERE password != '' ORDER BY id ASC LIMIT 1",
-  ).first<{ server_name: string; host: string; port: number; password: string }>();
+    "SELECT id, server_name, host, port, password FROM game_servers WHERE password != '' ORDER BY id ASC LIMIT 1",
+  ).first<{ id: number; server_name: string; host: string; port: number; password: string }>();
   if (!row) return null;
   return {
     host: row.host,
     port: row.port,
-    password: await decrypt(row.password || ""),
+    password: await decryptAndUpgrade(row.password || "", row.id),
     name: row.server_name,
   };
 }
