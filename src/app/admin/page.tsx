@@ -196,7 +196,7 @@ export default function AdminHomePage() {
               ["AI 用量", "/admin/ai"],
               ["商城管理", "/admin/shop"],
               ["操作日志", "/admin/oplogs"],
-              ["站点设置", "/admin/settings"],
+              ["网站设置", "/admin/settings/basic"],
               ["返回前台", "/"],
             ].map(([label, href]) => (
               <Link key={href} href={href} className="px-3.5 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900 transition-colors">
