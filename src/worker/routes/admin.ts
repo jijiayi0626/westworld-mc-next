@@ -8,6 +8,8 @@ import { EPAY_TYPES, epayEnabled, loadEpayConfig, publicEpay } from "../lib/epay
 import { logOp } from "../lib/log";
 import { upopAdminStatus } from "./upop";
 import { msAdminStatus } from "./microsoft";
+import { inuAdminStatus } from "./inu";
+import { sanitizeScopes } from "../lib/inu";
 import { loadAiConfig } from "./ai";
 
 const app = new Hono<AppEnv>();
@@ -19,6 +21,7 @@ const DEDICATED_SETTING_KEYS = new Set<string>([
   "ai_config",
   "ai_providers",
   "ms_oauth_config",
+  "inu_oauth_config",
   "rainyun_config",
   "pay_epay",
   "rcon_whitelist",
@@ -52,7 +55,7 @@ function maskSetting(key: string, value: string): string {
       return MASKED;
     }
   }
-  if (key === "ms_oauth_config") {
+  if (key === "ms_oauth_config" || key === "inu_oauth_config") {
     try {
       const j = JSON.parse(value) as Record<string, unknown>;
       if (typeof j.client_secret === "string" && j.client_secret) j.client_secret = MASKED;
@@ -82,6 +85,7 @@ app.get("/integrations", async (c) => {
   return ok({
     microsoft: await msAdminStatus(c),
     upop: { ...upop, callback_url: `${site}/api/upop/callback` },
+    inu: await inuAdminStatus(c),
   });
 });
 
@@ -109,6 +113,49 @@ app.post("/integrations/microsoft", async (c) => {
     .run();
   await logOp(c.env.DB, c, admin.id, "setting_update", "ms_oauth_config");
   return ok({ saved: true });
+});
+
+// 保存 INU OAuth 配置（留空表示保留原值；回调地址会校验 https / localhost）
+app.post("/integrations/inu", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const row = await c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'inu_oauth_config'").first<{ value: string }>();
+  let cur: Record<string, unknown> = {};
+  if (row?.value) {
+    try {
+      cur = JSON.parse(row.value) as Record<string, unknown>;
+    } catch {
+      /* ignore */
+    }
+  }
+  const site = (c.env.SITE_URL as string) || "";
+  const envRedirect = String(c.env.INU_REDIRECT_URI || "").trim() || `${site}/api/inu/callback`;
+  const curStr = (v: unknown) => (typeof v === "string" ? v.trim() : "");
+  const clientId = str(body.client_id, 200).trim() || curStr(cur.client_id) || String(c.env.INU_CLIENT_ID || "").trim();
+  const clientSecret =
+    str(body.client_secret, 300).trim() || curStr(cur.client_secret) || String(c.env.INU_CLIENT_SECRET || "").trim();
+  const redirectUri = str(body.redirect_uri, 500).trim() || curStr(cur.redirect_uri) || envRedirect;
+  const scopes = sanitizeScopes(
+    str(body.scopes, 100).trim() || curStr(cur.scopes) || String(c.env.INU_SCOPES || "profile email"),
+  );
+  if (!clientId) return fail("请填写 Client ID");
+  try {
+    const url = new URL(redirectUri);
+    const local = url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    if (url.protocol !== "https:" && !(url.protocol === "http:" && local)) {
+      return fail("回调地址必须是 https 地址（本地调试可用 http://localhost）");
+    }
+  } catch {
+    return fail("回调地址格式不正确");
+  }
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES ('inu_oauth_config', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(JSON.stringify({ enabled: body.enabled === true, client_id: clientId, client_secret: clientSecret, redirect_uri: redirectUri, scopes }))
+    .run();
+  await logOp(c.env.DB, c, admin.id, "setting_update", "inu_oauth_config");
+  return ok({ saved: true, enabled: body.enabled === true, redirect_uri: redirectUri, scopes });
 });
 
 // 聊天室 / 论坛配置：开关 / 欢迎公告 / 限制 / 论坛 Tab 显隐

@@ -26,7 +26,7 @@ function safeOrigin(raw: string): string {
   return DEFAULT_ORIGIN;
 }
 
-function sanitizeScopes(raw: string): string {
+export function sanitizeScopes(raw: string): string {
   const allowed = new Set(["profile", "email"]);
   const list = raw
     .split(/\s+/)
@@ -38,33 +38,63 @@ function sanitizeScopes(raw: string): string {
 
 /**
  * 读取 INU OAuth 配置。
- * - INU_CLIENT_ID 存在即视为启用（公开客户端可以不配 secret）
- * - INU_REDIRECT_URI 未配置时回退到 `${SITE_URL}/api/inu/callback`
+ * - 优先 site_settings.inu_oauth_config（管理后台「三方集成」可视化配置）
+ * - 回退环境变量 INU_CLIENT_ID / INU_CLIENT_SECRET / INU_REDIRECT_URI / INU_SCOPES
+ * - INU_CLIENT_ID 存在即视为可启用（公开客户端可以不配 secret）
  */
-export function loadInuConfig(env: AppEnv["Bindings"], requestOrigin: string): InuConfig {
+export async function loadInuConfig(
+  env: AppEnv["Bindings"],
+  requestOrigin: string,
+  db?: D1Database,
+): Promise<InuConfig> {
   const origin = safeOrigin(String(env.INU_ORIGIN || DEFAULT_ORIGIN));
-  const clientId = String(env.INU_CLIENT_ID || "").trim();
-  const clientSecret = String(env.INU_CLIENT_SECRET || "").trim();
+  const envClientId = String(env.INU_CLIENT_ID || "").trim();
+  const envClientSecret = String(env.INU_CLIENT_SECRET || "").trim();
   const fallbackOrigin = String(env.SITE_URL || requestOrigin || "").replace(/\/+$/, "");
-  const redirectUri = String(env.INU_REDIRECT_URI || "").trim() || `${fallbackOrigin}/api/inu/callback`;
+  const envRedirectUri = String(env.INU_REDIRECT_URI || "").trim() || `${fallbackOrigin}/api/inu/callback`;
+  const envScopes = sanitizeScopes(String(env.INU_SCOPES || "profile email"));
 
-  let redirectOk = false;
-  try {
-    const url = new URL(redirectUri);
-    redirectOk =
-      url.protocol === "https:" || url.hostname === "localhost" || url.hostname === "127.0.0.1";
-  } catch {
-    redirectOk = false;
+  const build = (clientId: string, clientSecret: string, redirectUri: string, scopes: string, enabled: boolean): InuConfig => {
+    let redirectOk = false;
+    try {
+      const url = new URL(redirectUri);
+      redirectOk =
+        url.protocol === "https:" || url.hostname === "localhost" || url.hostname === "127.0.0.1";
+    } catch {
+      redirectOk = false;
+    }
+    return {
+      origin,
+      clientId,
+      clientSecret,
+      redirectUri,
+      scopes: sanitizeScopes(scopes),
+      enabled: enabled && !!clientId && redirectOk,
+    };
+  };
+
+  if (db) {
+    try {
+      const row = await db
+        .prepare("SELECT value FROM site_settings WHERE key = 'inu_oauth_config'")
+        .first<{ value: string }>();
+      if (row?.value) {
+        const j = JSON.parse(row.value) as Record<string, unknown>;
+        const pick = (v: unknown, fallback: string) => (typeof v === "string" && v.trim() ? v.trim() : fallback);
+        return build(
+          pick(j.client_id, envClientId),
+          pick(j.client_secret, envClientSecret),
+          pick(j.redirect_uri, envRedirectUri),
+          pick(j.scopes, envScopes),
+          j.enabled === true,
+        );
+      }
+    } catch {
+      /* 配置损坏时回退环境变量 */
+    }
   }
 
-  return {
-    origin,
-    clientId,
-    clientSecret,
-    redirectUri,
-    scopes: sanitizeScopes(String(env.INU_SCOPES || "profile email")),
-    enabled: !!clientId && redirectOk,
-  };
+  return build(envClientId, envClientSecret, envRedirectUri, envScopes, !!envClientId);
 }
 
 export function randomToken(bytes = 32): string {
@@ -112,7 +142,7 @@ export async function revokeInuTokenForUser(
     const token = await decryptSecret(row.access_token_enc, appSecret);
     if (!token) return;
 
-    const cfg = loadInuConfig(env, String(env.SITE_URL || "https://localhost"));
+    const cfg = await loadInuConfig(env, String(env.SITE_URL || "https://localhost"), env.DB);
     if (cfg.clientId) {
       const body = new URLSearchParams({ token, client_id: cfg.clientId });
       if (cfg.clientSecret) body.set("client_secret", cfg.clientSecret);
@@ -121,7 +151,10 @@ export async function revokeInuTokenForUser(
       try {
         await fetch(`${cfg.origin}/oauth/revoke`, {
           method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Westworld-INU/1.0",
+          },
           body,
           signal: controller.signal,
         });
