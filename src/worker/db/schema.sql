@@ -211,6 +211,13 @@ CREATE INDEX IF NOT EXISTS idx_orders_user ON shop_orders(user_id);
 CREATE INDEX IF NOT EXISTS idx_orders_status ON shop_orders(status);
 CREATE INDEX IF NOT EXISTS idx_orders_order_no ON shop_orders(order_no);
 
+-- 经济支付串行锁（防止同一用户并发下单重复扣款）
+CREATE TABLE IF NOT EXISTS shop_order_locks (
+  user_id INTEGER PRIMARY KEY,
+  token TEXT NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
 -- ---------- 第 5 期：服务器监控 + RCON ----------
 CREATE TABLE IF NOT EXISTS game_servers (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -258,6 +265,14 @@ CREATE TABLE IF NOT EXISTS op_logs (
 CREATE INDEX IF NOT EXISTS idx_op_logs_created ON op_logs(created_at);
 
 -- ---------- 微软账号绑定 ----------
+-- OAuth state 一次性存储（jti + PKCE verifier，回调时原子消费）
+CREATE TABLE IF NOT EXISTS oauth_states (
+  jti TEXT PRIMARY KEY,
+  user_id INTEGER NOT NULL,
+  verifier_enc TEXT NOT NULL,
+  expires_at INTEGER NOT NULL
+);
+
 CREATE TABLE IF NOT EXISTS microsoft_bindings (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL UNIQUE,

@@ -80,6 +80,50 @@ async function restoreStock(db: D1Database, productId: number, qty: number): Pro
     .bind(qty, productId).run();
 }
 
+// 同一用户的经济支付串行化，避免双击导致余额被重复扣除
+let shopLockReady = false;
+async function acquireShopLock(db: D1Database, userId: number, token: string, ttlSec = 60): Promise<boolean> {
+  if (!shopLockReady) {
+    try {
+      await db
+        .prepare(
+          `CREATE TABLE IF NOT EXISTS shop_order_locks (
+            user_id INTEGER PRIMARY KEY,
+            token TEXT NOT NULL,
+            expires_at INTEGER NOT NULL
+          )`,
+        )
+        .run();
+      shopLockReady = true;
+    } catch {
+      return true; // 建表异常时放行，避免阻断下单
+    }
+  }
+  const now = Math.floor(Date.now() / 1000);
+  try {
+    const res = await db.prepare(
+      `INSERT INTO shop_order_locks (user_id, token, expires_at) VALUES (?, ?, ?)
+       ON CONFLICT(user_id) DO UPDATE SET token = excluded.token, expires_at = excluded.expires_at
+       WHERE shop_order_locks.expires_at < ?`,
+    ).bind(userId, token, now + ttlSec, now).run();
+    if (Number(res.meta.changes) === 0) return false;
+    const row = await db.prepare("SELECT token FROM shop_order_locks WHERE user_id = ?")
+      .bind(userId).first<{ token: string }>();
+    return row?.token === token;
+  } catch {
+    return true;
+  }
+}
+
+async function releaseShopLock(db: D1Database, userId: number, token: string): Promise<void> {
+  try {
+    await db.prepare("DELETE FROM shop_order_locks WHERE user_id = ? AND token = ?")
+      .bind(userId, token).run();
+  } catch {
+    /* 释放失败由过期时间兜底 */
+  }
+}
+
 interface DeliveryOrder {
   id: number;
   order_no: string;
@@ -259,7 +303,11 @@ app.get("/balance", requireAuth, async (c) => {
   if (!server || !server.password) return fail("未配置 RCON 服务器，无法查询余额", 502);
 
   const data = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(cfg.balance_cmd, mcName, "0"), 8);
-  if (!data.ok) return fail(data.message || "余额查询失败", 502);
+  if (!data.ok) {
+    // RCON 原始错误可能包含内部地址/插件信息，只写日志，不回传用户
+    await logOp(c.env.DB, c, user.id, "shop_balance_rcon_failed", data.message || "unknown");
+    return fail("余额查询失败，请联系管理员", 502);
+  }
   const balance = parseBalance(data.output || "");
   if (balance === null) return fail("无法从服务器输出中解析余额，请联系管理员调整解析配置", 502);
   return ok({ balance, currency_name: cfg.currency_name, mc_name: mcName });
@@ -299,6 +347,11 @@ app.post("/order", async (c) => {
   // 经济支付：严格绑定 MC 身份 → 查余额 → 落单 → 扣款 → 回查确认
   let currency = product.currency;
   if (payEconomy) {
+    const lockToken = crypto.randomUUID();
+    if (!(await acquireShopLock(c.env.DB, user.id, lockToken))) {
+      return fail("您有一笔订单正在处理中，请稍后再试", 429);
+    }
+    try {
     const cfg = await loadEconomyConfig(c.env.DB);
     if (!cfg.enabled) return fail("经济支付未启用", 400);
     const server = await resolveRconTarget(c);
@@ -308,7 +361,10 @@ app.post("/order", async (c) => {
     currency = cfg.currency_name;
 
     const balRes = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(cfg.balance_cmd, mcName, amount), 8);
-    if (!balRes.ok) return fail(balRes.message || "余额查询失败", 502);
+    if (!balRes.ok) {
+      await logOp(c.env.DB, c, user.id, "shop_order_economy_balance_failed", balRes.message || "unknown");
+      return fail("余额查询失败，请联系管理员", 502);
+    }
     const balance = parseBalance(balRes.output || "");
     if (balance === null) return fail("无法解析服务器余额输出，请联系管理员", 502);
     if (balance < total) return fail(`余额不足：当前 ${balance} ${cfg.currency_name}，本次需支付 ${total} ${cfg.currency_name}`, 400);
@@ -333,7 +389,7 @@ app.post("/order", async (c) => {
       ).bind(`扣款失败：${deductRes.message || ""}`.slice(0, 500), orderId).run();
       await restoreStock(c.env.DB, product.id, qty);
       await logOp(c.env.DB, c, user.id, "shop_order_economy_deduct_failed", `${orderNo} ${mcName} ${total}${currency}: ${deductRes.message || ""}`);
-      return fail(`${deductRes.message || "扣款失败"}，订单已取消，请稍后再试`, 502);
+      return fail("扣款失败，订单已取消，请稍后再试或联系管理员", 502);
     }
 
     // 扣款后重新查询余额，确认金额确实减少（只认 RCON 传输成功是不够的）
@@ -368,6 +424,9 @@ app.post("/order", async (c) => {
       status: "paid",
       economy_paid: true,
     });
+    } finally {
+      await releaseShopLock(c.env.DB, user.id, lockToken);
+    }
   }
 
   if (!(await takeStock(c.env.DB, product.id, qty))) return fail("商品库存不足", 409);

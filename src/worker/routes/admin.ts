@@ -14,6 +14,15 @@ const app = new Hono<AppEnv>();
 
 const MASKED = "••••••";
 const SECRET_SETTING_KEYS = new Set<string>([...MAIL_SENSITIVE_KEYS, "upop_client_secret"]);
+// 这些配置有独立的校验与保存接口，禁止通过通用键值接口整体覆盖
+const DEDICATED_SETTING_KEYS = new Set<string>([
+  "ai_config",
+  "ai_providers",
+  "ms_oauth_config",
+  "rainyun_config",
+  "pay_epay",
+  "rcon_whitelist",
+]);
 
 /** 后台设置列表脱敏：密钥类只返回占位符，避免任何管理员会话直接拿到明文 */
 function maskSetting(key: string, value: string): string {
@@ -496,12 +505,12 @@ app.post("/settings", async (c) => {
   const key = str(body.key, 100).trim();
   const value = str(body.value, 10000);
   if (!key || key.startsWith("reset_code:")) return fail("无效的 key");
+  // 结构化/含密钥配置必须走专用接口，避免通用接口绕过字段校验写入明文密钥
+  if (DEDICATED_SETTING_KEYS.has(key)) {
+    return fail("该配置需在对应的专用配置页面修改", 400);
+  }
   // 防止把列表里的脱敏占位符写回数据库，覆盖真实密钥
-  if (
-    value.includes("••••") &&
-    (SECRET_SETTING_KEYS.has(key) ||
-      ["ai_config", "ai_providers", "ms_oauth_config", "rainyun_config", "pay_epay"].includes(key))
-  ) {
+  if (value.includes("••••") && SECRET_SETTING_KEYS.has(key)) {
     return fail("该配置包含密钥，请到对应的专用配置页面修改", 400);
   }
   await c.env.DB.prepare(

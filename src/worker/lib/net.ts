@@ -3,9 +3,15 @@ import type { Context } from "hono";
 import type { AppEnv } from "./auth";
 
 export function getClientIp(c: Context<AppEnv>): string {
+  // Cloudflare 边缘会写入 cf-connecting-ip，客户端无法伪造。
   const cf = c.req.header("cf-connecting-ip");
   if (cf) return cf;
-  return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
+  // 非 Cloudflare 部署时，只有显式信任反代才读取 X-Forwarded-For，
+  // 否则客户端可以直接伪造该头绕过登录/重置限流。
+  if (c.env.TRUST_PROXY === "true") {
+    return c.req.header("x-forwarded-for")?.split(",")[0]?.trim() || "0.0.0.0";
+  }
+  return "0.0.0.0";
 }
 
 export function getUa(c: Context<AppEnv>): string {

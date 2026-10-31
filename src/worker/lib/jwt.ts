@@ -23,6 +23,8 @@ export interface JwtPayload {
   role: string;
   iat: number;
   exp: number;
+  /** 可选的唯一标识（如 OAuth state 的一次性 jti） */
+  jti?: string;
 }
 
 async function importKey(secret: string): Promise<CryptoKey> {

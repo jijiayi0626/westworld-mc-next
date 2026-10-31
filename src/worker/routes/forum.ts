@@ -6,6 +6,8 @@ import { verifyToken } from "../lib/jwt";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp, logUserAction } from "../lib/log";
+import { rateLimit } from "../lib/ratelimit";
+import { getClientIp } from "../lib/net";
 
 const app = new Hono<AppEnv>();
 
@@ -212,6 +214,14 @@ app.post("/posts", requireAuth, async (c) => {
   if (title.length < 5 || title.length > 120) return fail("标题需为 5-120 个字符");
   if (content.length < 5 || content.length > 10000) return fail("内容需为 5-10000 个字符");
 
+  // 频率限制：单账号 10 分钟 6 帖，单 IP 10 分钟 20 帖
+  if (
+    !(await rateLimit(c.env.DB, `forum-post:${user.id}`, 6, 600)) ||
+    !(await rateLimit(c.env.DB, `forum-post-ip:${getClientIp(c)}`, 20, 600))
+  ) {
+    return fail("发帖过于频繁，请稍后再试", 429);
+  }
+
   const last = await db
     .prepare("SELECT created_at FROM forum_posts WHERE author_id = ? ORDER BY id DESC LIMIT 1")
     .bind(user.id)
@@ -245,6 +255,14 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const content = str(body.content, 5000).trim();
   if (content.length < 2 || content.length > 5000) return fail("回复需为 2-5000 个字符");
+
+  // 频率限制：单账号 10 分钟 30 条，单 IP 10 分钟 60 条
+  if (
+    !(await rateLimit(c.env.DB, `forum-reply:${user.id}`, 30, 600)) ||
+    !(await rateLimit(c.env.DB, `forum-reply-ip:${getClientIp(c)}`, 60, 600))
+  ) {
+    return fail("回复过于频繁，请稍后再试", 429);
+  }
 
   const last = await db
     .prepare("SELECT created_at FROM forum_replies WHERE author_id = ? ORDER BY id DESC LIMIT 1")

@@ -431,12 +431,18 @@ app.post("/chat", requireAuth, async (c) => {
 
   const aiCfg = await loadAiConfig(c.env.DB, c.env);
 
-  // 每用户每日限额（启用 AI 后同样生效，避免单个账号刷爆上游额度）
-  const dailyLimit = aiCfg.daily_limit || DAILY_LIMIT_DISABLED;
-  const usage = await c.env.DB.prepare(
-    "SELECT COALESCE(count, 0) AS used FROM ai_usage WHERE user_id = ? AND date = date('now')",
-  ).bind(user.id).first<{ used: number }>();
-  if ((usage?.used ?? 0) >= dailyLimit) {
+  // 每用户每日限额（启用 AI 后同样生效，避免单个账号刷爆上游额度）。
+  // 用原子 upsert 预留额度：并发请求不会同时通过“先查后加”的检查。
+  const dailyLimit = Math.max(1, Number(aiCfg.daily_limit) || DAILY_LIMIT_DISABLED);
+  const reserved = await c.env.DB.prepare(
+    `INSERT INTO ai_usage (user_id, date, count) VALUES (?, date('now'), 1)
+     ON CONFLICT(user_id, date) DO UPDATE SET count = count + 1
+     WHERE ai_usage.count < ?
+     RETURNING count`,
+  )
+    .bind(user.id, dailyLimit)
+    .first<{ count: number }>();
+  if (!reserved) {
     return fail(`每日最多 ${dailyLimit} 条，明天再来吧`, 429);
   }
 
@@ -492,11 +498,6 @@ app.post("/chat", requireAuth, async (c) => {
   await c.env.DB.prepare(
     "INSERT INTO ai_conversation_messages (conversation_id, role, content) VALUES (?, 'assistant', ?)",
   ).bind(convoId, reply).run();
-  // 用 upsert 累计当日用量（表有 UNIQUE(user_id, date)）
-  await c.env.DB.prepare(
-    `INSERT INTO ai_usage (user_id, date, count) VALUES (?, date('now'), 1)
-     ON CONFLICT(user_id, date) DO UPDATE SET count = count + 1`,
-  ).bind(user.id).run();
 
   return ok({ conversation_id: convoId, reply });
 });
