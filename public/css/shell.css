@@ -257,32 +257,38 @@
 .nav-subitem:hover { background: var(--sb-hover); color: var(--sb-text-strong); }
 .nav-subitem.active { background: var(--sb-accent-bg); color: var(--sb-accent-strong); font-weight: 600; }
 
+/* ---------- 侧栏快捷入口（返回首页 / 用户中心 / 管理后台） ---------- */
+.sidebar-shortcuts {
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid var(--sb-border);
+}
+.sidebar-shortcuts .nav-item {
+  font-size: 0.89rem;
+  color: var(--sb-muted);
+}
+.sidebar-shortcuts .nav-item:hover { color: var(--sb-text-strong); }
+
 /* ---------- 折叠态（仅桌面端；≤768px 在媒体查询里还原） ---------- */
 .sidebar-collapsed .sidebar,
 .sidebar-collapsed .user-sidebar { width: var(--sb-w-c); }
 .sidebar-collapsed .sidebar-header { padding: 10px 8px; flex-direction: column; justify-content: center; gap: 8px; height: auto; min-height: var(--sb-h); }
 .sidebar-collapsed .sidebar-logo { justify-content: center; }
 .sidebar-collapsed .sidebar-title,
+.sidebar-collapsed .appearance-title,
 .sidebar-collapsed .nav-item > span:not(.nav-item-icon),
 .sidebar-collapsed .nav-group-arrow { display: none; }
 .sidebar-collapsed .nav-item,
 .sidebar-collapsed .nav-group-toggle { justify-content: center; padding-left: 0; padding-right: 0; }
 .sidebar-collapsed .nav-group { display: flex; flex-direction: column; align-items: stretch; }
-/* 折叠时子菜单改为右侧浮出面板 */
-.sidebar-collapsed .nav-submenu {
-  position: absolute;
-  left: 100%;
-  top: 0;
-  margin: 0;
-  padding: 6px;
-  min-width: 176px;
-  background: var(--sb-bg);
-  border: 1px solid var(--sb-border);
-  border-left: 1px solid var(--sb-border);
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(2, 6, 23, 0.16);
-  z-index: 70;
-}
+/* 折叠态下二级菜单不浮出（避免被侧栏滚动容器裁切），点击分组会先展开侧栏 */
+.sidebar-collapsed .nav-submenu { display: none; }
+
+/* 首帧禁用过渡：恢复本地折叠状态时不播放展开→折叠动画 */
+.shell-init .sidebar,
+.shell-init .user-sidebar,
+.shell-init .main-content,
+.shell-init .user-main { transition: none !important; }
 
 /* ---------- 主内容区 ---------- */
 .main-content,
@@ -341,6 +347,7 @@ body.sidebar-open { overflow: hidden; }
 
   /* 移动端不折叠：还原被折叠规则隐藏的元素 */
   .sidebar-collapsed .sidebar-title,
+  .sidebar-collapsed .appearance-title,
   .sidebar-collapsed .nav-item > span:not(.nav-item-icon),
   .sidebar-collapsed .nav-group-arrow { display: revert; }
   .sidebar-collapsed .sidebar-header { flex-direction: row; padding: 0 14px 0 18px; height: var(--sb-h); min-height: 0; gap: 8px; }
@@ -358,6 +365,13 @@ body.sidebar-open { overflow: hidden; }
     box-shadow: none;
   }
   .sidebar-collapse-btn { display: none; } /* 移动端禁用折叠，只留汉堡 */
+}
+
+/* ---------- 桌面端：已有左侧导航，移除顶部横栏 ---------- */
+@media (min-width: 769px) {
+  .mobile-topbar { display: none; }
+  .main-content,
+  .user-main { min-height: 100vh; }
 }
 
 /* ---------- 减少动效偏好 ---------- */

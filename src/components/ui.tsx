@@ -16,7 +16,7 @@ export function Card({ children, className = "" }: { children: ReactNode; classN
 
 export function PageHeader({ title, desc, right }: { title: string; desc?: string; right?: ReactNode }) {
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
+    <div className="flex flex-wrap items-center justify-between gap-3 mb-6 pt-6">
       <div>
         <h1 className="text-[1.35rem] md:text-[1.5rem] font-extrabold text-slate-900">{title}</h1>
         {desc && <p className="text-slate-500 text-[0.9rem] mt-1">{desc}</p>}

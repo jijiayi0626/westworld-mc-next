@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useRef, type ReactNode } from "react";
+import { useEffect, useLayoutEffect, useState, useRef, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
@@ -37,6 +37,11 @@ interface AppearancePrefs {
 }
 
 const APPEARANCE_KEY = "site_appearance_v1";
+/** 桌面端侧栏折叠状态（本地记忆，优先级高于后台 admin_style.sidebarCollapsed） */
+const SIDEBAR_KEY = "sidebar_collapsed_v1";
+
+/** SSR 阶段没有 window，退回 useEffect；客户端首帧用 useLayoutEffect，在绘制前恢复状态避免闪烁 */
+const useClientLayoutEffect = typeof window === "undefined" ? useEffect : useLayoutEffect;
 
 function readAppearance(): AppearancePrefs {
   try {
@@ -49,6 +54,23 @@ function readAppearance(): AppearancePrefs {
 function saveAppearance(p: AppearancePrefs) {
   try {
     localStorage.setItem(APPEARANCE_KEY, JSON.stringify(p));
+  } catch {
+    /* 忽略 */
+  }
+}
+
+function readCollapsed(): boolean | null {
+  try {
+    const v = localStorage.getItem(SIDEBAR_KEY);
+    return v === "1" ? true : v === "0" ? false : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveCollapsed(v: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_KEY, v ? "1" : "0");
   } catch {
     /* 忽略 */
   }
@@ -187,57 +209,83 @@ function Shell({
     return () => document.body.classList.remove("sidebar-open");
   }, [open]);
 
-  // 外观系统：用户本地偏好（主题/模板）优先，后台样式设置（主题/主色）作为回退。
-  // prefs 变化（用户在侧栏切换）时立即重新应用；admin_style 仅在挂载时拉取一次。
+  // 外观系统：用户本地偏好（主题）优先，后台样式设置（主题/主色）作为回退。
+  // prefs 与 admin_style 分开加载：本地偏好变化只重绘主题，后台配置仅在挂载时拉取一次。
   const [prefs, setPrefs] = useState<AppearancePrefs>({});
+  const [adminStyle, setAdminStyle] = useState<AdminStyle>({});
+  const [booted, setBooted] = useState(false);
   const adminStyleRef = useRef<AdminStyle>({});
 
+  // 首帧恢复本地状态：主题与侧栏折叠都在绘制前生效，避免刷新/路由切换后退回默认值
+  useClientLayoutEffect(() => {
+    const storedPrefs = readAppearance();
+    if (storedPrefs.theme) {
+      setPrefs((prev) => (prev.theme === storedPrefs.theme ? prev : storedPrefs));
+    }
+    if (window.innerWidth > 768) {
+      const storedCollapsed = readCollapsed();
+      if (storedCollapsed !== null) setCollapsed(storedCollapsed);
+    }
+    // 首帧禁用过渡，避免挂载时从展开态“跳”到折叠态
+    const timer = window.setTimeout(() => setBooted(true), 320);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  // 后台样式（缓存 → 接口），提供主题/主色及折叠默认值
   useEffect(() => {
     let cancelled = false;
-    let cleanup: (() => void) | undefined;
-    const run = () => {
-      cleanup?.();
-      cleanup = applyFullAppearance(prefs, adminStyleRef.current);
-    };
-    // 先用缓存同步应用（无闪烁）
     try {
       const cached = localStorage.getItem("admin_style_v1");
-      if (cached) adminStyleRef.current = JSON.parse(cached) as AdminStyle;
+      if (cached) {
+        const parsed = JSON.parse(cached) as AdminStyle;
+        adminStyleRef.current = parsed;
+        setAdminStyle(parsed);
+        if (readCollapsed() === null && typeof parsed.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
+          setCollapsed(parsed.sidebarCollapsed);
+        }
+      }
     } catch {
       /* 缓存损坏，忽略 */
     }
-    run();
     (async () => {
       try {
         const res = await fetch("/api/admin/settings");
         const body = (await res.json()) as { code: number; data?: { key: string; value: string }[] };
         if (cancelled || body.code !== 0 || !Array.isArray(body.data)) return;
         const row = body.data.find((s) => s.key === "admin_style");
-        if (row?.value) {
-          try {
-            adminStyleRef.current = JSON.parse(row.value) as AdminStyle;
-            localStorage.setItem("admin_style_v1", row.value);
-          } catch {
-            /* 忽略非法配置 */
-          }
-          if (!cancelled) run();
-          // 侧栏默认折叠只对桌面生效；窄屏由下方 resize 逻辑强制展开
-          if (typeof adminStyleRef.current.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
-            setCollapsed(adminStyleRef.current.sidebarCollapsed);
-          }
+        if (!row?.value) return;
+        const parsed = JSON.parse(row.value) as AdminStyle;
+        adminStyleRef.current = parsed;
+        setAdminStyle(parsed);
+        try {
+          localStorage.setItem("admin_style_v1", row.value);
+        } catch {
+          /* 忽略 */
+        }
+        // 后台只提供默认折叠状态；用户手动折叠过（本地有记录）时以本地为准
+        if (readCollapsed() === null && typeof parsed.sidebarCollapsed === "boolean" && window.innerWidth > 768) {
+          setCollapsed(parsed.sidebarCollapsed);
         }
       } catch {
         // 读取失败时保持缓存值
       }
     })();
-    // 卸载时清理监听并还原属性，避免深色泄漏到登录页/公开站（登录页是浅色设计）
     return () => {
       cancelled = true;
+    };
+  }, []);
+
+  // 应用主题：prefs > storage > 后台主题 > 系统偏好
+  useClientLayoutEffect(() => {
+    const effective: AppearancePrefs = { ...readAppearance(), ...prefs };
+    const cleanup = applyFullAppearance(effective, adminStyle);
+    return () => {
       cleanup?.();
+      // 离开后台/用户中心时移除，避免深色泄漏到登录页与公开站（两者是浅色设计）
       document.documentElement.removeAttribute("data-theme");
       document.documentElement.style.removeProperty("--green");
     };
-  }, [prefs]);
+  }, [prefs, adminStyle]);
 
   const updatePrefs = (patch: Partial<AppearancePrefs>) => {
     const next = { ...prefs, ...patch };
@@ -249,7 +297,14 @@ function Shell({
   // 断点与 CSS `@media (min-width:769px)` 对齐（mobile.css 的收起规则）
   useEffect(() => {
     const onResize = () => {
-      if (window.innerWidth <= 768) setCollapsed(false);
+      if (window.innerWidth <= 768) {
+        setCollapsed(false);
+      } else {
+        // 从移动端切回桌面时恢复用户的折叠偏好；没有本地记录则回退后台默认值
+        const stored = readCollapsed();
+        if (stored !== null) setCollapsed(stored);
+        else if (typeof adminStyleRef.current.sidebarCollapsed === "boolean") setCollapsed(adminStyleRef.current.sidebarCollapsed);
+      }
     };
     onResize();
     window.addEventListener("resize", onResize);
@@ -258,10 +313,23 @@ function Shell({
 
   const toggleCollapsed = () => {
     if (window.innerWidth <= 768) return; // 移动端不折叠
-    setCollapsed((v) => !v);
+    setCollapsed((v) => {
+      const next = !v;
+      saveCollapsed(next);
+      return next;
+    });
   };
 
-  const toggleGroup = (label: string) => setGroups((g) => ({ ...g, [label]: !g[label] }));
+  const toggleGroup = (label: string) => {
+    // 折叠态下二级菜单不可见：点击分组先展开侧栏，再打开该分组
+    if (collapsed && window.innerWidth > 768) {
+      setCollapsed(false);
+      saveCollapsed(false);
+      setGroups((g) => ({ ...g, [label]: true }));
+      return;
+    }
+    setGroups((g) => ({ ...g, [label]: !g[label] }));
+  };
 
   const isActive = (href: string) =>
     href === base ? pathname === base : pathname.startsWith(href);
@@ -270,8 +338,8 @@ function Shell({
 
   return (
     <MotionConfig reducedMotion="user">
-      <div className={`${isUser ? "user-container" : "admin-shell"} ${collapsed ? "sidebar-collapsed" : ""}`}>
-      {/* 顶栏 + 汉堡按钮（桌面端折叠侧栏 / 移动端开抽屉） */}
+      <div className={`${isUser ? "user-container" : "admin-shell"} ${collapsed ? "sidebar-collapsed" : ""} ${booted ? "" : "shell-init"}`}>
+      {/* 移动端顶栏 + 汉堡按钮（桌面端隐藏，导航统一交给左侧栏） */}
       <div className="mobile-topbar">
         <button
           type="button"
@@ -339,6 +407,7 @@ function Shell({
                   className="nav-group-toggle nav-item"
                   onClick={() => toggleGroup(it.label)}
                   aria-expanded={groups[it.label]}
+                  title={collapsed ? it.label : undefined}
                 >
                   {it.icon && <NavIcon name={it.icon} />}
                   <span>{it.label}</span>
@@ -362,6 +431,7 @@ function Shell({
                 key={it.href}
                 href={it.href}
                 className={`nav-item ${isActive(it.href) ? "active" : ""}`}
+                title={collapsed ? it.label : undefined}
               >
                 {it.icon && <NavIcon name={it.icon} />}
                 <span>{it.label}</span>
@@ -370,6 +440,25 @@ function Shell({
             ),
           )}
           {extra}
+          {/* 快捷入口（原桌面顶栏功能，桌面端顶栏移除后保留在侧栏） */}
+          <div className="sidebar-shortcuts">
+            <Link href="/" className="nav-item" title={collapsed ? "返回首页" : undefined}>
+              <NavIcon name="home" />
+              <span>返回首页</span>
+            </Link>
+            {base !== "/user" && (
+              <Link href="/user" className="nav-item" title={collapsed ? "用户中心" : undefined}>
+                <NavIcon name="person" />
+                <span>用户中心</span>
+              </Link>
+            )}
+            {userRole === "admin" && base !== "/admin" && (
+              <Link href="/admin" className="nav-item" title={collapsed ? "管理后台" : undefined}>
+                <NavIcon name="shield" />
+                <span>管理后台</span>
+              </Link>
+            )}
+          </div>
           {/* 外观设置：深浅主题切换（本地记忆） */}
           <div className="appearance-block">
             <div className="appearance-title">外观设置</div>
