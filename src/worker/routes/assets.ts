@@ -25,9 +25,13 @@ const MIME: Record<string, string> = {
 const app = new Hono<AppEnv>();
 
 // 挂载于 /static 前缀下，子路由匹配去前缀后的路径，用完整 req.path 提取 key
+/** 仅允许公开资源前缀；backups/ 等私有对象不得经此路由暴露 */
+const PUBLIC_PREFIXES = ["uploads/", "assets/", "png/", "egg/", "gallery/"];
+
 app.get("/*", async (c) => {
   const key = c.req.path.replace(/^\/static\//, "");
-  if (!key) return c.notFound();
+  if (!key || key.includes("..")) return c.notFound();
+  if (!PUBLIC_PREFIXES.some((p) => key.startsWith(p))) return c.notFound();
   const obj = await c.env.ASSETS?.get(key);
   if (!obj) return c.notFound();
   const ext = key.slice(key.lastIndexOf(".")).toLowerCase();

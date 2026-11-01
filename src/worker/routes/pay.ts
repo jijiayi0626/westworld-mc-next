@@ -51,6 +51,7 @@ app.post("/create", requireAuth, async (c) => {
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const orderId = Number(body.order_id);
+  if (!Number.isInteger(orderId) || orderId <= 0) return fail("订单参数错误", 400);
 
   const order = await c.env.DB.prepare(
     "SELECT id, order_no, total, currency, status, product_name, qty FROM shop_orders WHERE id = ? AND user_id = ?",

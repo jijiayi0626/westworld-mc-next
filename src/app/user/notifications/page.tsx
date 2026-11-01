@@ -37,8 +37,8 @@ export default function NotificationsPage() {
         body: id ? JSON.stringify({ id }) : undefined,
       });
       await load();
-    } catch {
-      // 忽略
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "操作失败");
     }
   };
 
