@@ -320,7 +320,7 @@ app.get("/health", async (c) => {
   items.push({
     id: "rcon",
     label: "RCON 白名单同步",
-    ok: !rconEnabled,
+    ok: true,
     detail: rconEnabled ? "已启用" : "未启用（手动复制命令同步，非故障）",
   });
 

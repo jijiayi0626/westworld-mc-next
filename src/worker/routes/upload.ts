@@ -36,8 +36,9 @@ async function collectImageRefs(env: AppEnv["Bindings"]): Promise<string> {
     { db: env.DB, sql: "SELECT value AS v FROM site_settings LIMIT 3000" },
     { db: env.DB, sql: "SELECT content AS v FROM announcements LIMIT 3000" },
     { db: env.DB, sql: "SELECT avatar AS v FROM users WHERE avatar IS NOT NULL AND avatar != '' LIMIT 3000" },
-    { db: env.DB, sql: "SELECT image_key AS v FROM chat_messages WHERE image_key != '' LIMIT 3000" },
-    { db: env.DB, sql: "SELECT avatar_url AS v FROM chat_messages WHERE avatar_url != '' LIMIT 3000" },
+    // 聊天消息存放在论坛独立库（FORUM_DB），未绑定时才回退主库
+    { db: env.FORUM_DB ?? env.DB, sql: "SELECT image_key AS v FROM chat_messages WHERE image_key != '' LIMIT 3000" },
+    { db: env.FORUM_DB ?? env.DB, sql: "SELECT avatar_url AS v FROM chat_messages WHERE avatar_url != '' LIMIT 3000" },
     { db: env.DB, sql: "SELECT description AS v FROM shop_products LIMIT 3000" },
     { db: env.DB, sql: "SELECT content AS v FROM support_ticket_replies LIMIT 3000" },
     { db: env.DB, sql: "SELECT attachments AS v FROM support_ticket_replies LIMIT 3000" },

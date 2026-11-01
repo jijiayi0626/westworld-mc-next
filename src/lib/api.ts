@@ -52,7 +52,13 @@ export async function api<T = unknown>(
   if (!res.ok || body.code !== 0) {
     // 401 统一广播：任意页面的会话过期都能被 AuthProvider 接住并跳登录，
     // 避免页面停在「加载失败」而不自知（登录/注册自身的 401 是业务错误，不广播）
-    if (res.status === 401 && typeof window !== "undefined" && !path.startsWith("/auth/")) {
+    if (
+      res.status === 401 &&
+      typeof window !== "undefined" &&
+      !path.startsWith("/auth/") &&
+      // /user/me 未登录返回 401 属正常态，广播会把公开页游客强制跳登录
+      !path.startsWith("/user/me")
+    ) {
       window.dispatchEvent(new CustomEvent("auth:unauthorized"));
     }
     throw new ApiError(body.message || `请求失败（HTTP ${res.status}）`, body.code, res.status);

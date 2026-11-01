@@ -58,6 +58,7 @@ export default function TicketsPage() {
       setList(await api<Ticket[]>("/ticket/mine"));
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
+      setList([]);
     }
   }, []);
 
@@ -146,6 +147,8 @@ export default function TicketsPage() {
         }
       />
 
+      {success && <SuccessNote message={success} />}
+
       {showCreate && (
         <Card className="mb-5">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新建工单</h3>
@@ -177,7 +180,6 @@ export default function TicketsPage() {
               <AttachmentUploader value={createFiles} onChange={setCreateFiles} disabled={busy} />
             </Field>
             <ErrorNote message={error} />
-            <SuccessNote message={success} />
             <div>
               <Btn type="submit" disabled={busy}>{busy ? "提交中..." : "创建工单"}</Btn>
             </div>
@@ -240,6 +242,7 @@ export default function TicketsPage() {
       ) : (
         <Card>
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">工单列表</h3>
+          <ErrorNote message={error} />
           {list === null ? (
             <Empty text="加载中..." />
           ) : list.length === 0 ? (

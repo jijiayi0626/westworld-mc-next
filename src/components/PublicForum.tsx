@@ -444,7 +444,7 @@ export default function PublicForum() {
   return (
     <main
       className="forum-public-page relative bg-bg-dark bg-fixed bg-cover bg-center min-h-screen overflow-hidden"
-      style={{ backgroundImage: `url('${community.bg_image}')` }}
+      style={community.bg_image ? { backgroundImage: `url('${community.bg_image}')` } : undefined}
     >
       <div className="h-nav" />
       <div className="absolute inset-0 z-[1] pointer-events-none bg-bg-dark/55 backdrop-blur-[2px]" aria-hidden="true" />
