@@ -70,7 +70,10 @@ export async function sendMail(cfg: MailConfig, opts: MailOptions): Promise<void
 }
 
 /** 品牌邮件模板（绿白风格，深浅邮箱客户端均兼容的内联样式） */
-export function renderEmail(title: string, bodyHtml: string, siteName = "Westworld西域之光"): string {  return `<!doctype html><html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,'Segoe UI','Noto Sans SC',sans-serif;">
+export function renderEmail(title: string, bodyHtml: string, siteName = "Westworld西域之光"): string {
+  // 标题可能包含用户输入（如工单/留言主题），必须转义后再拼入 HTML，避免邮件 HTML 注入
+  const safeTitle = escapeHtml(title);
+  return `<!doctype html><html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,'Segoe UI','Noto Sans SC',sans-serif;">
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 12px;">
 <tr><td align="center">
 <table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
@@ -78,7 +81,7 @@ export function renderEmail(title: string, bodyHtml: string, siteName = "Westwor
   <span style="color:#ffffff;font-size:17px;font-weight:700;">${siteName}</span>
 </td></tr>
 <tr><td style="padding:28px;">
-  <h2 style="margin:0 0 14px;color:#0f172a;font-size:18px;">${title}</h2>
+  <h2 style="margin:0 0 14px;color:#0f172a;font-size:18px;">${safeTitle}</h2>
   <div style="color:#475569;font-size:14px;line-height:1.75;">${bodyHtml}</div>
 </td></tr>
 <tr><td style="padding:16px 28px;border-top:1px solid #f1f5f9;color:#94a3b8;font-size:12px;">
