@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/AuthProvider";
+import { useSiteContent } from "@/components/SiteContentProvider";
 import { api } from "@/lib/api";
 import FeedView from "./FeedView";
 import RoomChat from "./RoomChat";
@@ -73,6 +74,8 @@ function NavIcon({ view }: { view: CommunityView }) {
 
 export default function CommunityApp() {
   const { user, loading, refresh } = useAuth();
+  const siteContent = useSiteContent();
+  const bgImage = siteContent.community.bg_image || siteContent.hero.bg_image;
   const [view, setView] = useState<CommunityView>("feed");
   const [active, setActive] = useState<{ view: "dms" | "groups"; id: number; name: string } | null>(null);
   const [limits, setLimits] = useState<CommunityLimits | null>(null);
@@ -241,7 +244,18 @@ export default function CommunityApp() {
 
   return (
     <div className="relative min-h-screen bg-[#0b1220] text-white">
-      <div className="pointer-events-none fixed inset-0 overflow-hidden">
+      {bgImage && (
+        <div
+          className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat opacity-60"
+          style={{ backgroundImage: `url('${bgImage}')` }}
+          aria-hidden
+        />
+      )}
+      <div
+        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[#0b1220]/65 via-[#0b1220]/85 to-[#0b1220]/95"
+        aria-hidden
+      />
+      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
         <div className="absolute -left-40 -top-40 h-[420px] w-[420px] rounded-full bg-emerald-500/[0.08] blur-[120px]" />
         <div className="absolute -right-32 top-1/3 h-[380px] w-[380px] rounded-full bg-sky-500/[0.06] blur-[120px]" />
         <div className="absolute bottom-0 left-1/2 h-[300px] w-[560px] -translate-x-1/2 rounded-full bg-teal-500/[0.05] blur-[120px]" />
