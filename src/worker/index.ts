@@ -117,6 +117,37 @@ app.route("/static", assetsRoutes);
 // 健康检查
 app.get("/api/health", (c) => c.json({ code: 0, message: "ok", data: { app: "mc-next", ts: Date.now() } }));
 
+// 数据库健康检查：同时探测主库与论坛库，任一失败返回 500，便于外部监控告警
+app.get("/api/health/db", async (c) => {
+  const started = Date.now();
+  const checks: Record<string, { ok: boolean; error?: string }> = {};
+
+  const probe = async (name: string, db?: D1Database) => {
+    if (!db) {
+      checks[name] = { ok: false, error: "未绑定" };
+      return;
+    }
+    try {
+      await db.prepare("SELECT 1").first();
+      checks[name] = { ok: true };
+    } catch (e) {
+      checks[name] = { ok: false, error: e instanceof Error ? e.message : String(e) };
+    }
+  };
+
+  await Promise.all([probe("DB", c.env.DB), probe("FORUM_DB", c.env.FORUM_DB)]);
+  const healthy = Object.values(checks).every((v) => v.ok);
+
+  return c.json(
+    {
+      code: healthy ? 0 : 1,
+      message: healthy ? "ok" : "db error",
+      data: { checks, latency_ms: Date.now() - started, ts: Date.now() },
+    },
+    healthy ? 200 : 500,
+  );
+});
+
 // 404 兜底
 app.notFound((c) => c.json({ code: 404, message: "接口不存在", data: null }, 404));
 
