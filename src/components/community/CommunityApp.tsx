@@ -246,13 +246,13 @@ export default function CommunityApp() {
     <div className="relative min-h-screen bg-[#0b1220] text-white">
       {bgImage && (
         <div
-          className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat opacity-60"
+          className="pointer-events-none fixed inset-0 bg-cover bg-center bg-no-repeat opacity-90"
           style={{ backgroundImage: `url('${bgImage}')` }}
           aria-hidden
         />
       )}
       <div
-        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[#0b1220]/65 via-[#0b1220]/85 to-[#0b1220]/95"
+        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[#0b1220]/35 via-[#0b1220]/60 to-[#0b1220]/85"
         aria-hidden
       />
       <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
