@@ -64,7 +64,7 @@ export default function AnnouncementsSection() {
             onClick={() => router.push("/forum")}
             className="inline-flex items-center gap-1 text-[0.88rem] text-white/60 hover:text-accent-emerald transition-colors cursor-pointer"
           >
-            进入论坛
+            进入社区
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
               <path d="M5 12h14" />
               <path d="m13 6 6 6-6 6" />

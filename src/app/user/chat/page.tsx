@@ -2,10 +2,10 @@
 
 import { useEffect } from "react";
 
-/** 聊天室已并入官网论坛：/user/chat → /forum?tab=chat */
+/** 社区群已并入 /forum：/user/chat → /forum?view=community */
 export default function UserChatRedirectPage() {
   useEffect(() => {
-    window.location.replace("/forum?tab=chat");
+    window.location.replace("/forum?view=community");
   }, []);
 
   return (

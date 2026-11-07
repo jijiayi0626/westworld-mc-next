@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 
-/** 论坛已统一到官网 /forum；保留此路由仅做跳转（兼容旧书签） */
+/** 社区已统一到 /forum；保留此路由仅做跳转（兼容旧书签） */
 export default function UserForumRedirect() {
   useEffect(() => {
     window.location.replace("/forum");
