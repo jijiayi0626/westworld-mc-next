@@ -16,6 +16,25 @@ function fdb(c: { env: AppEnv["Bindings"] }): D1Database {
   return c.env.FORUM_DB ?? c.env.DB;
 }
 
+/** 用户资料在主库，论坛库不能直接 JOIN users：按作者 ID 批量补头像 */
+async function avatarMap(db: D1Database, ids: (number | null | undefined)[]): Promise<Map<number, string>> {
+  const clean = [...new Set(ids.filter((v): v is number => Number.isInteger(v) && (v as number) > 0))];
+  const map = new Map<number, string>();
+  for (let i = 0; i < clean.length; i += 80) {
+    const chunk = clean.slice(i, i + 80);
+    try {
+      const { results } = await db
+        .prepare(`SELECT id, avatar FROM users WHERE id IN (${chunk.map(() => "?").join(",")})`)
+        .bind(...chunk)
+        .all<{ id: number; avatar: string | null }>();
+      for (const r of results ?? []) map.set(r.id, r.avatar || "");
+    } catch {
+      /* 主库不可用时头像留空 */
+    }
+  }
+  return map;
+}
+
 interface ForumPost {
   id: number;
   board: string;
@@ -33,6 +52,7 @@ interface ForumReply {
   post_id: number;
   author_id: number | null;
   author_name: string;
+  author_avatar: string;
   content: string;
   created_at: string;
 }
@@ -103,10 +123,16 @@ function ageSeconds(createdAt: string): number {
 app.get("/announcements", async (c) => {
   const { results } = await fdb(c)
     .prepare(
-      "SELECT id, title, content, author_name, pinned, created_at, updated_at FROM forum_posts WHERE board = 'announcement' ORDER BY pinned DESC, id DESC LIMIT 100",
+      `SELECT p.id, p.title, p.content, p.author_id, p.author_name,
+              p.pinned, p.created_at, p.updated_at
+       FROM forum_posts p
+       WHERE p.board = 'announcement' ORDER BY p.pinned DESC, p.id DESC LIMIT 100`,
     )
-    .all<ForumPost>();
-  return ok(results ?? []);
+    .all<ForumPost & { author_id: number | null }>();
+  const avatars = await avatarMap(c.env.DB, (results ?? []).map((r) => r.author_id));
+  return ok(
+    (results ?? []).map((r) => ({ ...r, author_avatar: avatars.get(r.author_id ?? 0) || "" })),
+  );
 });
 
 // 分区列表（固定）
@@ -138,8 +164,8 @@ app.get("/posts", async (c) => {
 
   const { results } = await db
     .prepare(
-      `SELECT p.id, p.board, p.title, substr(p.content, 1, 160) AS content, p.author_name, p.pinned,
-              p.created_at, 0 AS views,
+      `SELECT p.id, p.board, p.title, substr(p.content, 1, 160) AS content, p.author_id, p.author_name,
+              p.pinned, p.created_at, 0 AS views,
               COALESCE(r.n, 0) AS reply_count, COALESCE(l.n, 0) AS like_count
        FROM forum_posts p
        LEFT JOIN (SELECT post_id, COUNT(*) AS n FROM forum_replies GROUP BY post_id) r ON r.post_id = p.id
@@ -149,14 +175,20 @@ app.get("/posts", async (c) => {
        LIMIT ? OFFSET ?`,
     )
     .bind(...binds, PAGE_SIZE, (page - 1) * PAGE_SIZE)
-    .all();
+    .all<Record<string, unknown>>();
 
   const totalRow = await db
     .prepare(`SELECT COUNT(*) AS n FROM forum_posts p ${whereSql}`)
     .bind(...binds)
     .first<{ n: number }>();
 
-  return ok({ items: results ?? [], total: totalRow?.n ?? 0, page });
+  const avatars = await avatarMap(c.env.DB, (results ?? []).map((r) => Number(r.author_id) || 0));
+  const items = (results ?? []).map((r) => ({
+    ...r,
+    author_avatar: avatars.get(Number(r.author_id) || 0) || "",
+  }));
+
+  return ok({ items, total: totalRow?.n ?? 0, page });
 });
 
 // 帖子详情（公开）：完整正文 + 回复 + 当前用户点赞状态
@@ -169,8 +201,8 @@ app.get("/posts/:id", async (c) => {
 
   const post = await db
     .prepare(
-      `SELECT p.id, p.board, p.title, p.content, p.author_id, p.author_name, p.pinned,
-              p.created_at, p.updated_at, 0 AS views,
+      `SELECT p.id, p.board, p.title, p.content, p.author_id, p.author_name,
+              p.pinned, p.created_at, p.updated_at, 0 AS views,
               (SELECT COUNT(*) FROM forum_replies r WHERE r.post_id = p.id) AS reply_count,
               (SELECT COUNT(*) FROM forum_likes l WHERE l.post_id = p.id) AS like_count
        FROM forum_posts p WHERE p.id = ?`,
@@ -181,10 +213,25 @@ app.get("/posts/:id", async (c) => {
 
   const { results: replies } = await db
     .prepare(
-      "SELECT id, post_id, author_id, author_name, content, created_at FROM forum_replies WHERE post_id = ? ORDER BY id ASC LIMIT 200",
+      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.content, r.created_at
+       FROM forum_replies r
+       WHERE r.post_id = ? ORDER BY r.id ASC LIMIT 200`,
     )
     .bind(id)
     .all<ForumReply>();
+
+  const avatars = await avatarMap(c.env.DB, [
+    post.author_id,
+    ...(replies ?? []).map((r) => r.author_id),
+  ]);
+  const postWithAvatar = {
+    ...post,
+    author_avatar: avatars.get(post.author_id ?? 0) || "",
+  };
+  const repliesWithAvatar = (replies ?? []).map((r) => ({
+    ...r,
+    author_avatar: avatars.get(r.author_id ?? 0) || "",
+  }));
 
   let liked = false;
   const user = await optionalUser(c);
@@ -196,7 +243,7 @@ app.get("/posts/:id", async (c) => {
     liked = !!row;
   }
 
-  return ok({ post, replies: replies ?? [], liked });
+  return ok({ post: postWithAvatar, replies: repliesWithAvatar, liked });
 });
 
 // 发帖（登录用户：不允许发公告）
@@ -277,11 +324,16 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
     .bind(postId, user.id, user.username, content)
     .run();
 
+  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?")
+    .bind(user.id)
+    .first<{ avatar: string | null }>();
+
   const reply: ForumReply = {
     id: Number(result.meta.last_row_id),
     post_id: postId,
     author_id: user.id,
     author_name: user.username,
+    author_avatar: profile?.avatar || "",
     content,
     created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
   };
