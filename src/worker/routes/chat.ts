@@ -1,24 +1,26 @@
 import { Hono } from "hono";
-import type { AppEnv } from "../lib/auth";
-import { requireAuth, requireAdmin } from "../lib/auth";
+import type { Context } from "hono";
+import type { AppEnv, UserSession } from "../lib/auth";
+import { requireAuth, requireAdmin, getSecret, readToken } from "../lib/auth";
+import { verifyToken } from "../lib/jwt";
 import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logUserAction, logOp } from "../lib/log";
 import { getClientIp } from "../lib/net";
 
 /**
- * 聊天室（注意 Cloudflare 平台限制）：
- * - 免费套餐无 Durable Objects（需付费），实时性采用 4s 轮询 + 增量拉取（after_id），避免全量刷新
- * - 图片 ≤ 4MB（Workers 请求体限制远大于此，收窄以省 R2 写入配额，免费档 10 写/秒）
- * - 文本 ≤ 400 字符（D1 单行上限 1MB，留足余量）
- * - 同一用户两次发言间隔 ≥ 3s，每日文字 ≤ 300 条 / 图片 ≤ 30 张（防刷屏，R2/D1 配额友好）
+ * 社区消息（注意 Cloudflare 平台限制）：
+ * - 免费套餐无 Durable Objects，实时性采用「自适应轮询 + after_id 增量拉取」，不显示刷新倒计时
+ * - 文本 ≤ 400 字符；图片 ≤ 4MB（收窄以省 R2 写入配额，免费档 10 写/秒）
+ * - 同一用户在同一会话两次发言间隔 ≥ 3s，每日文字 ≤ 300 条 / 图片 ≤ 30 张
  */
 
 const MAX_TEXT = 400;
-const MAX_IMAGE = 4 * 1024 * 1024; // 4MB
+const MAX_IMAGE = 4 * 1024 * 1024;
 const MIN_INTERVAL_MS = 3000;
 const DAILY_TEXT = 300;
 const DAILY_IMAGE = 30;
+const COMMUNITY_ID = 1;
 
 const ALLOWED: Record<string, string> = {
   "image/png": ".png",
@@ -27,29 +29,69 @@ const ALLOWED: Record<string, string> = {
   "image/gif": ".gif",
 };
 
-interface ChatRow {
-  id: number;
-  user_id: number;
-  username: string;
-  avatar_url: string | null;
-  role: string;
-  content: string;
-  image_key: string | null;
-  created_at: string;
-}
-
-/** 聊天室配置（后台可改，存 site_settings） */
 interface ChatConfig {
   enabled: boolean;
   welcome: string;
   max_text: number;
   max_image_mb: number;
+  group_create: "all" | "admin";
+}
+
+interface RoomRow {
+  id: number;
+  kind: "community" | "group" | "dm";
+  name: string;
+  avatar: string;
+  notice: string;
+  owner_id: number | null;
+  created_at: string;
+  updated_at: string;
+}
+
+interface MemberRow {
+  room_id: number;
+  user_id: number;
+  alias: string;
+  role: string;
+  last_read_id: number;
+  muted: number;
+  joined_at: string;
+}
+
+interface MessageRow {
+  id: number;
+  room_id: number | null;
+  user_id: number;
+  username: string | null;
+  avatar_url: string | null;
+  role: string;
+  content: string;
+  image_key: string | null;
+  created_at: string;
+  recalled: number | null;
+  recalled_at: string | null;
+  recalled_by: number | null;
+}
+
+const app = new Hono<AppEnv>();
+
+/** 社区数据统一存独立 D1（FORUM_DB）；未绑定时回退主库 */
+function fdb(c: { env: AppEnv["Bindings"] }): D1Database {
+  return c.env.FORUM_DB ?? c.env.DB;
 }
 
 async function getChatConfig(db: D1Database): Promise<ChatConfig> {
-  const def: ChatConfig = { enabled: true, welcome: "", max_text: MAX_TEXT, max_image_mb: 4 };
+  const def: ChatConfig = {
+    enabled: true,
+    welcome: "",
+    max_text: MAX_TEXT,
+    max_image_mb: 4,
+    group_create: "all",
+  };
   try {
-    const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'chat_config'").first<{ value: string }>();
+    const row = await db
+      .prepare("SELECT value FROM site_settings WHERE key = 'chat_config'")
+      .first<{ value: string }>();
     if (!row) return def;
     const parsed = JSON.parse(row.value) as Partial<ChatConfig>;
     return {
@@ -57,19 +99,29 @@ async function getChatConfig(db: D1Database): Promise<ChatConfig> {
       welcome: String(parsed.welcome ?? "").slice(0, 200),
       max_text: Math.min(1000, Math.max(20, Number(parsed.max_text) || MAX_TEXT)),
       max_image_mb: Math.min(8, Math.max(1, Number(parsed.max_image_mb) || 4)),
+      group_create: parsed.group_create === "admin" ? "admin" : "all",
     };
   } catch {
     return def;
   }
 }
 
-/** 论坛 Tab 显隐配置（与聊天配置同存一个 JSON） */
-async function getForumShowConfig(db: D1Database): Promise<{ show_announcements: boolean; show_chat: boolean }> {
+async function getForumShowConfig(
+  db: D1Database,
+): Promise<{ show_announcements: boolean; show_chat: boolean }> {
   try {
-    const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'chat_config'").first<{ value: string }>();
+    const row = await db
+      .prepare("SELECT value FROM site_settings WHERE key = 'chat_config'")
+      .first<{ value: string }>();
     if (row) {
-      const parsed = JSON.parse(row.value) as { show_announcements?: boolean; show_chat?: boolean };
-      return { show_announcements: parsed.show_announcements !== false, show_chat: parsed.show_chat !== false };
+      const parsed = JSON.parse(row.value) as {
+        show_announcements?: boolean;
+        show_chat?: boolean;
+      };
+      return {
+        show_announcements: parsed.show_announcements !== false,
+        show_chat: parsed.show_chat !== false,
+      };
     }
   } catch {
     /* 默认全显示 */
@@ -77,35 +129,196 @@ async function getForumShowConfig(db: D1Database): Promise<{ show_announcements:
   return { show_announcements: true, show_chat: true };
 }
 
-function shape(r: ChatRow) {
+// 惰性建表只做一次（模块级缓存）；新增列通过 PRAGMA 检测后补齐
+let schemaReady = false;
+
+async function ensureChatSchema(db: D1Database): Promise<void> {
+  if (schemaReady) return;
+  try {
+    await db.batch([
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS chat_rooms (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          kind TEXT NOT NULL DEFAULT 'group',
+          name TEXT NOT NULL DEFAULT '',
+          avatar TEXT DEFAULT '',
+          notice TEXT DEFAULT '',
+          owner_id INTEGER,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`,
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS chat_room_members (
+          room_id INTEGER NOT NULL,
+          user_id INTEGER NOT NULL,
+          alias TEXT DEFAULT '',
+          role TEXT NOT NULL DEFAULT 'member',
+          last_read_id INTEGER NOT NULL DEFAULT 0,
+          muted INTEGER NOT NULL DEFAULT 0,
+          joined_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY(room_id, user_id)
+        )`,
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS user_contacts (
+          owner_id INTEGER NOT NULL,
+          target_id INTEGER NOT NULL,
+          alias TEXT DEFAULT '',
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY(owner_id, target_id)
+        )`,
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS chat_messages (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          room_id INTEGER NOT NULL DEFAULT 1,
+          user_id INTEGER NOT NULL,
+          username TEXT NOT NULL,
+          avatar_url TEXT DEFAULT '',
+          role TEXT NOT NULL DEFAULT 'user',
+          content TEXT NOT NULL DEFAULT '',
+          image_key TEXT DEFAULT '',
+          recalled INTEGER NOT NULL DEFAULT 0,
+          recalled_at TEXT DEFAULT '',
+          recalled_by INTEGER,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`,
+      ),
+    ]);
+
+    // 社区群固定 id = 1
+    await db
+      .prepare(
+        `INSERT OR IGNORE INTO chat_rooms (id, kind, name, avatar, notice, owner_id)
+         VALUES (1, 'community', '社区群', '', '欢迎来到西域社区，文明交流，禁止刷屏与广告。', NULL)`,
+      )
+      .run();
+
+    // 旧库补列（单条失败不阻断其余）
+    const info = await db
+      .prepare("PRAGMA table_info(chat_messages)")
+      .all<{ name: string }>();
+    const cols = new Set((info.results ?? []).map((r) => r.name));
+    const alters: string[] = [];
+    if (!cols.has("room_id")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN room_id INTEGER NOT NULL DEFAULT 1");
+    }
+    if (!cols.has("recalled")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN recalled INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.has("recalled_at")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN recalled_at TEXT DEFAULT ''");
+    }
+    if (!cols.has("recalled_by")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN recalled_by INTEGER");
+    }
+    for (const sql of alters) {
+      try {
+        await db.prepare(sql).run();
+      } catch {
+        /* 并发补列时忽略 */
+      }
+    }
+
+    await db.batch([
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_chat_rooms_kind ON chat_rooms(kind, id)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_room_members(user_id, room_id)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id, id)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages(user_id, created_at)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_user_contacts_owner ON user_contacts(owner_id, created_at)"),
+    ]);
+
+    schemaReady = true;
+  } catch {
+    // 建表失败不阻断读取（下次请求再试）
+  }
+}
+
+async function optionalUser(c: Context<AppEnv>): Promise<UserSession | null> {
+  try {
+    const token = readToken(c);
+    if (!token) return null;
+    const payload = await verifyToken(token, getSecret(c));
+    if (!payload) return null;
+    return { id: Number(payload.sub), username: payload.username, role: payload.role };
+  } catch {
+    return null;
+  }
+}
+
+function ageMs(createdAt: string): number {
+  const t = new Date(createdAt.replace(" ", "T") + "Z").getTime();
+  return Number.isNaN(t) ? Number.POSITIVE_INFINITY : Date.now() - t;
+}
+
+async function roomById(db: D1Database, id: number): Promise<RoomRow | null> {
+  return db.prepare("SELECT * FROM chat_rooms WHERE id = ?").bind(id).first<RoomRow>();
+}
+
+async function memberOf(db: D1Database, roomId: number, userId: number): Promise<MemberRow | null> {
+  return db
+    .prepare("SELECT * FROM chat_room_members WHERE room_id = ? AND user_id = ?")
+    .bind(roomId, userId)
+    .first<MemberRow>();
+}
+
+/** 每次读取房间列表时自动加入社区群 */
+async function ensureCommunityMembership(db: D1Database, userId: number): Promise<void> {
+  try {
+    await db
+      .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
+      .bind(COMMUNITY_ID, userId)
+      .run();
+  } catch {
+    /* 社区群不存在时忽略 */
+  }
+}
+
+/** 群主 / 群管理员 / 全局管理员可管理群资料与成员 */
+async function canManageRoom(
+  db: D1Database,
+  room: RoomRow,
+  user: UserSession,
+): Promise<boolean> {
+  if (user.role === "admin") return true;
+  if (room.kind !== "group") return false;
+  if (room.owner_id === user.id) return true;
+  const m = await memberOf(db, room.id, user.id);
+  return m?.role === "admin";
+}
+
+const MSG_SELECT = `SELECT m.id, COALESCE(m.room_id, 1) AS room_id, m.user_id,
+  m.username, m.avatar_url, m.role, m.content, m.image_key, m.created_at,
+  COALESCE(m.recalled, 0) AS recalled, m.recalled_at, m.recalled_by
+FROM chat_messages m`;
+
+function messageShape(r: MessageRow) {
+  const recalled = !!r.recalled;
   return {
     id: r.id,
+    room_id: r.room_id ?? COMMUNITY_ID,
     user_id: r.user_id,
-    username: r.username,
+    username: r.username || "玩家",
     avatar_url: r.avatar_url || "",
     role: r.role,
-    content: r.content,
-    image_url: r.image_key ? `/static/${r.image_key}` : "",
+    content: recalled ? "" : r.content,
+    image_url: !recalled && r.image_key ? `/static/${r.image_key}` : "",
+    recalled,
+    recalled_at: r.recalled_at || "",
+    recalled_by: r.recalled_by || 0,
     created_at: r.created_at,
   };
 }
 
-const app = new Hono<AppEnv>();
-
-/** 论坛数据统一存独立 D1（FORUM_DB）；未绑定时回退主库，保证兼容 */
-function fdb(c: { env: AppEnv["Bindings"] }): D1Database {
-  return c.env.FORUM_DB ?? c.env.DB;
-}
-
-// 频控：距上次发言不足 MIN_INTERVAL_MS 则拒绝
-async function tooFast(db: D1Database, userId: number): Promise<boolean> {
+// 频控：同一房间距上次发言不足 MIN_INTERVAL_MS 则拒绝
+async function tooFast(db: D1Database, userId: number, roomId: number): Promise<boolean> {
   const row = await db
-    .prepare("SELECT created_at FROM chat_messages WHERE user_id = ? ORDER BY id DESC LIMIT 1")
-    .bind(userId)
+    .prepare("SELECT created_at FROM chat_messages WHERE user_id = ? AND room_id = ? ORDER BY id DESC LIMIT 1")
+    .bind(userId, roomId)
     .first<{ created_at: string }>();
   if (!row) return false;
-  const t = new Date(row.created_at.replace(" ", "T") + "Z").getTime();
-  return !Number.isNaN(t) && Date.now() - t < MIN_INTERVAL_MS;
+  return ageMs(row.created_at) < MIN_INTERVAL_MS;
 }
 
 async function dailyCount(db: D1Database, userId: number, withImage: boolean): Promise<number> {
@@ -120,10 +333,187 @@ async function dailyCount(db: D1Database, userId: number, withImage: boolean): P
   return row?.n ?? 0;
 }
 
-// 限制与配置（前端展示用；后台可改）
+async function currentProfile(db: D1Database, userId: number): Promise<{ avatar: string }> {
+  try {
+    const row = await db.prepare("SELECT avatar FROM users WHERE id = ?").bind(userId).first<{
+      avatar: string | null;
+    }>();
+    return { avatar: row?.avatar || "" };
+  } catch {
+    return { avatar: "" };
+  }
+}
+
+interface UserInfo {
+  id: number;
+  username: string;
+  avatar: string;
+}
+
+/** 用户资料在主库；社区库只存快照，展示时按 ID 批量补最新昵称与头像 */
+async function userMap(db: D1Database, ids: number[]): Promise<Map<number, UserInfo>> {
+  const clean = [...new Set(ids.filter((v) => Number.isInteger(v) && v > 0))];
+  const map = new Map<number, UserInfo>();
+  for (let i = 0; i < clean.length; i += 80) {
+    const chunk = clean.slice(i, i + 80);
+    try {
+      const { results } = await db
+        .prepare(
+          `SELECT id, username, avatar FROM users
+           WHERE status = 'active' AND id IN (${chunk.map(() => "?").join(",")})`,
+        )
+        .bind(...chunk)
+        .all<{ id: number; username: string; avatar: string | null }>();
+      for (const r of results ?? []) {
+        map.set(r.id, { id: r.id, username: r.username, avatar: r.avatar || "" });
+      }
+    } catch {
+      /* 主库异常时退回消息快照 */
+    }
+  }
+  return map;
+}
+
+async function decorateMessages(
+  mainDb: D1Database,
+  rows: MessageRow[],
+): Promise<MessageRow[]> {
+  const map = await userMap(mainDb, rows.map((r) => r.user_id));
+  return rows.map((r) => {
+    const u = map.get(r.user_id);
+    return u ? { ...r, username: u.username, avatar_url: u.avatar } : r;
+  });
+}
+
+function nowText(): string {
+  return new Date().toISOString().slice(0, 19).replace("T", " ");
+}
+
+type CoreResult<T> = { ok: true; data: T } | { ok: false; message: string; status?: number };
+
+async function sendTextCore(
+  c: Context<AppEnv>,
+  user: UserSession,
+  roomId: number,
+  raw: string,
+): Promise<CoreResult<ReturnType<typeof messageShape>>> {
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const cfg = await getChatConfig(c.env.DB);
+  if (!cfg.enabled) return { ok: false, message: "社区消息已关闭，暂时无法发言" };
+
+  const room = await roomById(db, roomId);
+  if (!room) return { ok: false, message: "会话不存在", status: 404 };
+  if (!(await memberOf(db, roomId, user.id))) return { ok: false, message: "你不在该会话中", status: 403 };
+
+  const content = str(raw, cfg.max_text).trim();
+  if (!content) return { ok: false, message: "消息不能为空" };
+  if (content.length > cfg.max_text) return { ok: false, message: `消息需在 ${cfg.max_text} 字以内` };
+
+  if (await tooFast(db, user.id, roomId)) return { ok: false, message: "发送太快了，休息一下~" };
+  if ((await dailyCount(db, user.id, false)) >= DAILY_TEXT) {
+    return { ok: false, message: "今日发言已达上限，明天再来聊吧" };
+  }
+
+  const profile = await currentProfile(c.env.DB, user.id);
+  const result = await db
+    .prepare(
+      "INSERT INTO chat_messages (room_id, user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, ?, '')",
+    )
+    .bind(roomId, user.id, user.username, profile.avatar, user.role, content)
+    .run();
+  await logUserAction(c.env.DB, user.id, "chat_send", `房间 ${roomId} 发送消息`, getClientIp(c));
+
+  return {
+    ok: true,
+    data: messageShape({
+      id: Number(result.meta.last_row_id),
+      room_id: roomId,
+      user_id: user.id,
+      username: user.username,
+      avatar_url: profile.avatar,
+      role: user.role,
+      content,
+      image_key: "",
+      created_at: nowText(),
+      recalled: 0,
+      recalled_at: "",
+      recalled_by: null,
+    }),
+  };
+}
+
+async function sendImageCore(
+  c: Context<AppEnv>,
+  user: UserSession,
+  roomId: number,
+): Promise<CoreResult<ReturnType<typeof messageShape>>> {
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const cfg = await getChatConfig(c.env.DB);
+  if (!cfg.enabled) return { ok: false, message: "社区消息已关闭，暂时无法发图" };
+
+  const room = await roomById(db, roomId);
+  if (!room) return { ok: false, message: "会话不存在", status: 404 };
+  if (!(await memberOf(db, roomId, user.id))) return { ok: false, message: "你不在该会话中", status: 403 };
+
+  const maxImage = Math.min(cfg.max_image_mb * 1024 * 1024, MAX_IMAGE);
+  const form = await c.req.formData().catch(() => null);
+  if (!form) return { ok: false, message: "无法解析上传内容" };
+  const file = form.get("file");
+  if (!(file instanceof File)) return { ok: false, message: "缺少图片文件" };
+  if (file.size === 0 || file.size > maxImage) {
+    return { ok: false, message: `图片需小于 ${cfg.max_image_mb}MB` };
+  }
+  const ext = ALLOWED[file.type];
+  if (!ext) return { ok: false, message: "仅支持 PNG / JPG / WEBP / GIF" };
+
+  if (await tooFast(db, user.id, roomId)) return { ok: false, message: "发送太快了，休息一下~" };
+  if ((await dailyCount(db, user.id, true)) >= DAILY_IMAGE) {
+    return { ok: false, message: "今日图片已达上限（30 张）" };
+  }
+
+  const bucket = c.env.ASSETS;
+  if (!bucket) return { ok: false, message: "R2 未绑定", status: 503 };
+  const key = `uploads/chat/${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
+  await bucket.put(key, await file.arrayBuffer(), {
+    httpMetadata: { contentType: file.type },
+  });
+
+  const profile = await currentProfile(c.env.DB, user.id);
+  const result = await db
+    .prepare(
+      "INSERT INTO chat_messages (room_id, user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, '', ?)",
+    )
+    .bind(roomId, user.id, user.username, profile.avatar, user.role, key)
+    .run();
+  await logUserAction(c.env.DB, user.id, "chat_image", `房间 ${roomId} 发送图片`, getClientIp(c));
+
+  return {
+    ok: true,
+    data: messageShape({
+      id: Number(result.meta.last_row_id),
+      room_id: roomId,
+      user_id: user.id,
+      username: user.username,
+      avatar_url: profile.avatar,
+      role: user.role,
+      content: "",
+      image_key: key,
+      created_at: nowText(),
+      recalled: 0,
+      recalled_at: "",
+      recalled_by: null,
+    }),
+  };
+}
+
+// —— 配置与限制 ——
 app.get("/limits", async (c) => {
+  await ensureChatSchema(fdb(c));
   const cfg = await getChatConfig(c.env.DB);
   const show = await getForumShowConfig(c.env.DB);
+  const me = await optionalUser(c);
   return ok({
     enabled: cfg.enabled,
     welcome: cfg.welcome,
@@ -132,160 +522,851 @@ app.get("/limits", async (c) => {
     min_interval_ms: MIN_INTERVAL_MS,
     daily_text: DAILY_TEXT,
     daily_image: DAILY_IMAGE,
-    realtime: "polling_4s",
+    group_create: cfg.group_create,
+    can_create_group: !!me && (cfg.group_create === "all" || me.role === "admin"),
     ...show,
   });
 });
 
-// 消息列表：after_id 增量；before_id 翻页；默认最新 50 条（升序返回）
-app.get("/messages", async (c) => {
+// —— 会话列表 ——
+app.get("/rooms", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  await ensureCommunityMembership(db, user.id);
+
+  const { results } = await db
+    .prepare(
+      `SELECT r.id, r.kind, r.name, r.avatar, r.notice, r.owner_id, r.created_at, r.updated_at,
+              m.alias, m.role AS my_role, m.last_read_id, m.muted,
+              (SELECT COUNT(*) FROM chat_room_members x WHERE x.room_id = r.id) AS member_count,
+              (SELECT MAX(c.id) FROM chat_messages c WHERE c.room_id = r.id) AS last_id,
+              (SELECT COUNT(*) FROM chat_messages c
+                WHERE c.room_id = r.id AND c.id > m.last_read_id AND c.user_id <> ?1
+                  AND COALESCE(c.recalled, 0) = 0) AS unread,
+              (SELECT c.content FROM chat_messages c
+                WHERE c.room_id = r.id AND COALESCE(c.recalled, 0) = 0 ORDER BY c.id DESC LIMIT 1) AS last_text,
+              (SELECT c.image_key FROM chat_messages c
+                WHERE c.room_id = r.id AND COALESCE(c.recalled, 0) = 0 ORDER BY c.id DESC LIMIT 1) AS last_image,
+              (SELECT c.created_at FROM chat_messages c
+                WHERE c.room_id = r.id AND COALESCE(c.recalled, 0) = 0 ORDER BY c.id DESC LIMIT 1) AS last_at,
+              (SELECT c.username FROM chat_messages c
+                WHERE c.room_id = r.id AND COALESCE(c.recalled, 0) = 0 ORDER BY c.id DESC LIMIT 1) AS last_user,
+              (SELECT om.user_id FROM chat_room_members om
+                WHERE om.room_id = r.id AND om.user_id <> ?1 LIMIT 1) AS peer_id,
+              (SELECT c.alias FROM user_contacts c WHERE c.owner_id = ?1 AND c.target_id =
+                (SELECT om.user_id FROM chat_room_members om
+                  WHERE om.room_id = r.id AND om.user_id <> ?1 LIMIT 1)) AS peer_alias
+       FROM chat_rooms r
+       JOIN chat_room_members m ON m.room_id = r.id AND m.user_id = ?1
+       ORDER BY CASE r.kind WHEN 'community' THEN 0 WHEN 'group' THEN 1 ELSE 2 END,
+                COALESCE(last_id, 0) DESC`,
+    )
+    .bind(user.id)
+    .all<Record<string, unknown>>();
+
+  const peerIds = (results ?? []).map((r) => Number(r.peer_id) || 0);
+  const peers = await userMap(c.env.DB, peerIds);
+
+  const rooms: Record<string, unknown>[] = (results ?? []).map((r) => {
+    const kind = String(r.kind);
+    const peerAlias = String(r.peer_alias || "");
+    const peer = peers.get(Number(r.peer_id) || 0);
+    const displayName =
+      kind === "dm" ? peerAlias || peer?.username || "私信" : String(r.name || "群聊");
+    const displayAvatar = kind === "dm" ? peer?.avatar || "" : String(r.avatar || "");
+    return {
+      ...r,
+      display_name: displayName,
+      display_avatar: displayAvatar,
+      peer_id: Number(r.peer_id) || 0,
+    };
+  });
+
+  const unread = rooms.reduce((n, r) => n + (Number(r.unread) || 0), 0);
+  return ok({ rooms, unread });
+});
+
+app.post("/rooms", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const cfg = await getChatConfig(c.env.DB);
+  if (cfg.group_create === "admin" && user.role !== "admin") {
+    return fail("当前仅管理员可创建群聊", 403);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const name = str(body.name, 30).trim();
+  const notice = str(body.notice, 200).trim();
+  if (name.length < 2 || name.length > 30) return fail("群名称需为 2-30 个字符");
+
+  const result = await db
+    .prepare("INSERT INTO chat_rooms (kind, name, notice, owner_id) VALUES ('group', ?, ?, ?)")
+    .bind(name, notice, user.id)
+    .run();
+  const roomId = Number(result.meta.last_row_id);
+
+  await db
+    .prepare(
+      "INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role, last_read_id) VALUES (?, ?, 'owner', 0)",
+    )
+    .bind(roomId, user.id)
+    .run();
+
+  const ids = Array.isArray(body.member_ids)
+    ? (body.member_ids as unknown[]).map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0).slice(0, 50)
+    : [];
+  if (ids.length) {
+    const placeholders = ids.map(() => "?").join(",");
+    const { results } = await c.env.DB
+      .prepare(`SELECT id FROM users WHERE status = 'active' AND id IN (${placeholders})`)
+      .bind(...ids)
+      .all<{ id: number }>();
+    const valid = (results ?? []).map((r) => r.id);
+    if (valid.length) {
+      await db.batch(
+        valid.map((id) =>
+          db
+            .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
+            .bind(roomId, id),
+        ),
+      );
+    }
+  }
+
+  await logUserAction(c.env.DB, user.id, "chat_group_create", `#${roomId} ${name}`, getClientIp(c));
+  return ok({ id: roomId });
+});
+
+app.get("/rooms/:id", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+
+  let me = await memberOf(db, roomId, user.id);
+  if (room.kind === "community" && !me) {
+    await ensureCommunityMembership(db, user.id);
+    me = await memberOf(db, roomId, user.id);
+  }
+  if (!me) return fail("你不在该会话中", 403);
+
+  const { results: memberRows } = await db
+    .prepare(
+      `SELECT m.user_id, m.alias, m.role, m.joined_at
+       FROM chat_room_members m
+       WHERE m.room_id = ?
+       ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, m.joined_at ASC
+       LIMIT 300`,
+    )
+    .bind(roomId)
+    .all<{ user_id: number; alias: string; role: string; joined_at: string }>();
+
+  const memberUsers = await userMap(c.env.DB, (memberRows ?? []).map((m) => m.user_id));
+  const members = (memberRows ?? []).map((m) => {
+    const u = memberUsers.get(m.user_id);
+    return {
+      user_id: m.user_id,
+      username: u?.username || "玩家",
+      avatar: u?.avatar || "",
+      alias: m.alias || "",
+      role: m.role,
+      joined_at: m.joined_at,
+    };
+  });
+
+  let displayName = room.name;
+  let displayAvatar = room.avatar;
+  let peerId = 0;
+  if (room.kind === "dm") {
+    const peer = members.find((m) => m.user_id !== user.id);
+    peerId = peer?.user_id || 0;
+    const contact = peerId
+      ? await db
+          .prepare("SELECT alias FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+          .bind(user.id, peerId)
+          .first<{ alias: string }>()
+      : null;
+    displayName = contact?.alias || peer?.alias || peer?.username || "私信";
+    displayAvatar = peer?.avatar || "";
+  }
+
+  return ok({
+    room: {
+      ...room,
+      display_name: displayName,
+      display_avatar: displayAvatar,
+      peer_id: peerId,
+      member_count: members.length,
+    },
+    me,
+    members,
+  });
+});
+
+app.patch("/rooms/:id", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (!(await memberOf(db, roomId, user.id))) return fail("你不在该会话中", 403);
+  if (!(await canManageRoom(db, room, user))) return fail("无权限修改该会话", 403);
+  if (room.kind === "dm") return fail("私信会话不支持修改");
+
+  const body = await c.req.json().catch(() => ({}));
+  const sets: string[] = [];
+  const binds: (string | number)[] = [];
+  if (typeof body.name === "string") {
+    const name = str(body.name, 30).trim();
+    if (name.length < 2 || name.length > 30) return fail("群名称需为 2-30 个字符");
+    sets.push("name = ?");
+    binds.push(name);
+  }
+  if (typeof body.avatar === "string") {
+    sets.push("avatar = ?");
+    binds.push(str(body.avatar, 500).trim());
+  }
+  if (typeof body.notice === "string") {
+    sets.push("notice = ?");
+    binds.push(str(body.notice, 200).trim());
+  }
+  if (!sets.length) return fail("没有需要保存的内容");
+
+  sets.push("updated_at = datetime('now')");
+  await db.prepare(`UPDATE chat_rooms SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, roomId).run();
+  await logUserAction(c.env.DB, user.id, "chat_room_update", `#${roomId}`, getClientIp(c));
+  return ok({ updated: true });
+});
+
+app.post("/rooms/:id/join", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (room.kind === "dm") return fail("私信会话需由对方发起", 403);
+  await db
+    .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
+    .bind(roomId, user.id)
+    .run();
+  return ok({ joined: true });
+});
+
+app.post("/rooms/:id/leave", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (room.kind === "community") return fail("社区群不可退出");
+  if (room.owner_id === user.id) return fail("群主需先转让或解散群聊");
+  await db
+    .prepare("DELETE FROM chat_room_members WHERE room_id = ? AND user_id = ?")
+    .bind(roomId, user.id)
+    .run();
+  return ok({ left: true });
+});
+
+app.post("/rooms/:id/read", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  if (!(await memberOf(db, roomId, user.id))) return fail("你不在该会话中", 403);
+  const body = await c.req.json().catch(() => ({}));
+  const lastId = Number(body.last_id) || 0;
+  await db
+    .prepare(
+      "UPDATE chat_room_members SET last_read_id = MAX(last_read_id, ?) WHERE room_id = ? AND user_id = ?",
+    )
+    .bind(lastId, roomId, user.id)
+    .run();
+  return ok({ read: true });
+});
+
+app.post("/rooms/:id/alias", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  const me = await memberOf(db, roomId, user.id);
+  if (!me) return fail("你不在该会话中", 403);
+
+  const body = await c.req.json().catch(() => ({}));
+  const alias = str(body.alias, 20).trim();
+  await db
+    .prepare("UPDATE chat_room_members SET alias = ? WHERE room_id = ? AND user_id = ?")
+    .bind(alias, roomId, user.id)
+    .run();
+
+  // 私信里设置备注，同时写入好友备注
+  if (room.kind === "dm" && alias) {
+    const peer = await db
+      .prepare(
+        "SELECT user_id FROM chat_room_members WHERE room_id = ? AND user_id <> ? LIMIT 1",
+      )
+      .bind(roomId, user.id)
+      .first<{ user_id: number }>();
+    if (peer) {
+      await db
+        .prepare(
+          `INSERT INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, ?)
+           ON CONFLICT(owner_id, target_id) DO UPDATE SET alias = excluded.alias`,
+        )
+        .bind(user.id, peer.user_id, alias)
+        .run();
+    }
+  }
+  return ok({ alias });
+});
+
+// —— 成员 ——
+app.post("/rooms/:id/members", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (!(await canManageRoom(db, room, user))) return fail("无权限邀请成员", 403);
+  if (room.kind === "dm") return fail("私信会话不支持邀请");
+
+  const body = await c.req.json().catch(() => ({}));
+  const ids = Array.isArray(body.user_ids)
+    ? (body.user_ids as unknown[]).map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0).slice(0, 50)
+    : [];
+  if (!ids.length) return fail("请选择要邀请的玩家");
+  const placeholders = ids.map(() => "?").join(",");
+  const { results } = await c.env.DB
+    .prepare(`SELECT id FROM users WHERE status = 'active' AND id IN (${placeholders})`)
+    .bind(...ids)
+    .all<{ id: number }>();
+  const valid = (results ?? []).map((r) => r.id);
+  if (!valid.length) return fail("没有可邀请的玩家");
+  await db.batch(
+    valid.map((id) =>
+      db
+        .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
+        .bind(roomId, id),
+    ),
+  );
+  return ok({ added: valid.length });
+});
+
+app.post("/rooms/:id/members/:uid/role", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const uid = Number(c.req.param("uid")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (room.kind === "dm") return fail("私信会话不支持设置管理员");
+
+  const me = await memberOf(db, roomId, user.id);
+  if (!me) return fail("你不在该会话中", 403);
+  // 社区群：任何成员都可以把其他成员设为管理员（按需求放开）
+  if (room.kind !== "community" && !(await canManageRoom(db, room, user))) {
+    return fail("无权限设置管理员", 403);
+  }
+
+  const body = await c.req.json().catch(() => ({}));
+  const role = body.role === "admin" ? "admin" : "member";
+  const target = await memberOf(db, roomId, uid);
+  if (!target) return fail("该成员不在会话中", 404);
+  if (target.role === "owner") return fail("群主角色不可修改");
+  await db
+    .prepare("UPDATE chat_room_members SET role = ? WHERE room_id = ? AND user_id = ?")
+    .bind(role, roomId, uid)
+    .run();
+  return ok({ role });
+});
+
+app.delete("/rooms/:id/members/:uid", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const uid = Number(c.req.param("uid")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (room.kind === "community") return fail("社区群成员不可移除");
+  if (!(await memberOf(db, roomId, user.id))) return fail("你不在该会话中", 403);
+
+  if (uid !== user.id) {
+    if (!(await canManageRoom(db, room, user))) return fail("无权限移除成员", 403);
+    if (room.owner_id === uid) return fail("群主不可被移除");
+  }
+  await db
+    .prepare("DELETE FROM chat_room_members WHERE room_id = ? AND user_id = ?")
+    .bind(roomId, uid)
+    .run();
+  return ok({ removed: true });
+});
+
+// —— 消息 ——
+app.get("/rooms/:id/messages", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (room.kind === "community") await ensureCommunityMembership(db, user.id);
+  if (!(await memberOf(db, roomId, user.id))) return fail("你不在该会话中", 403);
+
   const afterId = Number(c.req.query("after_id")) || 0;
   const beforeId = Number(c.req.query("before_id")) || 0;
 
-  let rows: ChatRow[];
+  let rows: MessageRow[];
   if (afterId > 0) {
-    ({ results: rows } = await fdb(c).prepare(
-      `SELECT id, user_id, username, avatar_url, role, content, image_key, created_at
-       FROM chat_messages WHERE id > ? ORDER BY id ASC LIMIT 50`,
-    ).bind(afterId).all<ChatRow>());
+    ({ results: rows } = await db
+      .prepare(`${MSG_SELECT} WHERE m.room_id = ? AND m.id > ? ORDER BY m.id ASC LIMIT 50`)
+      .bind(roomId, afterId)
+      .all<MessageRow>());
   } else {
-    ({ results: rows } = await fdb(c).prepare(
-      `SELECT id, user_id, username, avatar_url, role, content, image_key, created_at
-       FROM chat_messages WHERE (?1 = 0 OR id < ?1) ORDER BY id DESC LIMIT 50`,
-    ).bind(beforeId).all<ChatRow>());
-    rows = rows.reverse();
+    ({ results: rows } = await db
+      .prepare(`${MSG_SELECT} WHERE m.room_id = ? AND (? = 0 OR m.id < ?) ORDER BY m.id DESC LIMIT 50`)
+      .bind(roomId, beforeId, beforeId)
+      .all<MessageRow>());
+    rows = (rows ?? []).reverse();
   }
 
-  // 近 5 分钟活跃人数（粗略在线估计，避免每用户心跳表）
-  const online = await fdb(c).prepare(
-    "SELECT COUNT(DISTINCT user_id) AS n FROM chat_messages WHERE created_at >= datetime('now', '-5 minutes')",
-  ).first<{ n: number }>();
+  const online = await db
+    .prepare(
+      "SELECT COUNT(DISTINCT user_id) AS n FROM chat_messages WHERE room_id = ? AND created_at >= datetime('now', '-5 minutes')",
+    )
+    .bind(roomId)
+    .first<{ n: number }>();
 
-  return ok({ messages: (rows ?? []).map(shape), online: online?.n ?? 0 });
+  const decorated = await decorateMessages(c.env.DB, rows ?? []);
+  return ok({
+    messages: decorated.map(messageShape),
+    online: online?.n ?? 0,
+  });
 });
 
-// 发送文字
-app.post("/send", requireAuth, async (c) => {
+app.post("/rooms/:id/send", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const cfg = await getChatConfig(c.env.DB);
-  if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发言");
-
+  const roomId = Number(c.req.param("id")) || 0;
   const body = await c.req.json().catch(() => ({}));
-  const content = str(body.content, cfg.max_text).trim();
-  if (!content) return fail("消息不能为空");
-  if (content.length > cfg.max_text) return fail(`消息需在 ${cfg.max_text} 字以内`);
-
-  if (await tooFast(fdb(c), user.id)) return fail("发送太快了，休息一下~");
-  if ((await dailyCount(fdb(c), user.id, false)) >= DAILY_TEXT) return fail("今日发言已达上限，明天再来聊吧");
-
-  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
-  const result = await fdb(c).prepare(
-    "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, '')",
-  )
-    .bind(user.id, user.username, profile?.avatar || "", user.role, content)
-    .run();
-  await logUserAction(c.env.DB, user.id, "chat_send", "发送聊天消息", getClientIp(c));
-
-  return ok(shape({
-    id: Number(result.meta.last_row_id),
-    user_id: user.id,
-    username: user.username,
-    avatar_url: profile?.avatar || "",
-    role: user.role,
-    content,
-    image_key: null,
-    created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-  }));
+  const res = await sendTextCore(c, user, roomId, String(body.content ?? ""));
+  if (!res.ok) return fail(res.message, res.status || 400);
+  return ok(res.data);
 });
 
-// 发送图片
-app.post("/image", requireAuth, async (c) => {
+app.post("/rooms/:id/image", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const cfg = await getChatConfig(c.env.DB);
-  if (!cfg.enabled) return fail("聊天室已关闭，暂时无法发图");
-
-  const maxImage = cfg.max_image_mb * 1024 * 1024;
-  const form = await c.req.formData().catch(() => null);
-  if (!form) return fail("无法解析上传内容");
-  const file = form.get("file");
-  if (!(file instanceof File)) return fail("缺少图片文件");
-  if (file.size === 0 || file.size > maxImage) return fail(`图片需小于 ${cfg.max_image_mb}MB`);
-  const ext = ALLOWED[file.type];
-  if (!ext) return fail("仅支持 PNG / JPG / WEBP / GIF");
-
-  if (await tooFast(fdb(c), user.id)) return fail("发送太快了，休息一下~");
-  if ((await dailyCount(fdb(c), user.id, true)) >= DAILY_IMAGE) return fail("今日图片已达上限（30 张）");
-
-  const bucket = c.env.ASSETS;
-  if (!bucket) return fail("R2 未绑定", 503);
-  const key = `uploads/chat/${user.id}-${Date.now()}-${Math.random().toString(36).slice(2, 8)}${ext}`;
-  await bucket.put(key, await file.arrayBuffer(), { httpMetadata: { contentType: file.type } });
-
-  const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?").bind(user.id).first<{ avatar: string | null }>();
-  const result = await fdb(c).prepare(
-    "INSERT INTO chat_messages (user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, '', ?)",
-  )
-    .bind(user.id, user.username, profile?.avatar || "", user.role, key)
-    .run();
-  await logUserAction(c.env.DB, user.id, "chat_image", "发送聊天图片", getClientIp(c));
-
-  return ok(shape({
-    id: Number(result.meta.last_row_id),
-    user_id: user.id,
-    username: user.username,
-    avatar_url: profile?.avatar || "",
-    role: user.role,
-    content: "",
-    image_key: key,
-    created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
-  }));
+  const roomId = Number(c.req.param("id")) || 0;
+  const res = await sendImageCore(c, user, roomId);
+  if (!res.ok) return fail(res.message, res.status || 400);
+  return ok(res.data);
 });
 
-// 撤回自己的消息：仅限本人、10 分钟内（管理员不受时间限制）
-app.post("/delete-own", requireAuth, async (c) => {
+app.post("/messages/:id/recall", requireAuth, async (c) => {
   const user = c.get("user")!;
-  const body = await c.req.json().catch(() => ({}));
-  const id = Number(body.id) || 0;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const id = Number(c.req.param("id")) || 0;
   if (!id) return fail("缺少消息 ID");
 
-  const row = await fdb(c)
-    .prepare("SELECT id, user_id, image_key, created_at FROM chat_messages WHERE id = ?")
+  const row = await db
+    .prepare(
+      "SELECT id, room_id, user_id, image_key, created_at, COALESCE(recalled, 0) AS recalled FROM chat_messages WHERE id = ?",
+    )
     .bind(id)
-    .first<{ id: number; user_id: number; image_key: string | null; created_at: string }>();
+    .first<{
+      id: number;
+      room_id: number | null;
+      user_id: number;
+      image_key: string | null;
+      created_at: string;
+      recalled: number;
+    }>();
   if (!row) return fail("消息不存在", 404);
-  if (row.user_id !== user.id) return fail("只能撤回自己的消息", 403);
+  if (row.recalled) return ok({ recalled: true });
 
-  if (user.role !== "admin") {
-    const t = new Date(row.created_at.replace(" ", "T") + "Z").getTime();
-    if (Number.isNaN(t) || Date.now() - t > 10 * 60 * 1000) {
-      return fail("超过 10 分钟的消息无法撤回");
-    }
+  const roomId = row.room_id ?? COMMUNITY_ID;
+  const mem = await memberOf(db, roomId, user.id);
+  const privileged =
+    user.role === "admin" || mem?.role === "admin" || mem?.role === "owner";
+  const isOwn = row.user_id === user.id;
+  if (!isOwn && !privileged) return fail("只能撤回自己的消息", 403);
+  if (isOwn && !privileged && ageMs(row.created_at) > 10 * 60 * 1000) {
+    return fail("超过 10 分钟的消息无法撤回");
   }
 
   if (row.image_key?.startsWith("uploads/chat/")) {
     await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
   }
-  await fdb(c).prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
-  await logUserAction(c.env.DB, user.id, "chat_delete_own", `撤回 #${id}`, getClientIp(c));
+  await db
+    .prepare(
+      `UPDATE chat_messages
+       SET recalled = 1, content = '', image_key = '', recalled_at = datetime('now'), recalled_by = ?
+       WHERE id = ?`,
+    )
+    .bind(user.id, id)
+    .run();
+  await logUserAction(c.env.DB, user.id, "chat_recall", `撤回 #${id}`, getClientIp(c));
+  return ok({ recalled: true });
+});
 
+// —— 好友 / 私信 ——
+app.get("/contacts", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const { results } = await db
+    .prepare(
+      `SELECT target_id AS user_id, alias, created_at
+       FROM user_contacts WHERE owner_id = ?
+       ORDER BY created_at DESC LIMIT 500`,
+    )
+    .bind(user.id)
+    .all<{ user_id: number; alias: string; created_at: string }>();
+  const users = await userMap(c.env.DB, (results ?? []).map((r) => r.user_id));
+  const contacts = (results ?? []).flatMap((r) => {
+    const u = users.get(r.user_id);
+    return u ? [{ ...r, username: u.username, avatar: u.avatar }] : [];
+  });
+  return ok({ contacts });
+});
+
+app.post("/contacts", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const body = await c.req.json().catch(() => ({}));
+  const targetId = Number(body.user_id) || 0;
+  if (!targetId || targetId === user.id) return fail("请选择有效的玩家");
+  const target = await c.env.DB
+    .prepare("SELECT id FROM users WHERE id = ? AND status = 'active'")
+    .bind(targetId)
+    .first<{ id: number }>();
+  if (!target) return fail("玩家不存在", 404);
+
+  const alias = str(body.alias, 20).trim();
+  await db.batch([
+    db
+      .prepare(
+        `INSERT INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, ?)
+         ON CONFLICT(owner_id, target_id) DO UPDATE SET alias = excluded.alias`,
+      )
+      .bind(user.id, targetId, alias),
+    db
+      .prepare("INSERT OR IGNORE INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, '')")
+      .bind(targetId, user.id),
+  ]);
+  return ok({ added: true });
+});
+
+app.patch("/contacts/:id", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const targetId = Number(c.req.param("id")) || 0;
+  const body = await c.req.json().catch(() => ({}));
+  const alias = str(body.alias, 20).trim();
+  const row = await db
+    .prepare("SELECT 1 AS x FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+    .bind(user.id, targetId)
+    .first<{ x: number }>();
+  if (!row) return fail("该玩家不在好友列表中", 404);
+  await db
+    .prepare("UPDATE user_contacts SET alias = ? WHERE owner_id = ? AND target_id = ?")
+    .bind(alias, user.id, targetId)
+    .run();
+  return ok({ alias });
+});
+
+app.delete("/contacts/:id", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const targetId = Number(c.req.param("id")) || 0;
+  await db
+    .prepare("DELETE FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+    .bind(user.id, targetId)
+    .run();
+  return ok({ deleted: true });
+});
+
+app.get("/users/search", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const q = str(c.req.query("q"), 30).trim();
+  if (!q) return ok({ users: [] });
+  const like = `%${q}%`;
+  const { results } = await c.env.DB
+    .prepare(
+      `SELECT id, username, avatar, mc_username
+       FROM users
+       WHERE status = 'active' AND id <> ? AND (username LIKE ? OR mc_username LIKE ?)
+       ORDER BY id DESC LIMIT 20`,
+    )
+    .bind(user.id, like, like)
+    .all<{ id: number; username: string; avatar: string | null; mc_username: string | null }>();
+
+  const ids = (results ?? []).map((r) => r.id);
+  let contactSet = new Set<number>();
+  if (ids.length) {
+    const { results: cs } = await db
+      .prepare(
+        `SELECT target_id FROM user_contacts
+         WHERE owner_id = ? AND target_id IN (${ids.map(() => "?").join(",")})`,
+      )
+      .bind(user.id, ...ids)
+      .all<{ target_id: number }>();
+    contactSet = new Set((cs ?? []).map((r) => r.target_id));
+  }
+
+  return ok({
+    users: (results ?? []).map((r) => ({
+      id: r.id,
+      username: r.username,
+      avatar: r.avatar || "",
+      mc_username: r.mc_username,
+      is_contact: contactSet.has(r.id) ? 1 : 0,
+    })),
+  });
+});
+
+app.post("/dm", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const body = await c.req.json().catch(() => ({}));
+  const targetId = Number(body.user_id) || 0;
+  if (!targetId || targetId === user.id) return fail("不能和自己发起私信");
+  const target = await c.env.DB
+    .prepare("SELECT id FROM users WHERE id = ? AND status = 'active'")
+    .bind(targetId)
+    .first<{ id: number }>();
+  if (!target) return fail("玩家不存在", 404);
+
+  const existing = await db
+    .prepare(
+      `SELECT r.id FROM chat_rooms r
+       JOIN chat_room_members a ON a.room_id = r.id AND a.user_id = ?
+       JOIN chat_room_members b ON b.room_id = r.id AND b.user_id = ?
+       WHERE r.kind = 'dm' LIMIT 1`,
+    )
+    .bind(user.id, targetId)
+    .first<{ id: number }>();
+
+  let roomId = existing?.id || 0;
+  if (!roomId) {
+    const result = await db
+      .prepare("INSERT INTO chat_rooms (kind, name, owner_id) VALUES ('dm', '', NULL)")
+      .run();
+    roomId = Number(result.meta.last_row_id);
+    await db.batch([
+      db
+        .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
+        .bind(roomId, user.id),
+      db
+        .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
+        .bind(roomId, targetId),
+    ]);
+  }
+
+  // 发起私信即互相加入好友
+  await db.batch([
+    db.prepare("INSERT OR IGNORE INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, '')").bind(user.id, targetId),
+    db.prepare("INSERT OR IGNORE INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, '')").bind(targetId, user.id),
+  ]);
+
+  return ok({ id: roomId });
+});
+
+app.get("/unread", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  await ensureCommunityMembership(db, user.id);
+  const row = await db
+    .prepare(
+      `SELECT COALESCE(SUM(
+         (SELECT COUNT(*) FROM chat_messages c
+          WHERE c.room_id = m.room_id AND c.id > m.last_read_id AND c.user_id <> ?
+            AND COALESCE(c.recalled, 0) = 0)
+       ), 0) AS n
+       FROM chat_room_members m WHERE m.user_id = ?`,
+    )
+    .bind(user.id, user.id)
+    .first<{ n: number }>();
+  const total = row?.n ?? 0;
+  return ok({ total, rooms: total });
+});
+
+// —— 兼容旧聊天面板（全部映射到社区群） ——
+app.get("/messages", async (c) => {
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const afterId = Number(c.req.query("after_id")) || 0;
+  const beforeId = Number(c.req.query("before_id")) || 0;
+
+  let rows: MessageRow[];
+  if (afterId > 0) {
+    ({ results: rows } = await db
+      .prepare(`${MSG_SELECT} WHERE m.room_id = ? AND m.id > ? ORDER BY m.id ASC LIMIT 50`)
+      .bind(COMMUNITY_ID, afterId)
+      .all<MessageRow>());
+  } else {
+    ({ results: rows } = await db
+      .prepare(`${MSG_SELECT} WHERE m.room_id = ? AND (? = 0 OR m.id < ?) ORDER BY m.id DESC LIMIT 50`)
+      .bind(COMMUNITY_ID, beforeId, beforeId)
+      .all<MessageRow>());
+    rows = (rows ?? []).reverse();
+  }
+
+  const online = await db
+    .prepare(
+      "SELECT COUNT(DISTINCT user_id) AS n FROM chat_messages WHERE room_id = ? AND created_at >= datetime('now', '-5 minutes')",
+    )
+    .bind(COMMUNITY_ID)
+    .first<{ n: number }>();
+
+  const decorated = await decorateMessages(c.env.DB, rows ?? []);
+  return ok({ messages: decorated.map(messageShape), online: online?.n ?? 0 });
+});
+
+app.post("/send", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  await ensureCommunityMembership(db, user.id);
+  const body = await c.req.json().catch(() => ({}));
+  const res = await sendTextCore(c, user, COMMUNITY_ID, String(body.content ?? ""));
+  if (!res.ok) return fail(res.message, res.status || 400);
+  return ok(res.data);
+});
+
+app.post("/image", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  await ensureCommunityMembership(db, user.id);
+  const res = await sendImageCore(c, user, COMMUNITY_ID);
+  if (!res.ok) return fail(res.message, res.status || 400);
+  return ok(res.data);
+});
+
+app.post("/delete-own", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const id = Number(body.id) || 0;
+  if (!id) return fail("缺少消息 ID");
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const row = await db
+    .prepare("SELECT id, user_id, image_key, created_at FROM chat_messages WHERE id = ?")
+    .bind(id)
+    .first<{ id: number; user_id: number; image_key: string | null; created_at: string }>();
+  if (!row) return fail("消息不存在", 404);
+  if (row.user_id !== user.id) return fail("只能撤回自己的消息", 403);
+  if (user.role !== "admin" && ageMs(row.created_at) > 10 * 60 * 1000) {
+    return fail("超过 10 分钟的消息无法撤回");
+  }
+  if (row.image_key?.startsWith("uploads/chat/")) {
+    await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
+  }
+  await db
+    .prepare(
+      `UPDATE chat_messages SET recalled = 1, content = '', image_key = '', recalled_at = datetime('now'), recalled_by = ? WHERE id = ?`,
+    )
+    .bind(user.id, id)
+    .run();
   return ok({ deleted: true });
 });
 
 // —— 管理端 ——
 app.use("/admin/*", requireAuth, requireAdmin);
 
-// 删除消息（连带清理 R2 图片）
+app.get("/admin/rooms", async (c) => {
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const { results } = await db
+    .prepare(
+      `SELECT r.id, r.kind, r.name, r.avatar, r.notice, r.owner_id, r.created_at, r.updated_at,
+              (SELECT COUNT(*) FROM chat_room_members m WHERE m.room_id = r.id) AS member_count,
+              (SELECT COUNT(*) FROM chat_messages c WHERE c.room_id = r.id) AS message_count
+       FROM chat_rooms r
+       ORDER BY r.kind = 'community' DESC, r.id DESC LIMIT 500`,
+    )
+    .all<Record<string, unknown>>();
+
+  const owners = await userMap(
+    c.env.DB,
+    (results ?? []).map((r) => Number(r.owner_id) || 0),
+  );
+  return ok({
+    rooms: (results ?? []).map((r) => ({
+      ...r,
+      owner_name: owners.get(Number(r.owner_id) || 0)?.username || "",
+    })),
+  });
+});
+
+app.post("/admin/rooms/:id/delete", async (c) => {
+  const admin = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const id = Number(c.req.param("id")) || 0;
+  if (!id || id === COMMUNITY_ID) return fail("社区群不可删除");
+  const room = await roomById(db, id);
+  if (!room) return fail("会话不存在", 404);
+
+  // 清理会话图片
+  try {
+    const { results } = await db
+      .prepare("SELECT image_key FROM chat_messages WHERE room_id = ? AND image_key != '' LIMIT 500")
+      .bind(id)
+      .all<{ image_key: string }>();
+    for (const r of results ?? []) {
+      if (r.image_key.startsWith("uploads/chat/")) {
+        await c.env.ASSETS?.delete(r.image_key).catch(() => undefined);
+      }
+    }
+  } catch {
+    /* 忽略清理失败 */
+  }
+
+  await db.batch([
+    db.prepare("DELETE FROM chat_room_members WHERE room_id = ?").bind(id),
+    db.prepare("DELETE FROM chat_messages WHERE room_id = ?").bind(id),
+    db.prepare("DELETE FROM chat_rooms WHERE id = ?").bind(id),
+  ]);
+  await logOp(c.env.DB, c, admin.id, "chat_room_delete", `#${id} ${room.name || room.kind}`);
+  return ok({ deleted: true });
+});
+
 app.post("/admin/delete", async (c) => {
   const admin = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const id = Number(body.id) || 0;
   if (!id) return fail("缺少消息 ID");
-  const row = await fdb(c).prepare("SELECT id, image_key FROM chat_messages WHERE id = ?").bind(id).first<{ id: number; image_key: string | null }>();
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const row = await db
+    .prepare("SELECT id, image_key FROM chat_messages WHERE id = ?")
+    .bind(id)
+    .first<{ id: number; image_key: string | null }>();
   if (!row) return fail("消息不存在", 404);
   if (row.image_key?.startsWith("uploads/chat/")) {
     await c.env.ASSETS?.delete(row.image_key).catch(() => undefined);
   }
-  await fdb(c).prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
+  await db.prepare("DELETE FROM chat_messages WHERE id = ?").bind(id).run();
   await logOp(c.env.DB, c, admin.id, "chat_delete", `#${id}`);
   return ok({ deleted: true });
 });
