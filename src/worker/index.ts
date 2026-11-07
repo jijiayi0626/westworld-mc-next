@@ -114,11 +114,13 @@ app.route("/api/rainyun", rainyunRoutes);
 app.route("/api/backup", backupRoutes);
 app.route("/static", assetsRoutes);
 
-// 健康检查
-app.get("/api/health", (c) => c.json({ code: 0, message: "ok", data: { app: "mc-next", ts: Date.now() } }));
+// 健康检查（同时兼容结尾带 / 的写法，浏览器/监控工具常见）
+app.on("GET", ["/api/health", "/api/health/"], (c) =>
+  c.json({ code: 0, message: "ok", data: { app: "mc-next", ts: Date.now() } }),
+);
 
 // 数据库健康检查：同时探测主库与论坛库，任一失败返回 500，便于外部监控告警
-app.get("/api/health/db", async (c) => {
+app.on("GET", ["/api/health/db", "/api/health/db/"], async (c) => {
   const started = Date.now();
   const checks: Record<string, { ok: boolean; error?: string }> = {};
 
