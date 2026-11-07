@@ -161,7 +161,15 @@ app.post("/integrations/inu", async (c) => {
 // 聊天室 / 论坛配置：开关 / 欢迎公告 / 限制 / 论坛 Tab 显隐
 app.get("/chat-config", async (c) => {
   const row = await c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'chat_config'").first<{ value: string }>();
-  const def = { enabled: true, welcome: "", max_text: 400, max_image_mb: 4, show_announcements: true, show_chat: true };
+  const def = {
+    enabled: true,
+    welcome: "",
+    max_text: 400,
+    max_image_mb: 4,
+    group_create: "all",
+    show_announcements: true,
+    show_chat: true,
+  };
   let cfg = def;
   if (row) {
     try {
@@ -181,6 +189,7 @@ app.post("/chat-config", async (c) => {
     welcome: String(body.welcome ?? "").slice(0, 200),
     max_text: Math.min(1000, Math.max(20, Number(body.max_text) || 400)),
     max_image_mb: Math.min(8, Math.max(1, Number(body.max_image_mb) || 4)),
+    group_create: body.group_create === "admin" ? "admin" : "all",
     show_announcements: body.show_announcements !== false,
     show_chat: body.show_chat !== false,
   };
