@@ -22,7 +22,7 @@ export default function AdminSettingsIndexPage() {
         <div className="flex flex-wrap gap-2 text-[0.88rem]">
           <Link href="/admin/settings/basic" className="text-emerald-600 hover:underline">基础配置</Link>
           <Link href="/admin/settings/appearance" className="text-emerald-600 hover:underline">外观模板</Link>
-          <Link href="/admin/settings/forum" className="text-emerald-600 hover:underline">论坛与聊天</Link>
+          <Link href="/admin/settings/forum" className="text-emerald-600 hover:underline">社区与聊天</Link>
           <Link href="/admin/settings/mail" className="text-emerald-600 hover:underline">邮件服务</Link>
           <Link href="/admin/settings/payment" className="text-emerald-600 hover:underline">支付配置</Link>
           <Link href="/admin/settings/integrations" className="text-emerald-600 hover:underline">三方集成</Link>

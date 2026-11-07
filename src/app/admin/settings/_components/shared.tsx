@@ -96,7 +96,7 @@ export const FRONT_THEMES: { key: "v1" | "v2"; name: string; desc: string; swatc
 export const SETTINGS_TABS: { key: string; href: string; label: string }[] = [
   { key: "basic", href: "/admin/settings/basic", label: "基础配置" },
   { key: "appearance", href: "/admin/settings/appearance", label: "外观模板" },
-  { key: "forum", href: "/admin/settings/forum", label: "论坛与聊天" },
+  { key: "forum", href: "/admin/settings/forum", label: "社区与聊天" },
   { key: "mail", href: "/admin/settings/mail", label: "邮件服务" },
   { key: "payment", href: "/admin/settings/payment", label: "支付配置" },
   { key: "integrations", href: "/admin/settings/integrations", label: "三方集成" },

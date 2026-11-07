@@ -538,7 +538,7 @@ export function UserShell({ children }: { children: ReactNode }) {
     { href: "/user", label: "个人中心", icon: "person" },
     { href: "/user/application", label: "入服申请", icon: "edit_note" },
     { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
-    { href: "/forum", label: "论坛", icon: "forum" },
+    { href: "/forum", label: "社区", icon: "forum" },
     { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
     { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
     { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },
@@ -611,7 +611,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
       children: [
         { href: "/admin/settings/basic", label: "基础配置", icon: "tune" },
         { href: "/admin/settings/appearance", label: "外观模板", icon: "palette" },
-        { href: "/admin/settings/forum", label: "论坛与聊天", icon: "forum" },
+        { href: "/admin/settings/forum", label: "社区与聊天", icon: "forum" },
         { href: "/admin/settings/mail", label: "邮件服务", icon: "mail" },
         { href: "/admin/settings/payment", label: "支付配置", icon: "payments" },
         { href: "/admin/settings/integrations", label: "三方集成", icon: "hub" },
