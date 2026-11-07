@@ -7,6 +7,7 @@ CREATE TABLE IF NOT EXISTS forum_posts (
   content TEXT NOT NULL,
   author_id INTEGER,
   author_name TEXT DEFAULT '',
+  ip_region TEXT DEFAULT '',                    -- IP 属地（仅省 / 州一级）
   pinned INTEGER NOT NULL DEFAULT 0,            -- 0/1 置顶
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -19,6 +20,7 @@ CREATE TABLE IF NOT EXISTS forum_replies (
   post_id INTEGER NOT NULL,
   author_id INTEGER,
   author_name TEXT DEFAULT '',
+  ip_region TEXT DEFAULT '',                    -- IP 属地（仅省 / 州一级）
   content TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );

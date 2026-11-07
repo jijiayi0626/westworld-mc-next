@@ -82,6 +82,7 @@ export interface ForumPostItem {
   author_id: number | null;
   author_name: string;
   author_avatar: string;
+  ip_region?: string;
   pinned: number;
   reply_count: number;
   like_count: number;
@@ -99,6 +100,7 @@ export interface ForumReply {
   author_id: number | null;
   author_name: string;
   author_avatar: string;
+  ip_region?: string;
   content: string;
   created_at: string;
 }

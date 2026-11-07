@@ -42,6 +42,7 @@ interface ForumPost {
   content: string;
   author_id: number | null;
   author_name: string;
+  ip_region?: string;
   pinned: number;
   created_at: string;
   updated_at: string;
@@ -53,6 +54,7 @@ interface ForumReply {
   author_id: number | null;
   author_name: string;
   author_avatar: string;
+  ip_region?: string;
   content: string;
   created_at: string;
 }
@@ -66,6 +68,56 @@ const BOARDS = [
 ];
 const USER_BOARDS = ["general", "qa", "share", "guide"];
 const PAGE_SIZE = 15;
+
+/** Cloudflare 只提供到省 / 州一级，这里不保存完整 IP，仅保存省份用于展示 IP 属地 */
+const CN_REGIONS: Record<string, string> = {
+  Beijing: "北京",
+  Tianjin: "天津",
+  Hebei: "河北",
+  Shanxi: "山西",
+  "Inner Mongolia": "内蒙古",
+  Liaoning: "辽宁",
+  Jilin: "吉林",
+  Heilongjiang: "黑龙江",
+  Shanghai: "上海",
+  Jiangsu: "江苏",
+  Zhejiang: "浙江",
+  Anhui: "安徽",
+  Fujian: "福建",
+  Jiangxi: "江西",
+  Shandong: "山东",
+  Henan: "河南",
+  Hubei: "湖北",
+  Hunan: "湖南",
+  Guangdong: "广东",
+  Guangxi: "广西",
+  Hainan: "海南",
+  Chongqing: "重庆",
+  Sichuan: "四川",
+  Guizhou: "贵州",
+  Yunnan: "云南",
+  Tibet: "西藏",
+  Shaanxi: "陕西",
+  Gansu: "甘肃",
+  Qinghai: "青海",
+  Ningxia: "宁夏",
+  Xinjiang: "新疆",
+  "Hong Kong": "香港",
+  Macau: "澳门",
+  Taiwan: "台湾",
+};
+
+function ipRegion(c: Context<AppEnv>): string {
+  const cf = (c.req.raw as unknown as { cf?: Record<string, unknown> }).cf;
+  const country = String(cf?.country || "").toUpperCase();
+  const region = String(cf?.region || "").trim();
+  const city = String(cf?.city || "").trim();
+  if (country === "CN") {
+    if (region && CN_REGIONS[region]) return CN_REGIONS[region];
+    return region.slice(0, 20) || city.slice(0, 20) || "中国";
+  }
+  return (region || city || country).slice(0, 40);
+}
 
 // 惰性建表只做一次（模块级缓存，避免每个请求都执行 DDL）
 let forumSchemaReady = false;
@@ -93,6 +145,20 @@ async function ensureForumSchema(db: D1Database): Promise<void> {
         )`,
       ),
     ]);
+
+    // 旧库补列：IP 属地（只记录到省，不保存完整 IP）
+    for (const table of ["forum_posts", "forum_replies"]) {
+      const info = await db.prepare(`PRAGMA table_info(${table})`).all<{ name: string }>();
+      const cols = new Set((info.results ?? []).map((r) => r.name));
+      if (!cols.has("ip_region")) {
+        try {
+          await db.prepare(`ALTER TABLE ${table} ADD COLUMN ip_region TEXT DEFAULT ''`).run();
+        } catch {
+          /* 并发补列时忽略 */
+        }
+      }
+    }
+
     forumSchemaReady = true;
   } catch {
     // 建表失败不阻断读取（下次请求再试）
@@ -165,7 +231,7 @@ app.get("/posts", async (c) => {
   const { results } = await db
     .prepare(
       `SELECT p.id, p.board, p.title, substr(p.content, 1, 160) AS content, p.author_id, p.author_name,
-              p.pinned, p.created_at, 0 AS views,
+              p.ip_region, p.pinned, p.created_at, 0 AS views,
               COALESCE(r.n, 0) AS reply_count, COALESCE(l.n, 0) AS like_count
        FROM forum_posts p
        LEFT JOIN (SELECT post_id, COUNT(*) AS n FROM forum_replies GROUP BY post_id) r ON r.post_id = p.id
@@ -201,7 +267,7 @@ app.get("/posts/:id", async (c) => {
 
   const post = await db
     .prepare(
-      `SELECT p.id, p.board, p.title, p.content, p.author_id, p.author_name,
+      `SELECT p.id, p.board, p.title, p.content, p.author_id, p.author_name, p.ip_region,
               p.pinned, p.created_at, p.updated_at, 0 AS views,
               (SELECT COUNT(*) FROM forum_replies r WHERE r.post_id = p.id) AS reply_count,
               (SELECT COUNT(*) FROM forum_likes l WHERE l.post_id = p.id) AS like_count
@@ -213,7 +279,7 @@ app.get("/posts/:id", async (c) => {
 
   const { results: replies } = await db
     .prepare(
-      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.content, r.created_at
+      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.ip_region, r.content, r.created_at
        FROM forum_replies r
        WHERE r.post_id = ? ORDER BY r.id ASC LIMIT 200`,
     )
@@ -279,9 +345,9 @@ app.post("/posts", requireAuth, async (c) => {
 
   const result = await db
     .prepare(
-      "INSERT INTO forum_posts (board, title, content, author_id, author_name, pinned) VALUES (?, ?, ?, ?, ?, 0)",
+      "INSERT INTO forum_posts (board, title, content, author_id, author_name, ip_region, pinned) VALUES (?, ?, ?, ?, ?, ?, 0)",
     )
-    .bind(board, title, content, user.id, user.username)
+    .bind(board, title, content, user.id, user.username, ipRegion(c))
     .run();
   const id = Number(result.meta.last_row_id);
 
@@ -320,8 +386,8 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
   }
 
   const result = await db
-    .prepare("INSERT INTO forum_replies (post_id, author_id, author_name, content) VALUES (?, ?, ?, ?)")
-    .bind(postId, user.id, user.username, content)
+    .prepare("INSERT INTO forum_replies (post_id, author_id, author_name, ip_region, content) VALUES (?, ?, ?, ?, ?)")
+    .bind(postId, user.id, user.username, ipRegion(c), content)
     .run();
 
   const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?")
@@ -334,6 +400,7 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
     author_id: user.id,
     author_name: user.username,
     author_avatar: profile?.avatar || "",
+    ip_region: ipRegion(c),
     content,
     created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
   };

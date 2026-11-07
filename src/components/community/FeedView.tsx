@@ -156,7 +156,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
     }
     const content = replyText.trim();
     if (content.length < 2) {
-      setActionError("回复至少需要 2 个字");
+      setActionError("评论至少需要 2 个字");
       return;
     }
     setSubmitting(true);
@@ -172,7 +172,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
         prev ? prev.map((p) => (p.id === detail.post.id ? { ...p, reply_count: p.reply_count + 1 } : p)) : prev,
       );
     } catch (e) {
-      setActionError(e instanceof Error ? e.message : "回复失败");
+      setActionError(e instanceof Error ? e.message : "评论失败");
     } finally {
       setSubmitting(false);
     }
@@ -216,7 +216,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
 
   const deleteReply = async (replyId: number) => {
     if (!detail) return;
-    if (!window.confirm("确定删除这条回复吗？")) return;
+    if (!window.confirm("确定删除这条评论吗？")) return;
     try {
       await api(`/forum/replies/${replyId}/delete`, { method: "POST" });
       setDetail((prev) =>
@@ -242,7 +242,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-extrabold tracking-tight text-white">社区动态</h2>
-            <p className="mt-0.5 text-xs text-white/40">所有注册玩家都可以发帖、回复与点赞</p>
+            <p className="mt-0.5 text-xs text-white/40">所有注册玩家都可以发帖、评论与点赞</p>
           </div>
           <button
             className={BTN_PRIMARY}
@@ -336,6 +336,9 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                       ) : null}
                       <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${meta.cls}`}>{meta.name}</span>
                       <span className="text-xs text-white/35">{post.author_name}</span>
+                      {post.ip_region ? (
+                        <span className="text-[10px] text-white/20">IP属地 {post.ip_region}</span>
+                      ) : null}
                       <span className="text-xs text-white/25">{relTime(post.created_at)}</span>
                     </div>
                     <h3 className="mt-1.5 truncate text-[15px] font-bold text-white group-hover:text-emerald-200">
@@ -343,7 +346,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                     </h3>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/45">{post.content}</p>
                     <div className="mt-2.5 flex items-center gap-4 text-[11px] text-white/30">
-                      <span>{post.reply_count} 回复</span>
+                      <span>{post.reply_count} 评论</span>
                       <span>{post.like_count} 点赞</span>
                     </div>
                   </div>
@@ -474,7 +477,10 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                       {boardMeta(detail.post.board).name}
                     </span>
                   </div>
-                  <p className="text-[11px] text-white/30">{fmtTime(detail.post.created_at)}</p>
+                  <p className="text-[11px] text-white/30">
+                    {fmtTime(detail.post.created_at)}
+                    {detail.post.ip_region ? ` · IP属地 ${detail.post.ip_region}` : ""}
+                  </p>
                 </div>
                 {canManage(detail.post.author_id) && (
                   <button className={`${BTN_GHOST} ml-auto`} onClick={() => void deletePost()}>
@@ -500,13 +506,13 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                 >
                   {detail.liked ? "已点赞" : "点赞"} · {detail.post.like_count}
                 </button>
-                <span className="text-xs text-white/30">{detail.post.reply_count} 条回复</span>
+                <span className="text-xs text-white/30">{detail.post.reply_count} 条评论</span>
               </div>
 
               <div className="mt-5 border-t border-white/5 pt-4">
-                <h4 className="mb-3 text-xs font-bold tracking-wide text-white/50">全部回复</h4>
+                <h4 className="mb-3 text-xs font-bold tracking-wide text-white/50">全部评论</h4>
                 {detail.replies.length === 0 ? (
-                  <p className="pb-2 text-xs text-white/30">还没有回复，来说两句吧。</p>
+                  <p className="pb-2 text-xs text-white/30">还没有评论，来说两句吧。</p>
                 ) : (
                   <div className="flex flex-col gap-3">
                     {detail.replies.map((r) => (
@@ -515,7 +521,10 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                         <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm border border-white/5 bg-white/[0.03] px-3 py-2">
                           <div className="flex items-center gap-2">
                             <span className="text-[11px] font-semibold text-white/70">{r.author_name}</span>
-                            <span className="text-[10px] text-white/25">{relTime(r.created_at)}</span>
+                            <span className="text-[10px] text-white/25">
+                              {relTime(r.created_at)}
+                              {r.ip_region ? ` · IP属地 ${r.ip_region}` : ""}
+                            </span>
                             {canManage(r.author_id) && (
                               <button
                                 className="ml-auto text-[10px] text-white/25 transition hover:text-rose-300"
@@ -542,7 +551,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                 rows={1}
                 value={replyText}
                 onChange={(e) => setReplyText(e.target.value)}
-                placeholder={me ? "写下你的回复…（Enter 发送）" : "登录后参与回复"}
+                placeholder={me ? "写下你的评论…（Enter 发送）" : "登录后参与评论"}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
@@ -555,7 +564,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                 disabled={submitting || !replyText.trim()}
                 onClick={() => void submitReply()}
               >
-                回复
+                {submitting ? "发送中…" : "评论"}
               </button>
             </div>
             {actionError && <div className="mt-2"><Note text={actionError} /></div>}
