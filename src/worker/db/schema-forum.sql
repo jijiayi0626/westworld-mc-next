@@ -104,15 +104,17 @@ CREATE TABLE IF NOT EXISTS chat_room_members (
 );
 CREATE INDEX IF NOT EXISTS idx_chat_members_user ON chat_room_members(user_id, room_id);
 
--- 好友 / 备注（owner 视角）
+-- 好友 / 备注（owner 视角；pending 为待对方同意的申请）
 CREATE TABLE IF NOT EXISTS user_contacts (
   owner_id INTEGER NOT NULL,
   target_id INTEGER NOT NULL,
   alias TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'accepted',
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   PRIMARY KEY(owner_id, target_id)
 );
 CREATE INDEX IF NOT EXISTS idx_user_contacts_owner ON user_contacts(owner_id, created_at);
+CREATE INDEX IF NOT EXISTS idx_user_contacts_target ON user_contacts(target_id, status, created_at);
 
 -- 会话消息（图片存 R2 uploads/chat/，此处仅存 key；撤回保留占位）
 CREATE TABLE IF NOT EXISTS chat_messages (

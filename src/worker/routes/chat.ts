@@ -7,6 +7,7 @@ import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logUserAction, logOp } from "../lib/log";
 import { getClientIp } from "../lib/net";
+import { rateLimit } from "../lib/ratelimit";
 
 /**
  * 社区消息（注意 Cloudflare 平台限制）：
@@ -165,6 +166,7 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
           owner_id INTEGER NOT NULL,
           target_id INTEGER NOT NULL,
           alias TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'accepted',
           created_at TEXT NOT NULL DEFAULT (datetime('now')),
           PRIMARY KEY(owner_id, target_id)
         )`,
@@ -213,6 +215,15 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
     if (!cols.has("recalled_by")) {
       alters.push("ALTER TABLE chat_messages ADD COLUMN recalled_by INTEGER");
     }
+
+    const contactInfo = await db
+      .prepare("PRAGMA table_info(user_contacts)")
+      .all<{ name: string }>();
+    const contactCols = new Set((contactInfo.results ?? []).map((r) => r.name));
+    if (!contactCols.has("status")) {
+      // 历史好友关系默认为已通过，避免升级后互相失联
+      alters.push("ALTER TABLE user_contacts ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'");
+    }
     for (const sql of alters) {
       try {
         await db.prepare(sql).run();
@@ -227,6 +238,7 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
       db.prepare("CREATE INDEX IF NOT EXISTS idx_chat_messages_room ON chat_messages(room_id, id)"),
       db.prepare("CREATE INDEX IF NOT EXISTS idx_chat_messages_user ON chat_messages(user_id, created_at)"),
       db.prepare("CREATE INDEX IF NOT EXISTS idx_user_contacts_owner ON user_contacts(owner_id, created_at)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_user_contacts_target ON user_contacts(target_id, status, created_at)"),
     ]);
 
     schemaReady = true;
@@ -261,6 +273,27 @@ async function memberOf(db: D1Database, roomId: number, userId: number): Promise
     .prepare("SELECT * FROM chat_room_members WHERE room_id = ? AND user_id = ?")
     .bind(roomId, userId)
     .first<MemberRow>();
+}
+
+async function areFriends(db: D1Database, a: number, b: number): Promise<boolean> {
+  const row = await db
+    .prepare(
+      "SELECT 1 AS x FROM user_contacts WHERE owner_id = ? AND target_id = ? AND status = 'accepted' LIMIT 1",
+    )
+    .bind(a, b)
+    .first<{ x: number }>();
+  return Boolean(row);
+}
+
+/** 私信会话的对方用户 ID */
+async function dmPeerId(db: D1Database, roomId: number, userId: number): Promise<number | null> {
+  const row = await db
+    .prepare(
+      "SELECT user_id FROM chat_room_members WHERE room_id = ? AND user_id <> ? LIMIT 1",
+    )
+    .bind(roomId, userId)
+    .first<{ user_id: number }>();
+  return row?.user_id ?? null;
 }
 
 /** 每次读取房间列表时自动加入社区群 */
@@ -405,6 +438,12 @@ async function sendTextCore(
   const room = await roomById(db, roomId);
   if (!room) return { ok: false, message: "会话不存在", status: 404 };
   if (!(await memberOf(db, roomId, user.id))) return { ok: false, message: "你不在该会话中", status: 403 };
+  if (room.kind === "dm") {
+    const peer = await dmPeerId(db, roomId, user.id);
+    if (!peer || !(await areFriends(db, user.id, peer))) {
+      return { ok: false, message: "对方还不是你的好友，无法发送私信", status: 403 };
+    }
+  }
 
   const content = str(raw, cfg.max_text).trim();
   if (!content) return { ok: false, message: "消息不能为空" };
@@ -456,6 +495,12 @@ async function sendImageCore(
   const room = await roomById(db, roomId);
   if (!room) return { ok: false, message: "会话不存在", status: 404 };
   if (!(await memberOf(db, roomId, user.id))) return { ok: false, message: "你不在该会话中", status: 403 };
+  if (room.kind === "dm") {
+    const peer = await dmPeerId(db, roomId, user.id);
+    if (!peer || !(await areFriends(db, user.id, peer))) {
+      return { ok: false, message: "对方还不是你的好友，无法发送私信", status: 403 };
+    }
+  }
 
   const maxImage = Math.min(cfg.max_image_mb * 1024 * 1024, MAX_IMAGE);
   const form = await c.req.formData().catch(() => null);
@@ -819,8 +864,8 @@ app.post("/rooms/:id/alias", requireAuth, async (c) => {
     if (peer) {
       await db
         .prepare(
-          `INSERT INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, ?)
-           ON CONFLICT(owner_id, target_id) DO UPDATE SET alias = excluded.alias`,
+          `UPDATE user_contacts SET alias = ?
+           WHERE owner_id = ? AND target_id = ? AND status = 'accepted'`,
         )
         .bind(user.id, peer.user_id, alias)
         .run();
@@ -1028,7 +1073,7 @@ app.get("/contacts", requireAuth, async (c) => {
   const { results } = await db
     .prepare(
       `SELECT target_id AS user_id, alias, created_at
-       FROM user_contacts WHERE owner_id = ?
+       FROM user_contacts WHERE owner_id = ? AND status = 'accepted'
        ORDER BY created_at DESC LIMIT 500`,
     )
     .bind(user.id)
@@ -1054,19 +1099,114 @@ app.post("/contacts", requireAuth, async (c) => {
     .first<{ id: number }>();
   if (!target) return fail("玩家不存在", 404);
 
-  const alias = str(body.alias, 20).trim();
-  await db.batch([
+  const mine = await db
+    .prepare("SELECT status FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+    .bind(user.id, targetId)
+    .first<{ status: string }>();
+  if (mine?.status === "accepted") return ok({ added: true, already: true });
+
+  // 对方已经申请过自己：直接互相通过，省一步操作
+  const theirs = await db
+    .prepare("SELECT status FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+    .bind(targetId, user.id)
+    .first<{ status: string }>();
+  if (theirs?.status === "pending") {
+    await db.batch([
+      db
+        .prepare("UPDATE user_contacts SET status = 'accepted' WHERE owner_id = ? AND target_id = ?")
+        .bind(targetId, user.id),
+      db
+        .prepare(
+          `INSERT INTO user_contacts (owner_id, target_id, alias, status) VALUES (?, ?, '', 'accepted')
+           ON CONFLICT(owner_id, target_id) DO UPDATE SET status = 'accepted'`,
+        )
+        .bind(user.id, targetId),
+    ]);
+    return ok({ added: true, accepted: true });
+  }
+
+  if (!(await rateLimit(c.env.DB, `friend-req:${user.id}`, 20, 3600))) {
+    return fail("好友申请过于频繁，请稍后再试", 429);
+  }
+
+  await db
+    .prepare(
+      `INSERT INTO user_contacts (owner_id, target_id, alias, status) VALUES (?, ?, '', 'pending')
+       ON CONFLICT(owner_id, target_id) DO UPDATE SET status = 'pending', created_at = datetime('now')`,
+    )
+    .bind(user.id, targetId)
+    .run();
+  return ok({ requested: true });
+});
+
+// 好友申请：收到的 + 已发出的
+app.get("/contacts/requests", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const [{ results: incoming }, { results: outgoing }] = await Promise.all([
     db
       .prepare(
-        `INSERT INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, ?)
-         ON CONFLICT(owner_id, target_id) DO UPDATE SET alias = excluded.alias`,
+        `SELECT owner_id AS user_id, created_at FROM user_contacts
+         WHERE target_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 100`,
       )
-      .bind(user.id, targetId, alias),
+      .bind(user.id)
+      .all<{ user_id: number; created_at: string }>(),
     db
-      .prepare("INSERT OR IGNORE INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, '')")
-      .bind(targetId, user.id),
+      .prepare(
+        `SELECT target_id AS user_id, created_at FROM user_contacts
+         WHERE owner_id = ? AND status = 'pending' ORDER BY created_at DESC LIMIT 100`,
+      )
+      .bind(user.id)
+      .all<{ user_id: number; created_at: string }>(),
   ]);
-  return ok({ added: true });
+  const users = await userMap(c.env.DB, [
+    ...(incoming ?? []).map((r) => r.user_id),
+    ...(outgoing ?? []).map((r) => r.user_id),
+  ]);
+  const shape = (rows: { user_id: number; created_at: string }[] | null) =>
+    (rows ?? []).flatMap((r) => {
+      const u = users.get(r.user_id);
+      return u ? [{ ...r, username: u.username, avatar: u.avatar }] : [];
+    });
+  return ok({ incoming: shape(incoming), outgoing: shape(outgoing) });
+});
+
+app.post("/contacts/requests/:id", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const requesterId = Number(c.req.param("id")) || 0;
+  const body = await c.req.json().catch(() => ({}));
+  const action = body.action === "reject" ? "reject" : "accept";
+  const pending = await db
+    .prepare(
+      "SELECT 1 AS x FROM user_contacts WHERE owner_id = ? AND target_id = ? AND status = 'pending'",
+    )
+    .bind(requesterId, user.id)
+    .first<{ x: number }>();
+  if (!pending) return fail("该好友申请不存在或已处理", 404);
+
+  if (action === "reject") {
+    await db
+      .prepare("DELETE FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+      .bind(requesterId, user.id)
+      .run();
+    return ok({ rejected: true });
+  }
+
+  await db.batch([
+    db
+      .prepare("UPDATE user_contacts SET status = 'accepted' WHERE owner_id = ? AND target_id = ?")
+      .bind(requesterId, user.id),
+    db
+      .prepare(
+        `INSERT INTO user_contacts (owner_id, target_id, alias, status) VALUES (?, ?, '', 'accepted')
+         ON CONFLICT(owner_id, target_id) DO UPDATE SET status = 'accepted'`,
+      )
+      .bind(user.id, requesterId),
+  ]);
+  return ok({ accepted: true });
 });
 
 app.patch("/contacts/:id", requireAuth, async (c) => {
@@ -1077,7 +1217,9 @@ app.patch("/contacts/:id", requireAuth, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const alias = str(body.alias, 20).trim();
   const row = await db
-    .prepare("SELECT 1 AS x FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+    .prepare(
+      "SELECT 1 AS x FROM user_contacts WHERE owner_id = ? AND target_id = ? AND status = 'accepted'",
+    )
     .bind(user.id, targetId)
     .first<{ x: number }>();
   if (!row) return fail("该玩家不在好友列表中", 404);
@@ -1093,10 +1235,14 @@ app.delete("/contacts/:id", requireAuth, async (c) => {
   const db = fdb(c);
   await ensureChatSchema(db);
   const targetId = Number(c.req.param("id")) || 0;
-  await db
-    .prepare("DELETE FROM user_contacts WHERE owner_id = ? AND target_id = ?")
-    .bind(user.id, targetId)
-    .run();
+  await db.batch([
+    db
+      .prepare("DELETE FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+      .bind(user.id, targetId),
+    db
+      .prepare("DELETE FROM user_contacts WHERE owner_id = ? AND target_id = ?")
+      .bind(targetId, user.id),
+  ]);
   return ok({ deleted: true });
 });
 
@@ -1118,16 +1264,24 @@ app.get("/users/search", requireAuth, async (c) => {
     .all<{ id: number; username: string; avatar: string | null; mc_username: string | null }>();
 
   const ids = (results ?? []).map((r) => r.id);
-  let contactSet = new Set<number>();
+  const statusMap = new Map<number, "accepted" | "outgoing" | "incoming" | "none">();
   if (ids.length) {
-    const { results: cs } = await db
+    const placeholders = ids.map(() => "?").join(",");
+    const { results: rows } = await db
       .prepare(
-        `SELECT target_id FROM user_contacts
-         WHERE owner_id = ? AND target_id IN (${ids.map(() => "?").join(",")})`,
+        `SELECT owner_id, target_id, status FROM user_contacts
+         WHERE (owner_id = ? AND target_id IN (${placeholders}))
+            OR (target_id = ? AND owner_id IN (${placeholders}))`,
       )
-      .bind(user.id, ...ids)
-      .all<{ target_id: number }>();
-    contactSet = new Set((cs ?? []).map((r) => r.target_id));
+      .bind(user.id, ...ids, user.id, ...ids)
+      .all<{ owner_id: number; target_id: number; status: string }>();
+    for (const row of rows ?? []) {
+      const peer = row.owner_id === user.id ? row.target_id : row.owner_id;
+      if (statusMap.get(peer) === "accepted") continue;
+      if (row.status === "accepted") statusMap.set(peer, "accepted");
+      else if (row.owner_id === user.id) statusMap.set(peer, "outgoing");
+      else statusMap.set(peer, "incoming");
+    }
   }
 
   return ok({
@@ -1136,7 +1290,8 @@ app.get("/users/search", requireAuth, async (c) => {
       username: r.username,
       avatar: r.avatar || "",
       mc_username: r.mc_username,
-      is_contact: contactSet.has(r.id) ? 1 : 0,
+      is_contact: statusMap.get(r.id) === "accepted" ? 1 : 0,
+      friend_status: statusMap.get(r.id) || "none",
     })),
   });
 });
@@ -1153,6 +1308,10 @@ app.post("/dm", requireAuth, async (c) => {
     .bind(targetId)
     .first<{ id: number }>();
   if (!target) return fail("玩家不存在", 404);
+
+  if (!(await areFriends(db, user.id, targetId))) {
+    return fail("请先发送好友申请，对方同意后才能发私信", 403);
+  }
 
   const existing = await db
     .prepare(
@@ -1179,12 +1338,6 @@ app.post("/dm", requireAuth, async (c) => {
         .bind(roomId, targetId),
     ]);
   }
-
-  // 发起私信即互相加入好友
-  await db.batch([
-    db.prepare("INSERT OR IGNORE INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, '')").bind(user.id, targetId),
-    db.prepare("INSERT OR IGNORE INTO user_contacts (owner_id, target_id, alias) VALUES (?, ?, '')").bind(targetId, user.id),
-  ]);
 
   return ok({ id: roomId });
 });

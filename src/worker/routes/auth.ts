@@ -13,6 +13,12 @@ import { loadMailConfig, mailEnabled, sendMail, renderEmail } from "../lib/mail"
 
 const app = new Hono<AppEnv>();
 
+/** QQ 邮箱注册时，用邮箱前缀（QQ 号）取高清头像 */
+function qqAvatarFromEmail(email: string): string {
+  const m = /^([1-9]\d{4,11})@(?:qq\.com|foxmail\.com)$/i.exec(email);
+  return m ? `https://q.qlogo.cn/headimg_dl?dst_uin=${m[1]}&spec=640` : "";
+}
+
 // 注册
 app.post("/register", async (c) => {
   const body = await c.req.json().catch(() => ({}));
@@ -40,13 +46,14 @@ app.post("/register", async (c) => {
 
   const passwordHash = await hashPassword(password);
   const csrf = genCsrfToken();
+  const avatar = qqAvatarFromEmail(email);
 
   let result: D1Result;
   try {
     result = await c.env.DB.prepare(
-      "INSERT INTO users (username, email, password_hash, ua_fingerprint, csrf_token, register_ip, last_login_ip, last_login_ua, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
+      "INSERT INTO users (username, email, password_hash, avatar, ua_fingerprint, csrf_token, register_ip, last_login_ip, last_login_ua, last_login_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, datetime('now'))",
     )
-      .bind(username, email, passwordHash, fingerprint, csrf, getClientIp(c), getClientIp(c), getUa(c))
+      .bind(username, email, passwordHash, avatar, fingerprint, csrf, getClientIp(c), getClientIp(c), getUa(c))
       .run();
   } catch (e) {
     // 并发注册时预检查可能同时通过，最终由 UNIQUE 约束兜底
