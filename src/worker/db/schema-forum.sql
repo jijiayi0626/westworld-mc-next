@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS forum_replies (
   author_id INTEGER,
   author_name TEXT DEFAULT '',
   ip_region TEXT DEFAULT '',                    -- IP 属地（仅省 / 州一级）
+  parent_id INTEGER NOT NULL DEFAULT 0,         -- 回复的评论 id，0 表示直接评论帖子
   content TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
