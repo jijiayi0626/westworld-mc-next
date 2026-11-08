@@ -13,12 +13,14 @@ import {
   INPUT,
   Modal,
   Note,
+  PresenceDot,
   RoleBadge,
   RoomDetail,
   RoomMember,
   SearchUser,
   Spinner,
   fmtTime,
+  presenceLabel,
 } from "./shared";
 
 const EMOJIS = ["😀", "😂", "👍", "🎉", "❤️", "🔥", "😭", "😮", "🤔", "👀", "🚀", "🌙"];
@@ -49,6 +51,10 @@ export default function RoomChat({
   const [panelOpen, setPanelOpen] = useState(false);
   const [aliasOpen, setAliasOpen] = useState(false);
   const [aliasDraft, setAliasDraft] = useState("");
+  const [remarkDraft, setRemarkDraft] = useState("");
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [nameDraft, setNameDraft] = useState("");
+  const [noticeDraft, setNoticeDraft] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
@@ -93,6 +99,7 @@ export default function RoomChat({
       const data = await api<RoomDetail>(`/chat/rooms/${roomId}`);
       setDetail(data);
       setAliasDraft((prev) => prev || data.me.alias || "");
+      setRemarkDraft((prev) => prev || data.me.remark || "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "会话加载失败");
     }
@@ -131,6 +138,7 @@ export default function RoomChat({
     setDetail(null);
     setError("");
     setAliasDraft("");
+    setRemarkDraft("");
 
     (async () => {
       try {
@@ -240,10 +248,46 @@ export default function RoomChat({
         method: "POST",
         body: JSON.stringify({ alias: aliasDraft.trim() }),
       });
+      if (detail?.room.kind !== "dm") {
+        await api(`/chat/rooms/${roomId}/remark`, {
+          method: "POST",
+          body: JSON.stringify({ remark: remarkDraft.trim() }),
+        });
+      }
       setAliasOpen(false);
       await loadDetail();
     } catch (e) {
       setError(e instanceof Error ? e.message : "备注保存失败");
+    }
+  };
+
+  const openSettings = () => {
+    setNameDraft(detail?.room.name || "");
+    setNoticeDraft(detail?.room.notice || "");
+    setSettingsOpen(true);
+  };
+
+  const saveSettings = async () => {
+    try {
+      await api(`/chat/rooms/${roomId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ name: nameDraft.trim(), notice: noticeDraft.trim() }),
+      });
+      setSettingsOpen(false);
+      await loadDetail();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "群资料保存失败");
+    }
+  };
+
+  const dissolveRoom = async () => {
+    if (!window.confirm("确定解散该群聊吗？群消息与成员关系将全部删除，且无法恢复。")) return;
+    try {
+      await api(`/chat/rooms/${roomId}`, { method: "DELETE" });
+      setSettingsOpen(false);
+      onBack?.();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "解散失败");
     }
   };
 
@@ -349,7 +393,9 @@ export default function RoomChat({
   const title = room?.display_name || fallbackName || "会话";
   const subtitle =
     kind === "dm"
-      ? "私信"
+      ? `私信 · ${presenceLabel(room?.peer_presence)}${
+          room?.peer_presence?.text ? ` · ${room.peer_presence.text}` : ""
+        }`
       : kind === "community"
         ? `${room?.member_count || 0} 位成员 · 社区公共频道`
         : `${room?.member_count || 0} 位成员`;
@@ -394,6 +440,9 @@ export default function RoomChat({
           )}
           {canEditRoom && (
             <>
+              <button className={`${BTN_GHOST} !px-2.5 !py-1.5 !text-xs`} onClick={openSettings}>
+                群设置
+              </button>
               <input
                 ref={avatarRef}
                 type="file"
@@ -565,15 +614,38 @@ export default function RoomChat({
       </div>
 
       {/* 备注 */}
-      <Modal open={aliasOpen} title={kind === "dm" ? "设置对方备注" : "设置我的群昵称"} onClose={() => setAliasOpen(false)}>
+      <Modal
+        open={aliasOpen}
+        title={kind === "dm" ? "设置对方备注" : "群昵称与群备注"}
+        onClose={() => setAliasOpen(false)}
+      >
         <div className="flex flex-col gap-3">
-          <input
-            className={INPUT}
-            value={aliasDraft}
-            onChange={(e) => setAliasDraft(e.target.value)}
-            maxLength={20}
-            placeholder="最多 20 个字，留空则显示原名"
-          />
+          <div>
+            <p className="mb-1.5 text-[11px] text-white/40">
+              {kind === "dm" ? "只对你显示的对方备注名。" : "群昵称：群里其他成员看到的昵称。"}
+            </p>
+            <input
+              className={INPUT}
+              value={aliasDraft}
+              onChange={(e) => setAliasDraft(e.target.value)}
+              maxLength={20}
+              placeholder="最多 20 个字，留空则显示原名"
+            />
+          </div>
+          {kind !== "dm" && (
+            <div>
+              <p className="mb-1.5 text-[11px] text-white/40">
+                群备注：只对你显示的群名称，类似 QQ 群备注，不影响其他成员。
+              </p>
+              <input
+                className={INPUT}
+                value={remarkDraft}
+                onChange={(e) => setRemarkDraft(e.target.value)}
+                maxLength={20}
+                placeholder="给自己看的群名，留空显示原群名"
+              />
+            </div>
+          )}
           <div className="flex justify-end gap-2">
             <button className={BTN_GHOST} onClick={() => setAliasOpen(false)}>
               取消
@@ -582,6 +654,50 @@ export default function RoomChat({
               保存
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* 群设置（群主 / 管理员） */}
+      <Modal open={settingsOpen} title="群设置" onClose={() => setSettingsOpen(false)}>
+        <div className="flex flex-col gap-3">
+          <div>
+            <p className="mb-1.5 text-[11px] text-white/40">群名称</p>
+            <input
+              className={INPUT}
+              value={nameDraft}
+              onChange={(e) => setNameDraft(e.target.value)}
+              maxLength={30}
+              placeholder="2-30 个字"
+            />
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] text-white/40">群公告（所有成员可见）</p>
+            <textarea
+              className={`${INPUT} min-h-[100px] resize-none`}
+              value={noticeDraft}
+              onChange={(e) => setNoticeDraft(e.target.value)}
+              maxLength={200}
+              placeholder="填写群公告，例如群规、活动通知…"
+            />
+          </div>
+          <div className="flex justify-end gap-2">
+            <button className={BTN_GHOST} onClick={() => setSettingsOpen(false)}>
+              取消
+            </button>
+            <button className={BTN_PRIMARY} onClick={() => void saveSettings()}>
+              保存
+            </button>
+          </div>
+          {kind === "group" && (myRole === "owner" || me.role === "admin") && (
+            <div className="mt-1 border-t border-white/10 pt-3">
+              <p className="mb-2 text-[11px] text-white/35">
+                解散后群消息与成员关系会被删除，且无法恢复。
+              </p>
+              <button className={`${BTN_DANGER} w-full`} onClick={() => void dissolveRoom()}>
+                解散群聊
+              </button>
+            </div>
+          )}
         </div>
       </Modal>
 
@@ -606,21 +722,30 @@ export default function RoomChat({
             </div>
             {searchResults.length > 0 && (
               <div className="mt-2 flex max-h-40 flex-col gap-1 overflow-y-auto">
-                {searchResults.map((u) => (
-                  <div key={u.id} className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-white/5">
-                    <Avatar src={u.avatar} name={u.username} size={26} />
-                    <span className="min-w-0 flex-1 truncate text-xs text-white/70">{u.username}</span>
-                    <button
-                      className="rounded-md bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
-                      disabled={memberBusy === u.id}
-                      onClick={() => void addMember(u.id)}
-                    >
-                      邀请
-                    </button>
-                  </div>
-                ))}
+                {searchResults.map((u) => {
+                  const friendStatus = u.friend_status || (u.is_contact ? "accepted" : "none");
+                  const canInvite = friendStatus === "accepted";
+                  return (
+                    <div key={u.id} className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-white/5">
+                      <Avatar src={u.avatar} name={u.username} size={26} />
+                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                        <span className="truncate text-xs text-white/70">{u.username}</span>
+                        <PresenceDot presence={u.presence} size={6} />
+                      </div>
+                      <button
+                        className="rounded-md bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
+                        disabled={memberBusy === u.id || !canInvite}
+                        title={canInvite ? undefined : "只能邀请已成为好友的玩家"}
+                        onClick={() => void addMember(u.id)}
+                      >
+                        {canInvite ? "邀请" : "仅好友"}
+                      </button>
+                    </div>
+                  );
+                })}
               </div>
             )}
+            <p className="mt-2 text-[10px] text-white/25">只能邀请已通过好友申请的玩家。</p>
           </div>
         )}
 
@@ -639,10 +764,15 @@ export default function RoomChat({
                 <div className="min-w-0 flex-1">
                   <div className="flex items-center gap-1.5">
                     <span className="truncate text-xs font-semibold text-white/75">{m.alias || m.username}</span>
+                    <PresenceDot presence={m.presence} size={6} />
                     <RoleBadge role={m.role} />
                     {m.user_id === me.id && <span className="text-[10px] text-white/25">我</span>}
                   </div>
-                  {m.alias && <p className="truncate text-[10px] text-white/25">原名 {m.username}</p>}
+                  <p className="truncate text-[10px] text-white/25">
+                    {presenceLabel(m.presence)}
+                    {m.alias ? ` · 原名 ${m.username}` : ""}
+                    {m.presence?.text ? ` · ${m.presence.text}` : ""}
+                  </p>
                 </div>
                 {canChangeRole && (
                   <button

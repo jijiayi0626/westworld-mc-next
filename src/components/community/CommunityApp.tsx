@@ -17,7 +17,13 @@ import {
   CARD,
   CommunityLimits,
   CommunityView,
+  INPUT,
+  Modal,
+  Presence,
+  PresenceDot,
+  PresenceStatus,
   RoomSummary,
+  presenceLabel,
 } from "./shared";
 
 const NAV: { key: CommunityView; label: string; desc: string }[] = [
@@ -94,7 +100,62 @@ export default function CommunityApp() {
   const [notifUnread, setNotifUnread] = useState(0);
   const [profileId, setProfileId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
+  const [presence, setPresence] = useState<Presence | null>(null);
+  const [statusOpen, setStatusOpen] = useState(false);
+  const [statusDraft, setStatusDraft] = useState<PresenceStatus>("online");
+  const [statusText, setStatusText] = useState("");
   const avatarRef = useRef<HTMLInputElement | null>(null);
+
+  // 在线心跳：25 秒一次，页面隐藏时暂停；90 秒无心跳即视为离线
+  useEffect(() => {
+    if (!user) {
+      setPresence(null);
+      return;
+    }
+    let alive = true;
+    const beat = async () => {
+      try {
+        const p = await api<Presence>("/presence/heartbeat", { method: "POST" });
+        if (alive) setPresence(p);
+      } catch {
+        /* 心跳失败不打扰 */
+      }
+    };
+    void beat();
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void beat();
+    }, 25000);
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void beat();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => {
+      alive = false;
+      clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisible);
+      window.removeEventListener("focus", onVisible);
+    };
+  }, [user]);
+
+  const openStatus = () => {
+    setStatusDraft(presence?.status || "online");
+    setStatusText(presence?.text || "");
+    setStatusOpen(true);
+  };
+
+  const saveStatus = async () => {
+    try {
+      const p = await api<Presence>("/presence/status", {
+        method: "POST",
+        body: JSON.stringify({ status: statusDraft, text: statusText.trim() }),
+      });
+      setPresence(p);
+      setStatusOpen(false);
+    } catch {
+      /* 保存失败保持面板，用户可重试 */
+    }
+  };
 
   useEffect(() => {
     api<CommunityLimits>("/chat/limits")
@@ -446,6 +507,17 @@ export default function CommunityApp() {
                   <p className="text-[10px] text-white/30">
                     {user.role === "admin" ? "社区管理员" : "社区成员"}
                   </p>
+                  <button
+                    className="mt-0.5 flex max-w-full items-center gap-1.5 text-[10px] text-white/35 transition hover:text-white/70"
+                    onClick={openStatus}
+                    title="设置在线状态"
+                  >
+                    <PresenceDot presence={presence} size={6} />
+                    <span className="truncate">
+                      {presenceLabel(presence)}
+                      {presence?.text ? ` · ${presence.text}` : " · 设置状态"}
+                    </span>
+                  </button>
                 </div>
               </div>
               <div className="mt-3 flex flex-col gap-1.5">
@@ -521,6 +593,55 @@ export default function CommunityApp() {
           {content}
         </main>
       </div>
+
+      <Modal open={statusOpen} title="设置在线状态" onClose={() => setStatusOpen(false)}>
+        <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-2 gap-2">
+            {(
+              [
+                ["online", "在线", "正常接收消息"],
+                ["away", "离开", "暂时不在"],
+                ["busy", "忙碌", "请勿打扰"],
+                ["invisible", "隐身", "显示为离线"],
+              ] as [PresenceStatus, string, string][]
+            ).map(([key, label, desc]) => (
+              <button
+                key={key}
+                onClick={() => setStatusDraft(key)}
+                className={`rounded-xl border px-3 py-2 text-left transition ${
+                  statusDraft === key
+                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                    : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]"
+                }`}
+              >
+                <span className="block text-xs font-semibold">{label}</span>
+                <span className="block text-[10px] text-white/30">{desc}</span>
+              </button>
+            ))}
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] text-white/40">状态文案（好友与群成员可见）</p>
+            <input
+              className={INPUT}
+              value={statusText}
+              onChange={(e) => setStatusText(e.target.value)}
+              maxLength={30}
+              placeholder="例如：在肝建筑 / 挂机中 / 晚上开黑"
+            />
+          </div>
+          <p className="text-[10px] text-white/25">
+            在线状态每 25 秒自动刷新；连续 90 秒没有心跳会显示为离线。
+          </p>
+          <div className="flex justify-end gap-2">
+            <button className={BTN_GHOST} onClick={() => setStatusOpen(false)}>
+              取消
+            </button>
+            <button className={BTN_PRIMARY} onClick={() => void saveStatus()}>
+              保存
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }

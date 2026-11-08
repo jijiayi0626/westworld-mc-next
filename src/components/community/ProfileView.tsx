@@ -8,10 +8,13 @@ import {
   BTN_GHOST,
   CARD,
   EmptyState,
+  Presence,
+  PresenceDot,
   RoleBadge,
   Spinner,
   boardMeta,
   fmtTime,
+  presenceLabel,
 } from "./shared";
 
 interface ProfileData {
@@ -23,6 +26,7 @@ interface ProfileData {
     role: string;
     points: number;
     created_at: string;
+    presence?: Presence | null;
   };
   stats: { posts: number; replies: number; likes: number };
   posts: { id: number; board: string; title: string; content: string; image_url?: string; created_at: string }[];
@@ -104,6 +108,11 @@ export default function ProfileView({
                 </span>
               ) : null}
             </div>
+            <p className="mt-1 flex items-center gap-1.5 text-xs leading-relaxed text-white/45">
+              <PresenceDot presence={user.presence} />
+              <span className="text-white/35">{presenceLabel(user.presence)}</span>
+              {user.presence?.text ? <span className="truncate text-white/45">· {user.presence.text}</span> : null}
+            </p>
             <p className="mt-1 text-xs leading-relaxed text-white/45">{user.bio || "这个玩家还没有填写简介。"}</p>
             <p className="mt-2 text-[11px] text-white/25">
               加入于 {fmtTime(user.created_at)} · 积分 <span className="font-bold text-emerald-300">{user.points}</span>

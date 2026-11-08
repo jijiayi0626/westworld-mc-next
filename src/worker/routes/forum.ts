@@ -9,6 +9,7 @@ import { logOp, logUserAction } from "../lib/log";
 import { rateLimit } from "../lib/ratelimit";
 import { addPoints, awardWithCap, loadPointsConfig } from "../lib/points";
 import { getClientIp } from "../lib/net";
+import { presenceMap } from "../lib/presence";
 
 const app = new Hono<AppEnv>();
 
@@ -851,6 +852,8 @@ app.get("/users/:id", async (c) => {
     .first<{ id: number; username: string; avatar: string | null; bio: string | null; role: string; points: number; created_at: string }>();
   if (!profile) return fail("用户不存在", 404);
 
+  const online = await presenceMap(db, [id]);
+
   const [postCount, replyCount, likeCount, posts, replies] = await Promise.all([
     db.prepare("SELECT COUNT(*) AS n FROM forum_posts WHERE author_id = ?").bind(id).first<{ n: number }>(),
     db.prepare("SELECT COUNT(*) AS n FROM forum_replies WHERE author_id = ?").bind(id).first<{ n: number }>(),
@@ -880,6 +883,7 @@ app.get("/users/:id", async (c) => {
       avatar: profile.avatar || "",
       bio: profile.bio || "",
       points: profile.points ?? 0,
+      presence: online.get(id) || null,
     },
     stats: {
       posts: postCount?.n ?? 0,
