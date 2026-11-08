@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { Me } from "@/components/AuthProvider";
 import { api } from "@/lib/api";
 import {
@@ -42,6 +42,16 @@ interface Announcement {
   created_at: string;
 }
 
+interface ServerInfo {
+  id: number;
+  server_name: string;
+  status: string;
+  players_online: number;
+  max_players: number;
+  version: string;
+  motd: string;
+}
+
 export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLogin: () => void }) {
   const [board, setBoard] = useState("all");
   const [page, setPage] = useState(1);
@@ -51,6 +61,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
   const [total, setTotal] = useState(0);
   const [error, setError] = useState("");
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
+  const [servers, setServers] = useState<ServerInfo[] | null>(null);
 
   const [detailId, setDetailId] = useState<number | null>(null);
   const [detail, setDetail] = useState<{ post: ForumPostDetail; replies: ForumReply[]; liked: boolean } | null>(null);
@@ -64,6 +75,9 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
   const [submitting, setSubmitting] = useState(false);
   const [actionError, setActionError] = useState("");
   const [replyText, setReplyText] = useState("");
+  const [replyTo, setReplyTo] = useState<{ id: number; name: string } | null>(null);
+  const [copied, setCopied] = useState(false);
+  const replyBoxRef = useRef<HTMLTextAreaElement | null>(null);
   const [liking, setLiking] = useState(false);
 
   const loadPosts = useCallback(async () => {
@@ -90,11 +104,39 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
       .catch(() => undefined);
   }, []);
 
+  // 服务器在线状态：进入社区时加载，之后每分钟刷新一次
+  useEffect(() => {
+    let alive = true;
+    const load = () => {
+      api<ServerInfo[]>("/monitor/status")
+        .then((list) => {
+          if (alive) setServers(Array.isArray(list) ? list : []);
+        })
+        .catch(() => {
+          if (alive) setServers([]);
+        });
+    };
+    load();
+    const timer = window.setInterval(load, 60_000);
+    return () => {
+      alive = false;
+      window.clearInterval(timer);
+    };
+  }, []);
+
   const openDetail = useCallback(async (id: number) => {
     setDetailId(id);
     setDetail(null);
     setDetailError("");
     setDetailLoading(true);
+    setReplyTo(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("post", String(id));
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 静态托管环境下忽略 */
+    }
     try {
       const data = await api<{ post: ForumPostDetail; replies: ForumReply[]; liked: boolean }>(`/forum/posts/${id}`);
       setDetail(data);
@@ -105,11 +147,37 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
     }
   }, []);
 
+  // 支持分享直链 /forum?post=123 直接打开对应帖子
+  useEffect(() => {
+    const pid = Number(new URLSearchParams(window.location.search).get("post")) || 0;
+    if (pid > 0) void openDetail(pid);
+  }, [openDetail]);
+
   const closeDetail = () => {
     setDetailId(null);
     setDetail(null);
     setReplyText("");
+    setReplyTo(null);
     setDetailError("");
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("post");
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 忽略 */
+    }
+  };
+
+  const sharePost = async () => {
+    if (!detail) return;
+    const link = `${window.location.origin}/forum?post=${detail.post.id}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("复制帖子链接", link);
+    }
   };
 
   const submitPost = async () => {
@@ -164,10 +232,11 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
     try {
       const reply = await api<ForumReply>(`/forum/posts/${detail.post.id}/reply`, {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({ content, parent_id: replyTo?.id || 0 }),
       });
       setDetail((prev) => (prev ? { ...prev, replies: [...prev.replies, reply] } : prev));
       setReplyText("");
+      setReplyTo(null);
       setItems((prev) =>
         prev ? prev.map((p) => (p.id === detail.post.id ? { ...p, reply_count: p.reply_count + 1 } : p)) : prev,
       );
@@ -219,15 +288,15 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
     if (!window.confirm("确定删除这条评论吗？")) return;
     try {
       await api(`/forum/replies/${replyId}/delete`, { method: "POST" });
-      setDetail((prev) =>
-        prev
-          ? {
-              ...prev,
-              replies: prev.replies.filter((r) => r.id !== replyId),
-              post: { ...prev.post, reply_count: Math.max(0, prev.post.reply_count - 1) },
-            }
-          : prev,
-      );
+      setDetail((prev) => {
+        if (!prev) return prev;
+        const removed = prev.replies.filter((r) => r.id === replyId || r.parent_id === replyId).length;
+        return {
+          ...prev,
+          replies: prev.replies.filter((r) => r.id !== replyId && r.parent_id !== replyId),
+          post: { ...prev.post, reply_count: Math.max(0, prev.post.reply_count - removed) },
+        };
+      });
     } catch (e) {
       setDetailError(e instanceof Error ? e.message : "删除失败");
     }
@@ -235,6 +304,47 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
 
   const pageCount = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const canManage = (authorId: number | null) => !!me && (me.id === authorId || me.role === "admin");
+
+  const renderReply = (r: ForumReply, isChild: boolean) => (
+    <div className={`flex gap-2.5 ${isChild ? "pl-7" : ""}`}>
+      <Avatar src={r.author_avatar} name={r.author_name} size={isChild ? 26 : 30} />
+      <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm border border-white/5 bg-white/[0.03] px-3 py-2">
+        <div className="flex items-center gap-2">
+          <span className="text-[11px] font-semibold text-white/70">{r.author_name}</span>
+          <span className="text-[10px] text-white/25">
+            {relTime(r.created_at)}
+            {r.ip_region ? ` · IP属地 ${r.ip_region}` : ""}
+          </span>
+          <div className="ml-auto flex items-center gap-2">
+            {!isChild && (
+              <button
+                className="text-[10px] text-white/25 transition hover:text-emerald-300"
+                onClick={() => {
+                  if (!me) return onNeedLogin();
+                  setReplyTo({ id: r.id, name: r.author_name });
+                  window.setTimeout(() => replyBoxRef.current?.focus(), 0);
+                }}
+              >
+                回复
+              </button>
+            )}
+            {canManage(r.author_id) && (
+              <button
+                className="text-[10px] text-white/25 transition hover:text-rose-300"
+                onClick={() => void deleteReply(r.id)}
+              >
+                删除
+              </button>
+            )}
+          </div>
+        </div>
+        <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed text-white/55">
+          {r.reply_to ? <span className="text-emerald-300/70">回复 @{r.reply_to}：</span> : null}
+          {r.content}
+        </p>
+      </div>
+    </div>
+  );
 
   return (
     <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
@@ -382,6 +492,50 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
       <aside className="flex flex-col gap-4">
         <div className={`${CARD} p-4`}>
           <div className="mb-3 flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
+            </span>
+            <h3 className="text-sm font-bold text-white">服务器状态</h3>
+          </div>
+          {servers === null ? (
+            <p className="text-xs text-white/30">获取中…</p>
+          ) : servers.length === 0 ? (
+            <p className="text-xs text-white/35">暂无服务器数据</p>
+          ) : (
+            <div className="flex flex-col gap-3">
+              {servers.map((s) => {
+                const online = s.status === "online";
+                return (
+                  <div key={s.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
+                    <div className="flex items-center gap-2">
+                      <span className={`h-1.5 w-1.5 rounded-full ${online ? "bg-emerald-400" : "bg-white/25"}`} />
+                      <span className="min-w-0 flex-1 truncate text-xs font-semibold text-white/75">{s.server_name}</span>
+                      <span
+                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
+                          online ? "bg-emerald-400/15 text-emerald-300" : "bg-white/5 text-white/35"
+                        }`}
+                      >
+                        {online ? "在线" : "离线"}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex items-center gap-3 text-[11px] text-white/40">
+                      <span>
+                        玩家 <span className="font-bold text-emerald-300">{s.players_online}</span>
+                        {s.max_players > 0 ? ` / ${s.max_players}` : ""}
+                      </span>
+                      {s.version ? <span className="truncate">{s.version}</span> : null}
+                    </div>
+                    {s.motd ? <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-white/25">{s.motd}</p> : null}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className={`${CARD} p-4`}>
+          <div className="mb-3 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-amber-400" />
             <h3 className="text-sm font-bold text-white">官方公告</h3>
           </div>
@@ -507,6 +661,9 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                   {detail.liked ? "已点赞" : "点赞"} · {detail.post.like_count}
                 </button>
                 <span className="text-xs text-white/30">{detail.post.reply_count} 条评论</span>
+                <button className={`${BTN_GHOST} ml-auto py-1`} onClick={() => void sharePost()}>
+                  {copied ? "已复制链接" : "分享"}
+                </button>
               </div>
 
               <div className="mt-5 border-t border-white/5 pt-4">
@@ -515,57 +672,61 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                   <p className="pb-2 text-xs text-white/30">还没有评论，来说两句吧。</p>
                 ) : (
                   <div className="flex flex-col gap-3">
-                    {detail.replies.map((r) => (
-                      <div key={r.id} className="flex gap-2.5">
-                        <Avatar src={r.author_avatar} name={r.author_name} size={30} />
-                        <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm border border-white/5 bg-white/[0.03] px-3 py-2">
-                          <div className="flex items-center gap-2">
-                            <span className="text-[11px] font-semibold text-white/70">{r.author_name}</span>
-                            <span className="text-[10px] text-white/25">
-                              {relTime(r.created_at)}
-                              {r.ip_region ? ` · IP属地 ${r.ip_region}` : ""}
-                            </span>
-                            {canManage(r.author_id) && (
-                              <button
-                                className="ml-auto text-[10px] text-white/25 transition hover:text-rose-300"
-                                onClick={() => void deleteReply(r.id)}
-                              >
-                                删除
-                              </button>
-                            )}
-                          </div>
-                          <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed text-white/55">
-                            {r.content}
-                          </p>
+                    {detail.replies
+                      .filter((r) => !r.parent_id)
+                      .map((r) => (
+                        <div key={r.id} className="flex flex-col gap-2">
+                          {renderReply(r, false)}
+                          {detail.replies
+                            .filter((c) => c.parent_id === r.id)
+                            .map((c) => (
+                              <div key={c.id}>{renderReply(c, true)}</div>
+                            ))}
                         </div>
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 )}
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2 border-t border-white/5 pt-4">
-              <textarea
-                className={`${INPUT} min-h-[44px] flex-1 resize-none`}
-                rows={1}
-                value={replyText}
-                onChange={(e) => setReplyText(e.target.value)}
-                placeholder={me ? "写下你的评论…（Enter 发送）" : "登录后参与评论"}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter" && !e.shiftKey) {
-                    e.preventDefault();
-                    void submitReply();
+            <div className="mt-4 border-t border-white/5 pt-4">
+              {replyTo && (
+                <div className="mb-2 flex items-center gap-2 text-[11px] text-white/40">
+                  正在回复 <span className="font-semibold text-emerald-300">@{replyTo.name}</span>
+                  <button className="text-white/30 transition hover:text-white/70" onClick={() => setReplyTo(null)}>
+                    取消
+                  </button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <textarea
+                  ref={replyBoxRef}
+                  className={`${INPUT} min-h-[44px] flex-1 resize-none`}
+                  rows={1}
+                  value={replyText}
+                  onChange={(e) => setReplyText(e.target.value)}
+                  placeholder={
+                    me
+                      ? replyTo
+                        ? `回复 @${replyTo.name}…（Enter 发送）`
+                        : "写下你的评论…（Enter 发送）"
+                      : "登录后参与评论"
                   }
-                }}
-              />
-              <button
-                className={BTN_PRIMARY}
-                disabled={submitting || !replyText.trim()}
-                onClick={() => void submitReply()}
-              >
-                {submitting ? "发送中…" : "评论"}
-              </button>
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      void submitReply();
+                    }
+                  }}
+                />
+                <button
+                  className={BTN_PRIMARY}
+                  disabled={submitting || !replyText.trim()}
+                  onClick={() => void submitReply()}
+                >
+                  {submitting ? "发送中…" : replyTo ? "回复" : "评论"}
+                </button>
+              </div>
             </div>
             {actionError && <div className="mt-2"><Note text={actionError} /></div>}
           </div>

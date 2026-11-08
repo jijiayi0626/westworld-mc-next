@@ -101,6 +101,8 @@ export interface ForumReply {
   author_name: string;
   author_avatar: string;
   ip_region?: string;
+  parent_id?: number;
+  reply_to?: string;
   content: string;
   created_at: string;
 }

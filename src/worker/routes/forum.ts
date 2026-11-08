@@ -55,6 +55,8 @@ interface ForumReply {
   author_name: string;
   author_avatar: string;
   ip_region?: string;
+  parent_id?: number;
+  reply_to?: string;
   content: string;
   created_at: string;
 }
@@ -156,6 +158,14 @@ async function ensureForumSchema(db: D1Database): Promise<void> {
         } catch {
           /* 并发补列时忽略 */
         }
+      }
+    }
+    const replyInfo = await db.prepare("PRAGMA table_info(forum_replies)").all<{ name: string }>();
+    if (!(replyInfo.results ?? []).some((r) => r.name === "parent_id")) {
+      try {
+        await db.prepare("ALTER TABLE forum_replies ADD COLUMN parent_id INTEGER DEFAULT 0").run();
+      } catch {
+        /* 并发补列时忽略 */
       }
     }
 
@@ -279,8 +289,10 @@ app.get("/posts/:id", async (c) => {
 
   const { results: replies } = await db
     .prepare(
-      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.ip_region, r.content, r.created_at
+      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.ip_region, r.content, r.created_at,
+              COALESCE(r.parent_id, 0) AS parent_id, p.author_name AS reply_to
        FROM forum_replies r
+       LEFT JOIN forum_replies p ON p.id = r.parent_id
        WHERE r.post_id = ? ORDER BY r.id ASC LIMIT 200`,
     )
     .bind(id)
@@ -367,7 +379,19 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
 
   const body = await c.req.json().catch(() => ({}));
   const content = str(body.content, 5000).trim();
+  const parentId = Number(body.parent_id) || 0;
   if (content.length < 2 || content.length > 5000) return fail("回复需为 2-5000 个字符");
+
+  // 楼中楼：父评论必须存在且属于同一帖子
+  let replyTo = "";
+  if (parentId > 0) {
+    const parent = await db
+      .prepare("SELECT post_id, author_name FROM forum_replies WHERE id = ?")
+      .bind(parentId)
+      .first<{ post_id: number; author_name: string }>();
+    if (!parent || parent.post_id !== postId) return fail("要回复的评论不存在", 404);
+    replyTo = parent.author_name;
+  }
 
   // 频率限制：单账号 10 分钟 30 条，单 IP 10 分钟 60 条
   if (
@@ -386,8 +410,10 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
   }
 
   const result = await db
-    .prepare("INSERT INTO forum_replies (post_id, author_id, author_name, ip_region, content) VALUES (?, ?, ?, ?, ?)")
-    .bind(postId, user.id, user.username, ipRegion(c), content)
+    .prepare(
+      "INSERT INTO forum_replies (post_id, author_id, author_name, ip_region, parent_id, content) VALUES (?, ?, ?, ?, ?, ?)",
+    )
+    .bind(postId, user.id, user.username, ipRegion(c), parentId, content)
     .run();
 
   const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?")
@@ -401,6 +427,8 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
     author_name: user.username,
     author_avatar: profile?.avatar || "",
     ip_region: ipRegion(c),
+    parent_id: parentId,
+    reply_to: replyTo,
     content,
     created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
   };
@@ -484,7 +512,10 @@ app.post("/replies/:id/delete", requireAuth, async (c) => {
   if (!reply) return fail("回复不存在", 404);
   if (reply.author_id !== user.id && user.role !== "admin") return fail("无权限删除该回复", 403);
 
-  await db.prepare("DELETE FROM forum_replies WHERE id = ?").bind(replyId).run();
+  await db.batch([
+    db.prepare("DELETE FROM forum_replies WHERE parent_id = ?").bind(replyId),
+    db.prepare("DELETE FROM forum_replies WHERE id = ?").bind(replyId),
+  ]);
   await logUserAction(c.env.DB, user.id, "forum_reply_delete", `#${reply.post_id}/${replyId}`);
   return ok({ deleted: true });
 });
