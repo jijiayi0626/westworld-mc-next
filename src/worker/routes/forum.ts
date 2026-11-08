@@ -7,6 +7,7 @@ import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { logOp, logUserAction } from "../lib/log";
 import { rateLimit } from "../lib/ratelimit";
+import { addPoints, awardWithCap, loadPointsConfig } from "../lib/points";
 import { getClientIp } from "../lib/net";
 
 const app = new Hono<AppEnv>();
@@ -294,6 +295,28 @@ async function notify(db: D1Database, input: NotifyInput): Promise<void> {
   }
 }
 
+/** 按后台配置发放社区积分；失败不影响发帖 / 评论 / 点赞主流程 */
+async function awardAction(
+  db: D1Database,
+  userId: number,
+  reason: "post" | "comment" | "like",
+  detail: string,
+): Promise<void> {
+  try {
+    const cfg = await loadPointsConfig(db);
+    if (!cfg.enabled) return;
+    if (reason === "post") {
+      await awardWithCap(db, userId, "post", cfg.post_points, cfg.post_daily_limit, detail);
+    } else if (reason === "comment") {
+      await awardWithCap(db, userId, "comment", cfg.comment_points, cfg.comment_daily_limit, detail);
+    } else {
+      await awardWithCap(db, userId, "like_received", cfg.like_points, cfg.like_daily_limit, detail);
+    }
+  } catch {
+    /* 积分失败不影响主流程 */
+  }
+}
+
 // 公告列表（公开：无需登录；官网「论坛」页与用户中心共用）
 app.get("/announcements", async (c) => {
   const { results } = await fdb(c)
@@ -464,6 +487,7 @@ app.post("/posts", requireAuth, async (c) => {
   const id = Number(result.meta.last_row_id);
 
   await logUserAction(c.env.DB, user.id, "forum_post", `#${id} ${title.slice(0, 50)}`);
+  await awardAction(c.env.DB, user.id, "post", `帖子 #${id}`);
   return ok({ id });
 });
 
@@ -562,6 +586,7 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
     });
   }
   await logUserAction(c.env.DB, user.id, "forum_reply", `#${postId}`);
+  await awardAction(c.env.DB, user.id, "comment", `评论 #${reply.id}`);
   return ok(reply);
 });
 
@@ -604,6 +629,9 @@ app.post("/posts/:id/like", requireAuth, async (c) => {
       actorName: user.username,
       content: "赞了你的帖子",
     });
+    if (post.author_id && post.author_id !== user.id) {
+      await awardAction(c.env.DB, post.author_id, "like", `帖子 #${postId}`);
+    }
   }
 
   const countRow = await db
@@ -745,18 +773,27 @@ app.get("/checkin", requireAuth, async (c) => {
   await ensureForumSchema(db);
   const user = c.get("user")!;
 
-  const [todayRow, lastRow, pointsRow] = await Promise.all([
+  const [todayRow, lastRow, pointsRow, pointsConfig] = await Promise.all([
     db.prepare("SELECT 1 AS x FROM forum_checkins WHERE user_id = ? AND day = ?").bind(user.id, todayCN()).first<{ x: number }>(),
     db.prepare("SELECT day, streak FROM forum_checkins WHERE user_id = ? ORDER BY day DESC LIMIT 1").bind(user.id).first<{ day: string; streak: number }>(),
     c.env.DB.prepare("SELECT points FROM users WHERE id = ?").bind(user.id).first<{ points: number }>(),
+    loadPointsConfig(c.env.DB),
   ]);
+  const nextStreak =
+    lastRow?.day === todayCN()
+      ? (lastRow.streak || 0) + 1
+      : lastRow?.day === yesterdayCN()
+        ? (lastRow.streak || 0) + 1
+        : 1;
 
   return ok({
     checked_in: !!todayRow,
     date: todayCN(),
     points: pointsRow?.points ?? 0,
     streak: lastRow?.day === todayCN() || lastRow?.day === yesterdayCN() ? lastRow?.streak ?? 0 : 0,
-    next_points: Math.min(10, 4 + (lastRow?.day === yesterdayCN() ? (lastRow.streak || 0) + 1 : 1)),
+    next_points:
+      pointsConfig.signin_base +
+      Math.min(Math.max(nextStreak - 1, 0), pointsConfig.signin_streak_max) * pointsConfig.signin_streak_bonus,
   });
 });
 
@@ -778,12 +815,18 @@ app.post("/checkin", requireAuth, async (c) => {
     .first<{ day: string; streak: number }>();
 
   const streak = prev?.day === yesterdayCN() ? (prev.streak || 0) + 1 : 1;
-  const gained = Math.min(10, 4 + streak);
-  await db
+  const pointsConfig = await loadPointsConfig(c.env.DB);
+  const gained = pointsConfig.enabled
+    ? pointsConfig.signin_base +
+      Math.min(Math.max(streak - 1, 0), pointsConfig.signin_streak_max) * pointsConfig.signin_streak_bonus
+    : 0;
+  const inserted = await db
     .prepare("INSERT OR IGNORE INTO forum_checkins (user_id, day, points, streak) VALUES (?, ?, ?, ?)")
     .bind(user.id, day, gained, streak)
     .run();
-  await c.env.DB.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(gained, user.id).run();
+  if (inserted.meta.changes && gained > 0) {
+    await addPoints(c.env.DB, user.id, gained, "checkin", `连续签到 ${streak} 天`);
+  }
   await logUserAction(c.env.DB, user.id, "forum_checkin", `连续 ${streak} 天，+${gained} 积分`);
 
   const pointsRow = await c.env.DB.prepare("SELECT points FROM users WHERE id = ?")

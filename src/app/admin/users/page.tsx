@@ -13,6 +13,8 @@ interface AdminUser {
   email: string;
   role: string;
   status: string;
+  avatar: string | null;
+  points: number;
   mc_name: string | null;
   app_status: string | null;
   profile_pct: number;
@@ -66,6 +68,8 @@ export default function AdminUsersPage() {
   const [detail, setDetail] = useState<AdminUser | null>(null);
   const [newEmail, setNewEmail] = useState("");
   const [newPwd, setNewPwd] = useState("");
+  const [editAvatar, setEditAvatar] = useState("");
+  const [editPoints, setEditPoints] = useState("0");
   const [detailMsg, setDetailMsg] = useState<{ err: string; ok: string }>({ err: "", ok: "" });
 
   // 批量通知（邮件投递）
@@ -105,6 +109,8 @@ export default function AdminUsersPage() {
     setDetail(u);
     setNewEmail(u.email);
     setNewPwd("");
+    setEditAvatar(u.avatar || "");
+    setEditPoints(String(u.points ?? 0));
     setDetailMsg({ err: "", ok: "" });
   };
 
@@ -180,6 +186,24 @@ export default function AdminUsersPage() {
       await load();
     } catch (e) {
       setDetailMsg({ err: e instanceof Error ? e.message : "修改失败", ok: "" });
+    } finally {
+      setBusyId(0);
+    }
+  };
+
+  const saveProfile = async () => {
+    if (!detail) return;
+    setDetailMsg({ err: "", ok: "" });
+    setBusyId(detail.id);
+    try {
+      await api(`/admin/users/${detail.id}/profile`, {
+        method: "POST",
+        body: JSON.stringify({ avatar: editAvatar.trim(), points: Number(editPoints) || 0 }),
+      });
+      setDetailMsg({ err: "", ok: "头像与积分已更新" });
+      await load();
+    } catch (e) {
+      setDetailMsg({ err: e instanceof Error ? e.message : "保存失败", ok: "" });
     } finally {
       setBusyId(0);
     }
@@ -406,6 +430,45 @@ export default function AdminUsersPage() {
                   <div className="text-[0.72rem] text-slate-500 font-mono break-all leading-relaxed">{detail.last_login_ua}</div>
                 </div>
               )}
+
+              {/* 头像与积分 */}
+              <div className="border-t border-slate-100 pt-4 mb-4">
+                <h4 className="text-[0.9rem] font-bold text-slate-700 mb-2.5">头像与积分</h4>
+                <div className="flex items-center gap-3 mb-2.5">
+                  {editAvatar ? (
+                    <img src={editAvatar} alt="头像预览" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
+                  ) : (
+                    <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center font-bold">
+                      {detail.username.slice(0, 1).toUpperCase()}
+                    </div>
+                  )}
+                  <input
+                    type="text"
+                    value={editAvatar}
+                    onChange={(e) => setEditAvatar(e.target.value)}
+                    placeholder="头像地址：https://... 或 /static/..."
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.82rem] focus:outline-none focus:border-[#3b82f6]"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[0.82rem] text-slate-500 shrink-0">积分</span>
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={editPoints}
+                    onChange={(e) => setEditPoints(e.target.value.replace(/\D/g, "").slice(0, 10))}
+                    className="w-32 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => void saveProfile()}
+                    disabled={busyId === detail.id}
+                    className="ml-auto px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    保存头像与积分
+                  </button>
+                </div>
+              </div>
 
               {/* 修改邮箱 */}
               <div className="border-t border-slate-100 pt-4 mb-4">

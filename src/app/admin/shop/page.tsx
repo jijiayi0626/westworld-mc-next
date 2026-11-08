@@ -47,6 +47,7 @@ interface EconomyConfigView {
   currency_name: string;
   balance_cmd: string;
   deduct_cmd: string;
+  give_cmd: string;
 }
 
 const PROVIDER_LABELS: Record<string, string> = {
@@ -332,6 +333,7 @@ export default function AdminShopPage() {
           currency_name: eco.currency_name,
           balance_cmd: eco.balance_cmd,
           deduct_cmd: eco.deduct_cmd,
+          give_cmd: eco.give_cmd,
         }),
       });
       setEco(saved);
@@ -613,6 +615,9 @@ export default function AdminShopPage() {
               </Field>
               <Field label="扣款指令" hint="必须包含 {player} 和 {amount}。示例：eco take {player} {amount} / points take {player} {amount}">
                 <Input value={eco.deduct_cmd} onChange={(e) => setEco({ ...eco, deduct_cmd: e.target.value })} maxLength={200} placeholder="eco take {player} {amount}" />
+              </Field>
+              <Field label="发放指令" hint="积分兑换游戏币时使用，必须包含 {player} 和 {amount}。示例：eco give {player} {amount}">
+                <Input value={eco.give_cmd} onChange={(e) => setEco({ ...eco, give_cmd: e.target.value })} maxLength={200} placeholder="eco give {player} {amount}" />
               </Field>
               <div className="border-t border-slate-200 pt-4">
                 <Field label="连通性测试" hint="对指定在线玩家执行一次余额查询，验证指令与输出解析是否正常">

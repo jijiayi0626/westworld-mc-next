@@ -77,6 +77,7 @@ export default function UserHomePage() {
     { href: "/user/tickets", label: "我的工单", desc: "提交与跟进问题", color: "#eff6ff", text: "#1d4ed8" },
     { href: "/user/ai", label: "AI 助手", desc: "咨询服务器问题", color: "#f5f3ff", text: "#6d28d9" },
     { href: "/user/orders", label: "我的订单", desc: "查看商城订单", color: "#fef9c3", text: "#a16207" },
+    { href: "/user/points", label: "积分中心", desc: `${user.points ?? 0} 积分`, color: "#ecfeff", text: "#0e7490" },
   ];
 
   // 新人任务：与 PHP 版一致的 6 项引导，全部由真实资料计算，不做假进度
@@ -116,6 +117,7 @@ export default function UserHomePage() {
 
           <ul className="mt-5 flex flex-col gap-3 text-[0.85rem]">
             <Row label="注册时间" value={fmtTime(user.created_at)} />
+            <Row label="社区积分" value={`${user.points ?? 0} 分`} />
             <Row label="最近登录" value={fmtTime(user.last_login_at)} />
             <Row label="登录 IP" value={user.last_login_ip || "-"} />
             <Row label="绑定游戏名" value={user.mc_username || "未绑定"} />
@@ -199,7 +201,7 @@ export default function UserHomePage() {
                   autoComplete="off"
                 />
               </Field>
-              <Field label="QQ 头像" hint="输入 QQ 号，一键使用腾讯 QQ 头像">
+              <Field label="QQ 头像" hint="输入 QQ 号，一键使用腾讯 QQ 高清头像（640px）">
                 <div className="flex items-center gap-3">
                   <Input
                     value={qqAvatar}
@@ -207,7 +209,7 @@ export default function UserHomePage() {
                     placeholder="QQ 号"
                     inputMode="numeric"
                   />
-                  <Btn variant="ghost" onClick={() => { const n = qqAvatar.trim(); if (n) setAvatar(`https://q1.qlogo.cn/g?b=qq&nk=${n}&s=100`); }}>使用 QQ 头像</Btn>
+                  <Btn variant="ghost" onClick={() => { const n = qqAvatar.trim(); if (n) setAvatar(`https://q.qlogo.cn/headimg_dl?dst_uin=${n}&spec=640`); }}>使用 QQ 头像</Btn>
                   <Btn variant="subtle" onClick={() => { setAvatar(""); setQqAvatar(""); }}>清除</Btn>
                 </div>
               </Field>

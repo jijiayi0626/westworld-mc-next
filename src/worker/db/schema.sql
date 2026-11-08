@@ -39,6 +39,16 @@ CREATE TABLE IF NOT EXISTS user_logs (
 CREATE INDEX IF NOT EXISTS idx_user_logs_user ON user_logs(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_logs_created ON user_logs(created_at);
 
+CREATE TABLE IF NOT EXISTS points_logs (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  amount INTEGER NOT NULL,
+  reason TEXT NOT NULL,
+  detail TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_points_logs_user ON points_logs(user_id, created_at);
+
 CREATE TABLE IF NOT EXISTS notifications (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   user_id INTEGER NOT NULL,
