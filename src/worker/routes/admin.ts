@@ -11,6 +11,8 @@ import { msAdminStatus } from "./microsoft";
 import { inuAdminStatus } from "./inu";
 import { sanitizeScopes } from "../lib/inu";
 import { loadAiConfig } from "./ai";
+import { getSecret } from "../lib/auth";
+import { encryptSecret, decryptSecret } from "../lib/cipher";
 
 const app = new Hono<AppEnv>();
 
@@ -996,6 +998,174 @@ app.post("/blacklist/delete", async (c) => {
   await c.env.DB.prepare("DELETE FROM ip_blacklist WHERE id = ?").bind(id).run();
   await logOp(c.env.DB, c, admin.id, "blacklist_delete", String(id));
   return ok({ deleted: true });
+});
+
+// —— D1 用量 ——
+
+interface CfUsageConfig {
+  account_id: string;
+  token_enc: string;
+}
+
+async function loadCfUsageConfig(db: D1Database): Promise<CfUsageConfig> {
+  const row = await db.prepare("SELECT value FROM site_settings WHERE key = 'cf_usage_config'").first<{ value: string }>();
+  if (!row?.value) return { account_id: "", token_enc: "" };
+  try {
+    const parsed = JSON.parse(row.value) as Partial<CfUsageConfig>;
+    return { account_id: String(parsed.account_id || ""), token_enc: String(parsed.token_enc || "") };
+  } catch {
+    return { account_id: "", token_enc: "" };
+  }
+}
+
+/** 本地表行数：不依赖外部 API，任何部署都能看到 */
+async function tableStats(db: D1Database) {
+  const { results } = await db
+    .prepare(
+      `SELECT name FROM sqlite_master
+       WHERE type = 'table' AND name NOT LIKE 'sqlite_%' AND name NOT LIKE '_cf_%'
+       ORDER BY name`,
+    )
+    .all<{ name: string }>();
+  const tables: { name: string; rows: number }[] = [];
+  let total = 0;
+  for (const t of results ?? []) {
+    try {
+      const safe = t.name.replace(/"/g, '""');
+      const row = await db.prepare(`SELECT COUNT(*) AS n FROM "${safe}"`).first<{ n: number }>();
+      const n = Number(row?.n) || 0;
+      tables.push({ name: t.name, rows: n });
+      total += n;
+    } catch {
+      tables.push({ name: t.name, rows: -1 });
+    }
+  }
+  return { tables, rows: total, table_count: tables.length };
+}
+
+app.get("/d1-usage", async (c) => {
+  const cfg = await loadCfUsageConfig(c.env.DB);
+  const [mainLocal, forumLocal] = await Promise.all([
+    tableStats(c.env.DB),
+    c.env.FORUM_DB ? tableStats(c.env.FORUM_DB) : Promise.resolve({ tables: [], rows: 0, table_count: 0 }),
+  ]);
+  const local = {
+    main: { name: "mc-next（主库）", ...mainLocal },
+    forum: { name: "westworld-forum（社区库）", ...forumLocal, bound: !!c.env.FORUM_DB },
+  };
+
+  const token = cfg.token_enc ? await decryptSecret(cfg.token_enc, getSecret(c)) : "";
+  if (!cfg.account_id || !token) {
+    return ok({ configured: false, account_id: cfg.account_id, local });
+  }
+
+  const headers = { Authorization: `Bearer ${token}` };
+  let remote: { uuid: string; name: string; file_size: number; num_tables: number }[] = [];
+  let remoteError = "";
+  try {
+    const resp = await fetch(`https://api.cloudflare.com/client/v4/accounts/${cfg.account_id}/d1/database?page=1&per_page=50`, {
+      headers,
+      signal: AbortSignal.timeout(12_000),
+    });
+    const body = (await resp.json()) as {
+      success?: boolean;
+      errors?: { message?: string }[];
+      result?: { uuid: string; name: string; file_size?: number; num_tables?: number }[];
+    };
+    if (!resp.ok || !body.success) {
+      remoteError = body.errors?.[0]?.message || `Cloudflare API HTTP ${resp.status}`;
+    } else {
+      remote = (body.result ?? []).map((d) => ({
+        uuid: d.uuid,
+        name: d.name,
+        file_size: Number(d.file_size) || 0,
+        num_tables: Number(d.num_tables) || 0,
+      }));
+    }
+  } catch (e) {
+    remoteError = e instanceof Error ? e.message : "Cloudflare API 请求失败";
+  }
+
+  let analytics: { databaseId: string; readQueries: number; writeQueries: number; rowsRead: number; rowsWritten: number }[] = [];
+  let analyticsError = "";
+  if (!remoteError) {
+    const since = new Date(Date.now() - 24 * 3600 * 1000).toISOString().slice(0, 10);
+    try {
+      const resp = await fetch("https://api.cloudflare.com/client/v4/graphql", {
+        method: "POST",
+        headers: { ...headers, "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: `query($acc: String!, $since: String!) {
+            viewer { accounts(filter: { accountTag: $acc }) {
+              d1AnalyticsAdaptiveGroups(limit: 100, filter: { date_geq: $since }, orderBy: [date_DESC]) {
+                dimensions { databaseId date }
+                sum { readQueries writeQueries rowsRead rowsWritten }
+              }
+            } }
+          }`,
+          variables: { acc: cfg.account_id, since },
+        }),
+        signal: AbortSignal.timeout(12_000),
+      });
+      const body = (await resp.json()) as {
+        data?: { viewer?: { accounts?: { d1AnalyticsAdaptiveGroups?: { dimensions?: { databaseId?: string }; sum?: Record<string, number> }[] }[] } };
+        errors?: { message?: string }[];
+      };
+      if (body.errors?.length) {
+        analyticsError = body.errors[0].message || "GraphQL 查询失败";
+      } else {
+        const groups = body.data?.viewer?.accounts?.[0]?.d1AnalyticsAdaptiveGroups ?? [];
+        const merged = new Map<string, { databaseId: string; readQueries: number; writeQueries: number; rowsRead: number; rowsWritten: number }>();
+        for (const g of groups) {
+          const id = String(g.dimensions?.databaseId || "");
+          if (!id) continue;
+          const prev = merged.get(id) || { databaseId: id, readQueries: 0, writeQueries: 0, rowsRead: 0, rowsWritten: 0 };
+          prev.readQueries += Number(g.sum?.readQueries) || 0;
+          prev.writeQueries += Number(g.sum?.writeQueries) || 0;
+          prev.rowsRead += Number(g.sum?.rowsRead) || 0;
+          prev.rowsWritten += Number(g.sum?.rowsWritten) || 0;
+          merged.set(id, prev);
+        }
+        analytics = [...merged.values()];
+      }
+    } catch (e) {
+      analyticsError = e instanceof Error ? e.message : "用量分析请求失败";
+    }
+  }
+
+  return ok({
+    configured: true,
+    account_id: cfg.account_id,
+    local,
+    remote: remote.map((d) => ({
+      ...d,
+      analytics: analytics.find((a) => a.databaseId === d.uuid) || null,
+    })),
+    remote_error: remoteError,
+    analytics_error: analyticsError,
+  });
+});
+
+app.post("/d1-usage/config", async (c) => {
+  const admin = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const accountId = str(body.account_id, 64).trim();
+  const inputToken = str(body.token, 500).trim();
+  const old = await loadCfUsageConfig(c.env.DB);
+  let tokenEnc = old.token_enc;
+  if (inputToken && !inputToken.includes("••••")) {
+    tokenEnc = await encryptSecret(inputToken, getSecret(c));
+  }
+  if (body.clear_token === true) tokenEnc = "";
+  const value = JSON.stringify({ account_id: accountId, token_enc: tokenEnc });
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at) VALUES ('cf_usage_config', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(value)
+    .run();
+  await logOp(c.env.DB, c, admin.id, "cf_usage_config", accountId || "(cleared)");
+  return ok({ configured: !!(accountId && tokenEnc) });
 });
 
 export default app;
