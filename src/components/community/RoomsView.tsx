@@ -11,6 +11,7 @@ import {
   CommunityLimits,
   Contact,
   EmptyState,
+  FriendRequest,
   INPUT,
   Modal,
   Note,
@@ -283,6 +284,7 @@ function FriendsPanel({
   onOpenRoom: (roomId: number, name: string) => void;
 }) {
   const [contacts, setContacts] = useState<Contact[] | null>(null);
+  const [requests, setRequests] = useState<{ incoming: FriendRequest[]; outgoing: FriendRequest[] } | null>(null);
   const [error, setError] = useState("");
   const [q, setQ] = useState("");
   const [results, setResults] = useState<SearchUser[] | null>(null);
@@ -293,11 +295,16 @@ function FriendsPanel({
 
   const load = useCallback(async () => {
     try {
-      const data = await api<{ contacts: Contact[] }>("/chat/contacts");
-      setContacts(data.contacts);
+      const [contactData, requestData] = await Promise.all([
+        api<{ contacts: Contact[] }>("/chat/contacts"),
+        api<{ incoming: FriendRequest[]; outgoing: FriendRequest[] }>("/chat/contacts/requests"),
+      ]);
+      setContacts(contactData.contacts);
+      setRequests(requestData);
     } catch (e) {
       setError(e instanceof Error ? e.message : "好友列表加载失败");
       setContacts([]);
+      setRequests({ incoming: [], outgoing: [] });
     }
   }, []);
 
@@ -326,12 +333,63 @@ function FriendsPanel({
 
   const addFriend = async (uid: number) => {
     setBusy(uid);
+    setError("");
     try {
-      await api("/chat/contacts", { method: "POST", body: JSON.stringify({ user_id: uid }) });
+      const res = await api<{ requested?: boolean; added?: boolean }>("/chat/contacts", {
+        method: "POST",
+        body: JSON.stringify({ user_id: uid }),
+      });
+      setResults((prev) =>
+        prev
+          ? prev.map((u) =>
+              u.id === uid
+                ? { ...u, friend_status: res.requested ? "outgoing" : "accepted", is_contact: res.requested ? 0 : 1 }
+                : u,
+            )
+          : prev,
+      );
       await load();
-      setResults((prev) => (prev ? prev.map((u) => (u.id === uid ? { ...u, is_contact: 1 } : u)) : prev));
     } catch (e) {
-      setError(e instanceof Error ? e.message : "添加失败");
+      setError(e instanceof Error ? e.message : "好友申请发送失败");
+    } finally {
+      setBusy(0);
+    }
+  };
+
+  const handleRequest = async (uid: number, action: "accept" | "reject") => {
+    setBusy(uid);
+    setError("");
+    try {
+      await api(`/chat/contacts/requests/${uid}`, {
+        method: "POST",
+        body: JSON.stringify({ action }),
+      });
+      setResults((prev) =>
+        prev
+          ? prev.map((u) =>
+              u.id === uid ? { ...u, friend_status: action === "accept" ? "accepted" : "none", is_contact: action === "accept" ? 1 : 0 } : u,
+            )
+          : prev,
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "好友申请处理失败");
+    } finally {
+      setBusy(0);
+    }
+  };
+
+  const cancelRequest = async (uid: number) => {
+    setBusy(uid);
+    setError("");
+    try {
+      await api(`/chat/contacts/${uid}`, { method: "DELETE" });
+      setResults((prev) =>
+        prev ? prev.map((u) => (u.id === uid ? { ...u, friend_status: "none", is_contact: 0 } : u)) : prev,
+      );
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "撤回申请失败");
     } finally {
       setBusy(0);
     }
@@ -380,10 +438,57 @@ function FriendsPanel({
     <div className="flex flex-col gap-4">
       <div>
         <h2 className="text-xl font-extrabold tracking-tight text-white">好友</h2>
-        <p className="mt-0.5 text-xs text-white/40">添加好友、设置备注，随时发起私信</p>
+        <p className="mt-0.5 text-xs text-white/40">添加好友、设置备注，对方同意后即可私信</p>
       </div>
 
       <Note text={error} />
+
+      {requests && (requests.incoming.length > 0 || requests.outgoing.length > 0) ? (
+        <div className={`${CARD} overflow-hidden`}>
+          <p className="px-4 pt-4 text-xs font-semibold text-white/60">好友申请</p>
+          <div className="mt-2 divide-y divide-white/5">
+            {requests.incoming.map((r) => (
+              <div key={`in-${r.user_id}`} className="flex items-center gap-3 px-4 py-3">
+                <Avatar src={r.avatar} name={r.username} size={38} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-white/80">{r.username}</p>
+                  <p className="text-[10px] text-white/30">请求加你为好友</p>
+                </div>
+                <button
+                  className="rounded-lg bg-emerald-500/15 px-2.5 py-1.5 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-40"
+                  disabled={busy === r.user_id}
+                  onClick={() => void handleRequest(r.user_id, "accept")}
+                >
+                  同意
+                </button>
+                <button
+                  className="rounded-lg border border-white/10 px-2.5 py-1.5 text-[11px] text-white/45 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                  disabled={busy === r.user_id}
+                  onClick={() => void handleRequest(r.user_id, "reject")}
+                >
+                  拒绝
+                </button>
+              </div>
+            ))}
+            {requests.outgoing.map((r) => (
+              <div key={`out-${r.user_id}`} className="flex items-center gap-3 px-4 py-3">
+                <Avatar src={r.avatar} name={r.username} size={38} />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-xs font-semibold text-white/80">{r.username}</p>
+                  <p className="text-[10px] text-white/30">已发送申请，等待对方同意</p>
+                </div>
+                <button
+                  className="rounded-lg px-2 py-1.5 text-[11px] text-white/25 transition hover:bg-rose-500/10 hover:text-rose-300 disabled:opacity-40"
+                  disabled={busy === r.user_id}
+                  onClick={() => void cancelRequest(r.user_id)}
+                >
+                  取消
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
 
       <div className={`${CARD} p-4`}>
         <div className="flex gap-2">
@@ -406,33 +511,47 @@ function FriendsPanel({
             {results.length === 0 ? (
               <p className="py-2 text-center text-xs text-white/30">没有找到匹配的玩家</p>
             ) : (
-              results.map((u) => (
-                <div key={u.id} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
-                  <Avatar src={u.avatar} name={u.username} size={34} />
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-xs font-semibold text-white/75">{u.username}</p>
-                    {u.mc_username && <p className="truncate text-[10px] text-white/25">游戏名 {u.mc_username}</p>}
-                  </div>
-                  {u.is_contact ? (
-                    <span className="text-[10px] text-white/25">已是好友</span>
-                  ) : (
+              results.map((u) => {
+                const status = u.friend_status || (u.is_contact ? "accepted" : "none");
+                return (
+                  <div key={u.id} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
+                    <Avatar src={u.avatar} name={u.username} size={34} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-xs font-semibold text-white/75">{u.username}</p>
+                      {u.mc_username && <p className="truncate text-[10px] text-white/25">游戏名 {u.mc_username}</p>}
+                    </div>
+                    {status === "accepted" ? (
+                      <span className="text-[10px] text-white/25">已是好友</span>
+                    ) : status === "outgoing" ? (
+                      <span className="text-[10px] text-white/25">已申请</span>
+                    ) : status === "incoming" ? (
+                      <button
+                        className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-40"
+                        disabled={busy === u.id}
+                        onClick={() => void handleRequest(u.id, "accept")}
+                      >
+                        同意申请
+                      </button>
+                    ) : (
+                      <button
+                        className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-white/50 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+                        disabled={busy === u.id}
+                        onClick={() => void addFriend(u.id)}
+                      >
+                        加好友
+                      </button>
+                    )}
                     <button
-                      className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-white/50 transition hover:bg-white/10 hover:text-white"
-                      disabled={busy === u.id}
-                      onClick={() => void addFriend(u.id)}
+                      className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
+                      disabled={busy === u.id || status !== "accepted"}
+                      title={status === "accepted" ? "发私信" : "对方同意好友申请后才能发私信"}
+                      onClick={() => void startDm(u.id, u.username)}
                     >
-                      加好友
+                      发私信
                     </button>
-                  )}
-                  <button
-                    className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
-                    disabled={busy === u.id}
-                    onClick={() => void startDm(u.id, u.username)}
-                  >
-                    发私信
-                  </button>
-                </div>
-              ))
+                  </div>
+                );
+              })
             )}
           </div>
         )}
@@ -443,7 +562,7 @@ function FriendsPanel({
       ) : contacts.length === 0 ? (
         <EmptyState
           title="还没有好友"
-          desc="搜索玩家名称，添加好友后就能互相发私信、设置专属备注。"
+          desc="搜索玩家名称发送好友申请，对方同意后就能互相发私信、设置专属备注。"
         />
       ) : (
         <div className={`${CARD} divide-y divide-white/5 overflow-hidden`}>

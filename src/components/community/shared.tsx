@@ -72,6 +72,14 @@ export interface SearchUser {
   avatar: string;
   mc_username: string | null;
   is_contact: number;
+  friend_status?: "accepted" | "outgoing" | "incoming" | "none";
+}
+
+export interface FriendRequest {
+  user_id: number;
+  username: string;
+  avatar: string;
+  created_at: string;
 }
 
 export interface ForumPostItem {
