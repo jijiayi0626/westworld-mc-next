@@ -1151,9 +1151,29 @@ app.post("/d1-usage/config", async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const accountId = str(body.account_id, 64).trim();
   const inputToken = str(body.token, 500).trim();
+  if (accountId && !/^[0-9a-f]{32}$/i.test(accountId)) {
+    return fail("账户 ID 格式不正确，应为 32 位十六进制字符");
+  }
   const old = await loadCfUsageConfig(c.env.DB);
   let tokenEnc = old.token_enc;
   if (inputToken && !inputToken.includes("••••")) {
+    // 保存前先校验 Token，避免存进无效凭据后页面只显示 Authentication error
+    try {
+      const resp = await fetch("https://api.cloudflare.com/client/v4/user/tokens/verify", {
+        headers: { Authorization: `Bearer ${inputToken}` },
+        signal: AbortSignal.timeout(10_000),
+      });
+      const body = (await resp.json()) as {
+        success?: boolean;
+        result?: { status?: string };
+        errors?: { message?: string }[];
+      };
+      if (!resp.ok || !body.success || body.result?.status !== "active") {
+        return fail(`Token 校验失败：${body.errors?.[0]?.message || "Token 无效或已过期，请重新复制"}`, 400);
+      }
+    } catch {
+      return fail("Token 校验请求失败，请检查网络后重试", 502);
+    }
     tokenEnc = await encryptSecret(inputToken, getSecret(c));
   }
   if (body.clear_token === true) tokenEnc = "";
