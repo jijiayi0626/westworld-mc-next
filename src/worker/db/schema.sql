@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS users (
   email TEXT NOT NULL UNIQUE,
   password_hash TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'user',           -- user / admin
+  points INTEGER NOT NULL DEFAULT 0,           -- 社区积分（签到等）
   status TEXT NOT NULL DEFAULT 'active',       -- active / banned / pending
   avatar TEXT,
   bio TEXT DEFAULT '',

@@ -23,6 +23,7 @@ import {
 } from "./shared";
 
 const PAGE_SIZE = 15;
+const REPORT_REASONS = ["广告 / 刷屏", "辱骂 / 人身攻击", "色情 / 违法内容", "侵犯隐私", "其他"];
 
 const BOARD_FILTERS = [
   { key: "all", name: "全部" },
@@ -52,7 +53,22 @@ interface ServerInfo {
   motd: string;
 }
 
-export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLogin: () => void }) {
+interface CheckinStatus {
+  checked_in: boolean;
+  points: number;
+  streak: number;
+  next_points: number;
+}
+
+export default function FeedView({
+  me,
+  onNeedLogin,
+  onOpenUser,
+}: {
+  me: Me | null;
+  onNeedLogin: () => void;
+  onOpenUser?: (id: number) => void;
+}) {
   const [board, setBoard] = useState("all");
   const [page, setPage] = useState(1);
   const [keywordInput, setKeywordInput] = useState("");
@@ -78,7 +94,19 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
   const [replyTo, setReplyTo] = useState<{ id: number; name: string } | null>(null);
   const [copied, setCopied] = useState(false);
   const replyBoxRef = useRef<HTMLTextAreaElement | null>(null);
+  const postImageRef = useRef<HTMLInputElement | null>(null);
+  const replyImageRef = useRef<HTMLInputElement | null>(null);
   const [liking, setLiking] = useState(false);
+  const [newImage, setNewImage] = useState("");
+  const [replyImage, setReplyImage] = useState("");
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [checkin, setCheckin] = useState<CheckinStatus | null>(null);
+  const [checkingIn, setCheckingIn] = useState(false);
+  const [reportTarget, setReportTarget] = useState<{ type: "post" | "reply"; id: number } | null>(null);
+  const [reportReason, setReportReason] = useState("广告 / 刷屏");
+  const [reportDetail, setReportDetail] = useState("");
+  const [reporting, setReporting] = useState(false);
+  const [reportDone, setReportDone] = useState(false);
 
   const loadPosts = useCallback(async () => {
     setError("");
@@ -180,6 +208,78 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
     }
   };
 
+  // 每日签到状态
+  useEffect(() => {
+    if (!me) {
+      setCheckin(null);
+      return;
+    }
+    api<CheckinStatus>("/forum/checkin")
+      .then(setCheckin)
+      .catch(() => undefined);
+  }, [me]);
+
+  const doCheckin = async () => {
+    if (!me) return onNeedLogin();
+    if (checkingIn || checkin?.checked_in) return;
+    setCheckingIn(true);
+    try {
+      const r = await api<{ checked_in: boolean; gained: number; streak: number; points: number }>("/forum/checkin", {
+        method: "POST",
+      });
+      setCheckin({ checked_in: true, points: r.points, streak: r.streak, next_points: r.gained });
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "签到失败");
+    } finally {
+      setCheckingIn(false);
+    }
+  };
+
+  const uploadImage = async (file: File | undefined, setter: (url: string) => void) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setActionError("请选择图片文件");
+      return;
+    }
+    if (file.size > 4 * 1024 * 1024) {
+      setActionError("图片不能超过 4MB");
+      return;
+    }
+    setUploadingImage(true);
+    setActionError("");
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await api<{ url: string }>("/upload/image", { method: "POST", body: fd });
+      setter(res.url || "");
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "图片上传失败");
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
+  const submitReport = async () => {
+    if (!reportTarget) return;
+    setReporting(true);
+    try {
+      await api("/forum/reports", {
+        method: "POST",
+        body: JSON.stringify({
+          target_type: reportTarget.type,
+          target_id: reportTarget.id,
+          reason: reportReason,
+          detail: reportDetail.trim(),
+        }),
+      });
+      setReportDone(true);
+    } catch (e) {
+      setActionError(e instanceof Error ? e.message : "举报失败");
+    } finally {
+      setReporting(false);
+    }
+  };
+
   const submitPost = async () => {
     if (!me) {
       onNeedLogin();
@@ -190,19 +290,20 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
       setActionError("标题至少需要 5 个字");
       return;
     }
-    if (newContent.trim().length < 5) {
-      setActionError("正文至少需要 5 个字");
+    if (newContent.trim().length < 5 && !newImage) {
+      setActionError("正文至少需要 5 个字，或上传一张图片");
       return;
     }
     setSubmitting(true);
     try {
       const { id } = await api<{ id: number }>("/forum/posts", {
         method: "POST",
-        body: JSON.stringify({ board: newBoard, title: newTitle.trim(), content: newContent.trim() }),
+        body: JSON.stringify({ board: newBoard, title: newTitle.trim(), content: newContent.trim(), image_url: newImage }),
       });
       setComposing(false);
       setNewTitle("");
       setNewContent("");
+      setNewImage("");
       setBoard(newBoard);
       setPage(1);
       setKeyword("");
@@ -223,8 +324,8 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
       return;
     }
     const content = replyText.trim();
-    if (content.length < 2) {
-      setActionError("评论至少需要 2 个字");
+    if (content.length < 2 && !replyImage) {
+      setActionError("评论至少需要 2 个字或一张图片");
       return;
     }
     setSubmitting(true);
@@ -232,10 +333,19 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
     try {
       const reply = await api<ForumReply>(`/forum/posts/${detail.post.id}/reply`, {
         method: "POST",
-        body: JSON.stringify({ content, parent_id: replyTo?.id || 0 }),
+        body: JSON.stringify({ content, parent_id: replyTo?.id || 0, image_url: replyImage }),
       });
-      setDetail((prev) => (prev ? { ...prev, replies: [...prev.replies, reply] } : prev));
+      setDetail((prev) =>
+        prev
+          ? {
+              ...prev,
+              replies: [...prev.replies, reply],
+              post: { ...prev.post, reply_count: prev.post.reply_count + 1 },
+            }
+          : prev,
+      );
       setReplyText("");
+      setReplyImage("");
       setReplyTo(null);
       setItems((prev) =>
         prev ? prev.map((p) => (p.id === detail.post.id ? { ...p, reply_count: p.reply_count + 1 } : p)) : prev,
@@ -310,7 +420,14 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
       <Avatar src={r.author_avatar} name={r.author_name} size={isChild ? 26 : 30} />
       <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm border border-white/5 bg-white/[0.03] px-3 py-2">
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-semibold text-white/70">{r.author_name}</span>
+          <button
+            className="text-[11px] font-semibold text-white/70 transition hover:text-emerald-300"
+            onClick={() => {
+              if (r.author_id) onOpenUser?.(r.author_id);
+            }}
+          >
+            {r.author_name}
+          </button>
           <span className="text-[10px] text-white/25">
             {relTime(r.created_at)}
             {r.ip_region ? ` · IP属地 ${r.ip_region}` : ""}
@@ -328,6 +445,20 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                 回复
               </button>
             )}
+            {me && !canManage(r.author_id) && (
+              <button
+                className="text-[10px] text-white/25 transition hover:text-amber-300"
+                onClick={() => {
+                  setActionError("");
+                  setReportTarget({ type: "reply", id: r.id });
+                  setReportReason("广告 / 刷屏");
+                  setReportDetail("");
+                  setReportDone(false);
+                }}
+              >
+                举报
+              </button>
+            )}
             {canManage(r.author_id) && (
               <button
                 className="text-[10px] text-white/25 transition hover:text-rose-300"
@@ -342,6 +473,14 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
           {r.reply_to ? <span className="text-emerald-300/70">回复 @{r.reply_to}：</span> : null}
           {r.content}
         </p>
+        {r.image_url ? (
+          <img
+            src={r.image_url}
+            alt="评论图片"
+            className="mt-2 max-h-48 rounded-lg border border-white/10 object-cover"
+            loading="lazy"
+          />
+        ) : null}
       </div>
     </div>
   );
@@ -455,6 +594,14 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                       {post.title || "无标题"}
                     </h3>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/45">{post.content}</p>
+                    {post.image_url ? (
+                      <img
+                        src={post.image_url}
+                        alt="帖子图片"
+                        className="mt-2 max-h-40 w-auto rounded-lg border border-white/10 object-cover"
+                        loading="lazy"
+                      />
+                    ) : null}
                     <div className="mt-2.5 flex items-center gap-4 text-[11px] text-white/30">
                       <span>{post.reply_count} 评论</span>
                       <span>{post.like_count} 点赞</span>
@@ -490,6 +637,36 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
       </div>
 
       <aside className="flex flex-col gap-4">
+        <div className={`${CARD} p-4`}>
+          <div className="mb-2 flex items-center gap-2">
+            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <h3 className="text-sm font-bold text-white">每日签到</h3>
+          </div>
+          {me ? (
+            checkin ? (
+              <>
+                <p className="text-[11px] leading-relaxed text-white/40">
+                  已连续签到 <span className="font-bold text-emerald-300">{checkin.streak}</span> 天 · 当前积分{" "}
+                  <span className="font-bold text-white/75">{checkin.points}</span>
+                </p>
+                <button
+                  className={`${BTN_PRIMARY} mt-3 w-full justify-center py-2`}
+                  disabled={checkin.checked_in || checkingIn}
+                  onClick={() => void doCheckin()}
+                >
+                  {checkin.checked_in ? "今天已签到" : checkingIn ? "签到中…" : `签到 +${checkin.next_points} 积分`}
+                </button>
+              </>
+            ) : (
+              <p className="text-xs text-white/30">签到状态加载中…</p>
+            )
+          ) : (
+            <button className={`${BTN_GHOST} w-full justify-center`} onClick={onNeedLogin}>
+              登录后每日签到领积分
+            </button>
+          )}
+        </div>
+
         <div className={`${CARD} p-4`}>
           <div className="mb-3 flex items-center gap-2">
             <span className="relative flex h-2 w-2">
@@ -599,6 +776,33 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
             maxLength={10000}
             placeholder="分享你的想法、作品或问题…"
           />
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              ref={postImageRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                void uploadImage(e.target.files?.[0], setNewImage);
+                e.target.value = "";
+              }}
+            />
+            <button className={BTN_GHOST} disabled={uploadingImage} onClick={() => postImageRef.current?.click()}>
+              {uploadingImage ? "上传中…" : newImage ? "更换图片" : "添加图片"}
+            </button>
+            {newImage && (
+              <div className="relative">
+                <img src={newImage} alt="帖子配图预览" className="h-16 w-auto rounded-lg border border-white/10 object-cover" />
+                <button
+                  className="absolute -right-1.5 -top-1.5 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white"
+                  onClick={() => setNewImage("")}
+                >
+                  ×
+                </button>
+              </div>
+            )}
+            <span className="text-[11px] text-white/25">支持 JPG / PNG / WebP，单张不超过 4MB</span>
+          </div>
           <div className="flex items-center justify-between">
             <span className="text-[11px] text-white/30">{newContent.length} / 10000</span>
             <div className="flex gap-2">
@@ -623,10 +827,23 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
           <div className="flex max-h-[72vh] flex-col">
             <div className="min-h-0 flex-1 overflow-y-auto pr-1">
               <div className="flex items-center gap-3">
-                <Avatar src={detail.post.author_avatar} name={detail.post.author_name} size={40} />
+                <button
+                  onClick={() => {
+                    if (detail.post.author_id) onOpenUser?.(detail.post.author_id);
+                  }}
+                >
+                  <Avatar src={detail.post.author_avatar} name={detail.post.author_name} size={40} />
+                </button>
                 <div>
                   <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-white">{detail.post.author_name}</span>
+                    <button
+                      className="text-sm font-semibold text-white transition hover:text-emerald-300"
+                      onClick={() => {
+                        if (detail.post.author_id) onOpenUser?.(detail.post.author_id);
+                      }}
+                    >
+                      {detail.post.author_name}
+                    </button>
                     <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${boardMeta(detail.post.board).cls}`}>
                       {boardMeta(detail.post.board).name}
                     </span>
@@ -636,17 +853,41 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                     {detail.post.ip_region ? ` · IP属地 ${detail.post.ip_region}` : ""}
                   </p>
                 </div>
-                {canManage(detail.post.author_id) && (
-                  <button className={`${BTN_GHOST} ml-auto`} onClick={() => void deletePost()}>
-                    删除
-                  </button>
-                )}
+                <div className="ml-auto flex items-center gap-2">
+                  {me && !canManage(detail.post.author_id) && (
+                    <button
+                      className={`${BTN_GHOST} py-1`}
+                      onClick={() => {
+                        setActionError("");
+                        setReportTarget({ type: "post", id: detail.post.id });
+                        setReportReason("广告 / 刷屏");
+                        setReportDetail("");
+                        setReportDone(false);
+                      }}
+                    >
+                      举报
+                    </button>
+                  )}
+                  {canManage(detail.post.author_id) && (
+                    <button className={BTN_GHOST} onClick={() => void deletePost()}>
+                      删除
+                    </button>
+                  )}
+                </div>
               </div>
 
               <h3 className="mt-4 text-lg font-bold leading-snug text-white">{detail.post.title || "无标题"}</h3>
               <p className="mt-3 whitespace-pre-wrap break-words text-sm leading-relaxed text-white/65">
                 {detail.post.content}
               </p>
+              {detail.post.image_url ? (
+                <img
+                  src={detail.post.image_url}
+                  alt="帖子图片"
+                  className="mt-3 max-h-80 w-auto rounded-xl border border-white/10 object-cover"
+                  loading="lazy"
+                />
+              ) : null}
 
               <div className="mt-4 flex items-center gap-2">
                 <button
@@ -698,7 +939,33 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                   </button>
                 </div>
               )}
+              {replyImage && (
+                <div className="mb-2 flex items-center gap-2">
+                  <img src={replyImage} alt="评论配图预览" className="h-14 w-auto rounded-lg border border-white/10 object-cover" />
+                  <button className="text-[11px] text-white/35 transition hover:text-rose-300" onClick={() => setReplyImage("")}>
+                    移除图片
+                  </button>
+                </div>
+              )}
               <div className="flex gap-2">
+                <input
+                  ref={replyImageRef}
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(e) => {
+                    void uploadImage(e.target.files?.[0], setReplyImage);
+                    e.target.value = "";
+                  }}
+                />
+                <button
+                  className={`${BTN_GHOST} px-2.5`}
+                  title="添加图片"
+                  disabled={uploadingImage}
+                  onClick={() => replyImageRef.current?.click()}
+                >
+                  {uploadingImage ? "…" : "图片"}
+                </button>
                 <textarea
                   ref={replyBoxRef}
                   className={`${INPUT} min-h-[44px] flex-1 resize-none`}
@@ -721,7 +988,7 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
                 />
                 <button
                   className={BTN_PRIMARY}
-                  disabled={submitting || !replyText.trim()}
+                  disabled={submitting || (!replyText.trim() && !replyImage)}
                   onClick={() => void submitReply()}
                 >
                   {submitting ? "发送中…" : replyTo ? "回复" : "评论"}
@@ -731,6 +998,56 @@ export default function FeedView({ me, onNeedLogin }: { me: Me | null; onNeedLog
             {actionError && <div className="mt-2"><Note text={actionError} /></div>}
           </div>
         ) : null}
+      </Modal>
+
+      {/* 举报 */}
+      <Modal open={!!reportTarget} title="举报内容" onClose={() => setReportTarget(null)} width="max-w-md">
+        {reportDone ? (
+          <div className="flex flex-col items-center gap-3 py-6 text-center">
+            <p className="text-sm font-semibold text-emerald-300">举报已提交</p>
+            <p className="text-xs text-white/40">管理员会尽快核实处理，感谢你的反馈。</p>
+            <button className={BTN_GHOST} onClick={() => setReportTarget(null)}>
+              关闭
+            </button>
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <Note text={actionError} />
+            <div>
+              <p className="mb-2 text-xs font-semibold text-white/60">举报原因</p>
+              <div className="flex flex-wrap gap-2">
+                {REPORT_REASONS.map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => setReportReason(r)}
+                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                      reportReason === r
+                        ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                        : "border-white/10 bg-white/[0.03] text-white/45 hover:text-white/75"
+                    }`}
+                  >
+                    {r}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <textarea
+              className={`${INPUT} min-h-[90px] resize-none`}
+              maxLength={300}
+              value={reportDetail}
+              onChange={(e) => setReportDetail(e.target.value)}
+              placeholder="补充说明（可选）"
+            />
+            <div className="flex justify-end gap-2">
+              <button className={BTN_GHOST} onClick={() => setReportTarget(null)}>
+                取消
+              </button>
+              <button className={BTN_PRIMARY} disabled={reporting} onClick={() => void submitReport()}>
+                {reporting ? "提交中…" : "提交举报"}
+              </button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );

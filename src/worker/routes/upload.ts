@@ -49,7 +49,9 @@ async function collectImageRefs(env: AppEnv["Bindings"]): Promise<string> {
     { db: env.DB, sql: "SELECT ai_summary AS v FROM support_tickets WHERE ai_summary != '' LIMIT 3000" },
     { db: env.DB, sql: "SELECT content AS v FROM ai_conversation_messages LIMIT 3000" },
     { db: env.FORUM_DB ?? env.DB, sql: "SELECT content AS v FROM forum_posts LIMIT 3000" },
+    { db: env.FORUM_DB ?? env.DB, sql: "SELECT image_url AS v FROM forum_posts WHERE image_url != '' LIMIT 3000" },
     { db: env.FORUM_DB ?? env.DB, sql: "SELECT content AS v FROM forum_replies LIMIT 3000" },
+    { db: env.FORUM_DB ?? env.DB, sql: "SELECT image_url AS v FROM forum_replies WHERE image_url != '' LIMIT 3000" },
   ];
   const chunks: string[] = [];
   for (const q of queries) {

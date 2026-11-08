@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS forum_posts (
   author_id INTEGER,
   author_name TEXT DEFAULT '',
   ip_region TEXT DEFAULT '',                    -- IP 属地（仅省 / 州一级）
+  image_url TEXT DEFAULT '',                    -- 帖子配图（/static/uploads/library/...）
   pinned INTEGER NOT NULL DEFAULT 0,            -- 0/1 置顶
   created_at TEXT NOT NULL DEFAULT (datetime('now')),
   updated_at TEXT NOT NULL DEFAULT (datetime('now'))
@@ -22,10 +23,53 @@ CREATE TABLE IF NOT EXISTS forum_replies (
   author_name TEXT DEFAULT '',
   ip_region TEXT DEFAULT '',                    -- IP 属地（仅省 / 州一级）
   parent_id INTEGER NOT NULL DEFAULT 0,         -- 回复的评论 id，0 表示直接评论帖子
+  image_url TEXT DEFAULT '',                    -- 评论配图
   content TEXT NOT NULL,
   created_at TEXT NOT NULL DEFAULT (datetime('now'))
 );
 CREATE INDEX IF NOT EXISTS idx_forum_replies_post ON forum_replies(post_id, id);
+
+-- 社区通知（评论 / 楼中楼 / 点赞）
+CREATE TABLE IF NOT EXISTS forum_notifications (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,                     -- 接收人
+  type TEXT NOT NULL DEFAULT 'reply',           -- reply / like
+  post_id INTEGER NOT NULL DEFAULT 0,
+  reply_id INTEGER NOT NULL DEFAULT 0,
+  actor_id INTEGER,
+  actor_name TEXT DEFAULT '',
+  content TEXT DEFAULT '',                      -- 内容摘要
+  read INTEGER NOT NULL DEFAULT 0,
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_forum_notifications_user ON forum_notifications(user_id, read, id);
+
+-- 每日签到（积分余额存主库 users.points）
+CREATE TABLE IF NOT EXISTS forum_checkins (
+  user_id INTEGER NOT NULL,
+  day TEXT NOT NULL,                            -- YYYY-MM-DD
+  points INTEGER NOT NULL DEFAULT 0,
+  streak INTEGER NOT NULL DEFAULT 1,
+  created_at TEXT NOT NULL DEFAULT (datetime('now')),
+  PRIMARY KEY(user_id, day)
+);
+
+-- 举报（帖子 / 评论）
+CREATE TABLE IF NOT EXISTS forum_reports (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  target_type TEXT NOT NULL DEFAULT 'post',     -- post / reply
+  target_id INTEGER NOT NULL,
+  post_id INTEGER NOT NULL DEFAULT 0,
+  reporter_id INTEGER NOT NULL,
+  reporter_name TEXT DEFAULT '',
+  reason TEXT NOT NULL DEFAULT '',
+  detail TEXT DEFAULT '',
+  status TEXT NOT NULL DEFAULT 'pending',       -- pending / resolved / rejected
+  handled_by INTEGER,
+  handled_at TEXT DEFAULT '',
+  created_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE INDEX IF NOT EXISTS idx_forum_reports_status ON forum_reports(status, id);
 
 -- 帖子点赞（post_id + user_id 联合主键防重复）
 CREATE TABLE IF NOT EXISTS forum_likes (
