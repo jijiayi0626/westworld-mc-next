@@ -35,6 +35,20 @@ interface ActionLogsResp {
   types: string[];
 }
 
+interface NotifySettings {
+  enabled: boolean;
+  events: Record<string, boolean>;
+  recipients: string[];
+  mail_ready: boolean;
+}
+
+const MAIL_EVENT_LABELS: { key: string; label: string; desc: string }[] = [
+  { key: "contact", label: "新的用户留言", desc: "官网留言板收到新留言时" },
+  { key: "ticket", label: "新的工单", desc: "玩家提交工单时" },
+  { key: "application", label: "新的入服申请", desc: "玩家提交入服申请时" },
+  { key: "order", label: "新的订单", desc: "玩家下单或支付成功时" },
+];
+
 const STATUS_TABS: { key: string; label: string }[] = [
   { key: "all", label: "全部" },
   { key: "pending", label: "待回复" },
@@ -62,6 +76,12 @@ export default function AdminMessagesPage() {
   const [logPage, setLogPage] = useState(1);
   const [logsBusy, setLogsBusy] = useState(false);
 
+  // 消息通知设置
+  const [notify, setNotify] = useState<NotifySettings | null>(null);
+  const [notifyBusy, setNotifyBusy] = useState(false);
+  const [cleanDays, setCleanDays] = useState("30");
+  const [cleanBusy, setCleanBusy] = useState(false);
+
   const load = useCallback(async () => {
     try {
       setList(await api<Message[]>("/contact/admin/list"));
@@ -84,9 +104,18 @@ export default function AdminMessagesPage() {
     }
   }, []);
 
+  const loadNotify = useCallback(async () => {
+    try {
+      setNotify(await api<NotifySettings>("/contact/admin/notify-settings"));
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "通知设置加载失败");
+    }
+  }, []);
+
   useEffect(() => {
     void load();
-  }, [load]);
+    void loadNotify();
+  }, [load, loadNotify]);
 
   // 展开日志面板时按当前筛选加载
   useEffect(() => {
@@ -125,6 +154,43 @@ export default function AdminMessagesPage() {
       await load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "删除失败");
+    }
+  };
+
+  const saveNotify = async () => {
+    if (!notify) return;
+    setError("");
+    setSuccess("");
+    setNotifyBusy(true);
+    try {
+      const saved = await api<NotifySettings>("/contact/admin/notify-settings", {
+        method: "POST",
+        body: JSON.stringify({ enabled: notify.enabled, events: notify.events, recipients: notify.recipients.join("\n") }),
+      });
+      setNotify(saved);
+      setSuccess("通知设置已保存");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setNotifyBusy(false);
+    }
+  };
+
+  const cleanup = async () => {
+    setError("");
+    setSuccess("");
+    setCleanBusy(true);
+    try {
+      const res = await api<{ days: number; messages: number; notifications: number }>("/contact/admin/cleanup", {
+        method: "POST",
+        body: JSON.stringify({ days: Number(cleanDays) || 30 }),
+      });
+      setSuccess(`清理完成：删除 ${res.messages} 条已回复留言、${res.notifications} 条已读站内通知`);
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "清理失败");
+    } finally {
+      setCleanBusy(false);
     }
   };
 
@@ -327,19 +393,97 @@ export default function AdminMessagesPage() {
           )}
         </div>
 
-        {/* 消息通知设置（图6） */}
+        {/* 消息通知设置 */}
         <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <details className="group">
-            <summary className="cursor-pointer flex items-center justify-between gap-3 px-5 py-4 font-semibold text-slate-800 list-none [&::-webkit-details-marker]:hidden">
-              消息通知设置
-              <span className="text-[0.82rem] text-slate-400 font-normal">免打扰、邮件、清理和白名单（邮件服务未配置时通知仅站内可见）</span>
-            </summary>
-            <div className="px-5 pb-4 text-[0.85rem] text-slate-500 leading-relaxed border-t border-slate-100 pt-3">
-              <p>· 用户留言、入服申请、工单回复等通过站内通知推送给玩家。</p>
-              <p>· 配置 SMTP 后可在 .dev.vars / secrets 中启用邮件通知；未配置时不影响站内功能。</p>
-              <p>· 管理员可在“入服审核”页的 RCON 向导中配置白名单自动同步。</p>
-            </div>
-          </details>
+          <div className="flex items-center justify-between gap-3 px-5 py-4">
+            <span className="font-semibold text-slate-800">消息通知设置</span>
+            <span className={`text-[0.78rem] ${notify?.mail_ready ? "text-emerald-600" : "text-slate-400"}`}>
+              {notify?.mail_ready ? "SMTP 已配置，邮件通知可用" : "SMTP 未配置，仅站内通知"}
+            </span>
+          </div>
+          <div className="px-5 pb-5 border-t border-slate-100 pt-4">
+            {notify === null ? (
+              <Empty text="加载中..." />
+            ) : (
+              <div className="flex flex-col gap-4">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={notify.enabled}
+                    onChange={(e) => setNotify({ ...notify, enabled: e.target.checked })}
+                    className="mt-0.5 h-4 w-4 accent-emerald-500"
+                  />
+                  <span>
+                    <span className="block text-[0.88rem] font-medium text-slate-800">启用站内通知</span>
+                    <span className="block text-[0.78rem] text-slate-500">
+                      关闭后工单、入服申请等系统消息不再写入玩家通知中心（历史消息保留）。
+                    </span>
+                  </span>
+                </label>
+
+                <div>
+                  <p className="text-[0.88rem] font-medium text-slate-800 mb-2">管理员邮件提醒事件</p>
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    {MAIL_EVENT_LABELS.map((ev) => (
+                      <label key={ev.key} className="flex items-start gap-2.5 rounded-[10px] border border-slate-200 bg-slate-50/60 px-3 py-2 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={notify.events[ev.key] !== false}
+                          onChange={(e) => setNotify({ ...notify, events: { ...notify.events, [ev.key]: e.target.checked } })}
+                          className="mt-0.5 h-4 w-4 accent-emerald-500"
+                        />
+                        <span>
+                          <span className="block text-[0.84rem] text-slate-800">{ev.label}</span>
+                          <span className="block text-[0.74rem] text-slate-400">{ev.desc}</span>
+                        </span>
+                      </label>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <p className="text-[0.88rem] font-medium text-slate-800 mb-1.5">接收提醒的邮箱</p>
+                  <TextArea
+                    value={notify.recipients.join("\n")}
+                    onChange={(e) =>
+                      setNotify({
+                        ...notify,
+                        recipients: e.target.value.split(/[\n,;]/).map((s) => s.trim()).filter(Boolean),
+                      })
+                    }
+                    placeholder="每行一个邮箱，最多 10 个"
+                    rows={3}
+                  />
+                  <p className="mt-1 text-[0.74rem] text-slate-400">未配置 SMTP 时此处只保存配置，不会实际发信。</p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Btn size="sm" onClick={() => void saveNotify()} disabled={notifyBusy}>
+                    {notifyBusy ? "保存中..." : "保存通知设置"}
+                  </Btn>
+                </div>
+
+                <div className="border-t border-slate-100 pt-4">
+                  <p className="text-[0.88rem] font-medium text-slate-800 mb-1.5">历史消息清理</p>
+                  <p className="text-[0.78rem] text-slate-500 mb-2">
+                    删除超过指定天数的“已回复留言”和“已读站内通知”，避免两套 D1 持续增长。
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <input
+                      value={cleanDays}
+                      onChange={(e) => setCleanDays(e.target.value.replace(/[^\d]/g, ""))}
+                      className="w-20 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[0.85rem]"
+                      placeholder="30"
+                    />
+                    <span className="text-[0.82rem] text-slate-500">天前</span>
+                    <Btn size="sm" variant="ghost" onClick={() => void cleanup()} disabled={cleanBusy}>
+                      {cleanBusy ? "清理中..." : "立即清理"}
+                    </Btn>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </div>
     </AdminShell>

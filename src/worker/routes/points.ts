@@ -150,7 +150,7 @@ app.post("/exchange", requireAuth, async (c) => {
 
 // —— 管理端：积分配置 ——
 
-app.get("/admin/config", requireAdmin, async (c) => {
+app.get("/admin/config", requireAuth, requireAdmin, async (c) => {
   await ensurePointsSchema(c.env.DB);
   const config = await loadPointsConfig(c.env.DB);
   const [total, today] = await Promise.all([
@@ -164,7 +164,7 @@ app.get("/admin/config", requireAdmin, async (c) => {
   return ok({ config, stats: { total_points: total?.n ?? 0, today_issued: today?.n ?? 0 } });
 });
 
-app.post("/admin/config", requireAdmin, async (c) => {
+app.post("/admin/config", requireAuth, requireAdmin, async (c) => {
   const body = await c.req.json().catch(() => ({}));
   const config: PointsConfig = {
     enabled: body.enabled === true,

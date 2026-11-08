@@ -55,6 +55,8 @@ export default function AdminAiPage() {
   const [activeId, setActiveId] = useState("");
   const [editing, setEditing] = useState<AiProvider | null>(null);
   const [testResult, setTestResult] = useState<Record<string, { ok: boolean; message: string }>>({});
+  const [healthBusy, setHealthBusy] = useState(false);
+  const [healthMsg, setHealthMsg] = useState("");
   const [provBusy, setProvBusy] = useState("");
 
   // 多场景（提示词 / 参数 / 独立开关）
@@ -157,6 +159,35 @@ export default function AdminAiPage() {
       setTestResult((r) => ({ ...r, [id]: { ok: false, message: e instanceof Error ? e.message : "测试失败" } }));
     } finally {
       setProvBusy("");
+    }
+  };
+
+  const runHealth = async () => {
+    setHealthBusy(true);
+    setHealthMsg("");
+    try {
+      const d = await api<{
+        results: { id: string; name: string; ok: boolean; ms: number; message: string }[];
+        active_id: string;
+        switched_to: string;
+      }>("/ai/admin/providers/health", { method: "POST" });
+      setTestResult((prev) => {
+        const next = { ...prev };
+        for (const r of d.results) next[r.id] = { ok: r.ok, message: r.message };
+        return next;
+      });
+      setActiveId(d.active_id);
+      const healthy = d.results.filter((r) => r.ok).length;
+      const switched = d.results.find((r) => r.id === d.switched_to);
+      setHealthMsg(
+        d.switched_to
+          ? `已自动切换到可用接口「${switched?.name || d.switched_to}」`
+          : `体检完成：${healthy}/${d.results.length} 个接口可用`,
+      );
+    } catch (e) {
+      setHealthMsg(e instanceof Error ? e.message : "体检失败");
+    } finally {
+      setHealthBusy(false);
     }
   };
 
@@ -289,15 +320,28 @@ export default function AdminAiPage() {
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <h3 className="text-[1.05rem] font-bold text-slate-800">接口模板</h3>
-              <p className="text-[0.8rem] text-slate-400 mt-0.5">可添加多个 AI 供应商模板，一键切换当前使用的接口；某个不可用时切换另一个即可。</p>
+              <p className="text-[0.8rem] text-slate-400 mt-0.5">
+                可添加多个 AI 供应商模板；调用失败会自动按顺序切换备用接口，也可一键体检并自动启用可用模板。
+              </p>
+              {healthMsg && <p className="mt-1 text-[0.78rem] text-emerald-600">{healthMsg}</p>}
             </div>
-            <button
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                disabled={healthBusy || !(providers ?? []).length}
+                onClick={() => void runHealth()}
+                className="px-4 py-2 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.85rem] font-medium hover:bg-slate-100 disabled:opacity-50 whitespace-nowrap cursor-pointer"
+              >
+                {healthBusy ? "体检中..." : "一键体检"}
+              </button>
+              <button
               type="button"
               onClick={() => setEditing({ ...emptyProvider(), id: crypto.randomUUID() })}
               className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors whitespace-nowrap cursor-pointer"
             >
               + 新增模板
             </button>
+            </div>
           </div>
 
           {editing && (
