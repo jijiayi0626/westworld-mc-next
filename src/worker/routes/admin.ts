@@ -384,7 +384,7 @@ app.get("/stats", async (c) => {
 
 app.get("/users", async (c) => {
   const { results } = await c.env.DB.prepare(
-    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio,
+    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio, u.points,
             u.created_at, u.last_login_at, u.register_ip, u.last_login_ip, u.last_login_ua,
             (SELECT w.mc_name FROM whitelist_applications w
               WHERE w.user_id = u.id AND w.status = 'approved' ORDER BY w.id DESC LIMIT 1) AS mc_name,
@@ -487,6 +487,43 @@ app.post("/users/:id/status", async (c) => {
     await c.env.DB.prepare("UPDATE users SET role = ? WHERE id = ?").bind(role, id).run();
   }
   await logOp(c.env.DB, c, admin.id, "user_update", String(id), `${status || ""} ${role || ""}`.trim());
+  return ok({ updated: true });
+});
+
+// 修改用户头像与积分（管理端）
+app.post("/users/:id/profile", async (c) => {
+  const admin = c.get("user")!;
+  const id = Number(c.req.param("id"));
+  const body = await c.req.json().catch(() => ({}));
+  const target = await c.env.DB.prepare("SELECT id FROM users WHERE id = ?")
+    .bind(id)
+    .first<{ id: number }>();
+  if (!target) return fail("用户不存在", 404);
+
+  const sets: string[] = [];
+  const binds: (string | number)[] = [];
+  if (body.avatar !== undefined) {
+    const avatar = str(body.avatar, 500).trim();
+    if (avatar && !/^(https?:\/\/|\/static\/)/i.test(avatar)) {
+      return fail("头像地址需为 http(s) 链接或站内图片");
+    }
+    sets.push("avatar = ?");
+    binds.push(avatar);
+  }
+  if (body.points !== undefined) {
+    const points = Math.floor(Number(body.points));
+    if (!Number.isFinite(points) || points < 0 || points > 1_000_000_000) {
+      return fail("积分需为 0 - 10 亿之间的整数");
+    }
+    sets.push("points = ?");
+    binds.push(points);
+  }
+  if (!sets.length) return fail("没有需要更新的内容");
+
+  await c.env.DB.prepare(`UPDATE users SET ${sets.join(", ")}, updated_at = datetime('now') WHERE id = ?`)
+    .bind(...binds, id)
+    .run();
+  await logOp(c.env.DB, c, admin.id, "user_profile_update", String(id));
   return ok({ updated: true });
 });
 

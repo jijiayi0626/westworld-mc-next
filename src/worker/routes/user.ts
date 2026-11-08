@@ -15,7 +15,7 @@ app.use("*", requireAuth);
 app.get("/me", async (c) => {
   const user = c.get("user")!;
   const row = await c.env.DB.prepare(
-    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio, u.qq, u.discord,
+    `SELECT u.id, u.username, u.email, u.role, u.status, u.avatar, u.bio, u.qq, u.discord, u.points,
             u.created_at, u.last_login_at, u.last_login_ip,
             COALESCE(
               NULLIF(u.mc_username, ''),

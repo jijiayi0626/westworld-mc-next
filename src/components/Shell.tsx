@@ -571,6 +571,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: "/admin/messages", label: "消息通知", icon: "chat" },
         { href: "/admin/forum", label: "公告与论坛", icon: "campaign" },
         { href: "/admin/reports", label: "社区举报", icon: "report" },
+        { href: "/admin/points", label: "积分中心", icon: "stars" },
         { href: "/admin/tickets", label: "工单管理", icon: "confirmation_number" },
         { href: "/admin/oplogs", label: "行为日志", icon: "history" },
         { href: "/admin/blacklist", label: "风控看板", icon: "shield" },

@@ -17,6 +17,7 @@ export interface EconomyConfig {
   currency_name: string;      // 游戏币名称，如「金币」
   balance_cmd: string;        // 查询余额，如 eco get {player} / balance {player}
   deduct_cmd: string;         // 扣款，如 eco take {player} {amount}
+  give_cmd: string;           // 发放，如 eco give {player} {amount}
 }
 
 const DEFAULT_ECONOMY: EconomyConfig = {
@@ -24,6 +25,7 @@ const DEFAULT_ECONOMY: EconomyConfig = {
   currency_name: "金币",
   balance_cmd: "eco get {player}",
   deduct_cmd: "eco take {player} {amount}",
+  give_cmd: "eco give {player} {amount}",
 };
 
 export async function loadEconomyConfig(db: D1Database): Promise<EconomyConfig> {
@@ -36,12 +38,12 @@ export async function loadEconomyConfig(db: D1Database): Promise<EconomyConfig> 
   }
 }
 
-function fillTemplate(tpl: string, player: string, amount: string): string {
+export function fillTemplate(tpl: string, player: string, amount: string): string {
   return tpl.replace(/\{player\}/g, player).replace(/\{amount\}/g, amount).replace(/\{mc_name\}/g, player);
 }
 
 /** 用户绑定的 MC 玩家名：优先已通过的入服申请，其次微软绑定；都没有则返回 null（禁止回退到站点用户名） */
-async function resolveMcName(db: D1Database, userId: number): Promise<string | null> {
+export async function resolveMcName(db: D1Database, userId: number): Promise<string | null> {
   const app1 = await db.prepare(
     "SELECT mc_name FROM whitelist_applications WHERE user_id = ? AND status = 'approved' ORDER BY id DESC LIMIT 1",
   ).bind(userId).first<{ mc_name: string }>();
@@ -280,6 +282,7 @@ function publicEconomy(cfg: EconomyConfig) {
     currency_name: cfg.currency_name,
     balance_cmd: cfg.balance_cmd,
     deduct_cmd: cfg.deduct_cmd,
+    give_cmd: cfg.give_cmd,
   };
 }
 
@@ -487,10 +490,14 @@ app.post("/admin/economy", async (c) => {
     currency_name: str(body.currency_name, 20).trim() || "金币",
     balance_cmd: str(body.balance_cmd, 200).trim() || DEFAULT_ECONOMY.balance_cmd,
     deduct_cmd: str(body.deduct_cmd, 200).trim() || DEFAULT_ECONOMY.deduct_cmd,
+    give_cmd: str(body.give_cmd, 200).trim() || DEFAULT_ECONOMY.give_cmd,
   };
   if (!cfg.balance_cmd.includes("{player}")) return fail("余额查询指令必须包含 {player} 占位符");
   if (!cfg.deduct_cmd.includes("{player}") || !cfg.deduct_cmd.includes("{amount}")) {
     return fail("扣款指令必须包含 {player} 和 {amount} 占位符");
+  }
+  if (!cfg.give_cmd.includes("{player}") || !cfg.give_cmd.includes("{amount}")) {
+    return fail("发放指令必须包含 {player} 和 {amount} 占位符");
   }
 
   await c.env.DB.prepare(

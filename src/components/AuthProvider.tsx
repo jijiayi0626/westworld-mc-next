@@ -18,6 +18,7 @@ export interface Me {
   status: string;
   avatar: string | null;
   bio: string;
+  points: number;
   qq: string;
   discord: string;
   created_at: string;
