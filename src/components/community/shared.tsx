@@ -4,6 +4,15 @@ import type { ReactNode } from "react";
 
 export type CommunityView = "feed" | "community" | "dms" | "groups" | "friends" | "notifications";
 
+export type PresenceStatus = "online" | "away" | "busy" | "invisible";
+
+export interface Presence {
+  status: PresenceStatus;
+  text: string;
+  online: boolean;
+  last_seen: number;
+}
+
 export interface RoomSummary {
   id: number;
   kind: "community" | "group" | "dm";
@@ -14,8 +23,10 @@ export interface RoomSummary {
   display_name: string;
   display_avatar: string;
   peer_id: number;
+  peer_presence?: Presence | null;
   my_role: string;
   alias: string;
+  remark?: string;
   last_read_id: number;
   member_count: number;
   unread: number;
@@ -33,13 +44,15 @@ export interface RoomMember {
   username: string;
   avatar: string;
   alias: string;
+  remark?: string;
   role: string;
   joined_at: string;
+  presence?: Presence | null;
 }
 
 export interface RoomDetail {
-  room: RoomSummary & { peer_id: number };
-  me: { role: string; alias: string; last_read_id: number };
+  room: RoomSummary & { peer_id: number; peer_presence?: Presence | null };
+  me: { role: string; alias: string; remark?: string; last_read_id: number };
   members: RoomMember[];
 }
 
@@ -64,6 +77,7 @@ export interface Contact {
   avatar: string;
   alias: string;
   created_at: string;
+  presence?: Presence | null;
 }
 
 export interface SearchUser {
@@ -73,6 +87,7 @@ export interface SearchUser {
   mc_username: string | null;
   is_contact: number;
   friend_status?: "accepted" | "outgoing" | "incoming" | "none";
+  presence?: Presence | null;
 }
 
 export interface FriendRequest {
@@ -216,6 +231,38 @@ export function Avatar({
         </span>
       )}
     </div>
+  );
+}
+
+const PRESENCE_META: Record<PresenceStatus, { label: string; dot: string }> = {
+  online: { label: "在线", dot: "bg-emerald-400" },
+  away: { label: "离开", dot: "bg-amber-400" },
+  busy: { label: "忙碌", dot: "bg-rose-400" },
+  invisible: { label: "隐身", dot: "bg-white/25" },
+};
+
+export function presenceLabel(presence?: Presence | null): string {
+  if (!presence) return "离线";
+  if (!presence.online) return presence.status === "invisible" ? "隐身" : "离线";
+  return PRESENCE_META[presence.status]?.label || "在线";
+}
+
+export function PresenceDot({
+  presence,
+  size = 8,
+  className = "",
+}: {
+  presence?: Presence | null;
+  size?: number;
+  className?: string;
+}) {
+  const dot = presence?.online ? PRESENCE_META[presence.status]?.dot : "bg-white/20";
+  return (
+    <span
+      title={presenceLabel(presence)}
+      className={`inline-block shrink-0 rounded-full ${dot || "bg-white/20"} ${className}`}
+      style={{ width: size, height: size }}
+    />
   );
 }
 

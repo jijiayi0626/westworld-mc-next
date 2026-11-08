@@ -8,6 +8,7 @@ import { str } from "../lib/validate";
 import { logUserAction, logOp } from "../lib/log";
 import { getClientIp } from "../lib/net";
 import { rateLimit } from "../lib/ratelimit";
+import { ensurePresenceSchema, presenceMap } from "../lib/presence";
 
 /**
  * 社区消息（注意 Cloudflare 平台限制）：
@@ -53,6 +54,7 @@ interface MemberRow {
   room_id: number;
   user_id: number;
   alias: string;
+  remark: string;
   role: string;
   last_read_id: number;
   muted: number;
@@ -154,6 +156,7 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
           room_id INTEGER NOT NULL,
           user_id INTEGER NOT NULL,
           alias TEXT DEFAULT '',
+          remark TEXT DEFAULT '',
           role TEXT NOT NULL DEFAULT 'member',
           last_read_id INTEGER NOT NULL DEFAULT 0,
           muted INTEGER NOT NULL DEFAULT 0,
@@ -223,6 +226,15 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
     if (!contactCols.has("status")) {
       // 历史好友关系默认为已通过，避免升级后互相失联
       alters.push("ALTER TABLE user_contacts ADD COLUMN status TEXT NOT NULL DEFAULT 'accepted'");
+    }
+
+    const memberInfo = await db
+      .prepare("PRAGMA table_info(chat_room_members)")
+      .all<{ name: string }>();
+    const memberCols = new Set((memberInfo.results ?? []).map((r) => r.name));
+    if (!memberCols.has("remark")) {
+      // 群备注：仅自己可见的群显示名（类似 QQ 群备注）
+      alters.push("ALTER TABLE chat_room_members ADD COLUMN remark TEXT DEFAULT ''");
     }
     for (const sql of alters) {
       try {
@@ -578,12 +590,13 @@ app.get("/rooms", requireAuth, async (c) => {
   const user = c.get("user")!;
   const db = fdb(c);
   await ensureChatSchema(db);
+  await ensurePresenceSchema(db);
   await ensureCommunityMembership(db, user.id);
 
   const { results } = await db
     .prepare(
       `SELECT r.id, r.kind, r.name, r.avatar, r.notice, r.owner_id, r.created_at, r.updated_at,
-              m.alias, m.role AS my_role, m.last_read_id, m.muted,
+              m.alias, m.remark, m.role AS my_role, m.last_read_id, m.muted,
               (SELECT COUNT(*) FROM chat_room_members x WHERE x.room_id = r.id) AS member_count,
               (SELECT MAX(c.id) FROM chat_messages c WHERE c.room_id = r.id) AS last_id,
               (SELECT COUNT(*) FROM chat_messages c
@@ -612,19 +625,25 @@ app.get("/rooms", requireAuth, async (c) => {
 
   const peerIds = (results ?? []).map((r) => Number(r.peer_id) || 0);
   const peers = await userMap(c.env.DB, peerIds);
+  const peerPresence = await presenceMap(db, peerIds);
 
   const rooms: Record<string, unknown>[] = (results ?? []).map((r) => {
     const kind = String(r.kind);
     const peerAlias = String(r.peer_alias || "");
     const peer = peers.get(Number(r.peer_id) || 0);
+    const remark = String(r.remark || "");
     const displayName =
-      kind === "dm" ? peerAlias || peer?.username || "私信" : String(r.name || "群聊");
+      kind === "dm"
+        ? peerAlias || peer?.username || "私信"
+        : remark || String(r.name || "群聊");
     const displayAvatar = kind === "dm" ? peer?.avatar || "" : String(r.avatar || "");
     return {
       ...r,
+      remark,
       display_name: displayName,
       display_avatar: displayAvatar,
       peer_id: Number(r.peer_id) || 0,
+      peer_presence: kind === "dm" ? peerPresence.get(Number(r.peer_id) || 0) || null : null,
     };
   });
 
@@ -688,6 +707,7 @@ app.get("/rooms/:id", requireAuth, async (c) => {
   const user = c.get("user")!;
   const db = fdb(c);
   await ensureChatSchema(db);
+  await ensurePresenceSchema(db);
   const roomId = Number(c.req.param("id")) || 0;
   const room = await roomById(db, roomId);
   if (!room) return fail("会话不存在", 404);
@@ -701,16 +721,17 @@ app.get("/rooms/:id", requireAuth, async (c) => {
 
   const { results: memberRows } = await db
     .prepare(
-      `SELECT m.user_id, m.alias, m.role, m.joined_at
+      `SELECT m.user_id, m.alias, m.remark, m.role, m.joined_at
        FROM chat_room_members m
        WHERE m.room_id = ?
        ORDER BY CASE m.role WHEN 'owner' THEN 0 WHEN 'admin' THEN 1 ELSE 2 END, m.joined_at ASC
        LIMIT 300`,
     )
     .bind(roomId)
-    .all<{ user_id: number; alias: string; role: string; joined_at: string }>();
+    .all<{ user_id: number; alias: string; remark: string; role: string; joined_at: string }>();
 
   const memberUsers = await userMap(c.env.DB, (memberRows ?? []).map((m) => m.user_id));
+  const memberPresence = await presenceMap(db, (memberRows ?? []).map((m) => m.user_id));
   const members = (memberRows ?? []).map((m) => {
     const u = memberUsers.get(m.user_id);
     return {
@@ -718,17 +739,21 @@ app.get("/rooms/:id", requireAuth, async (c) => {
       username: u?.username || "玩家",
       avatar: u?.avatar || "",
       alias: m.alias || "",
+      remark: m.remark || "",
       role: m.role,
       joined_at: m.joined_at,
+      presence: memberPresence.get(m.user_id) || null,
     };
   });
 
-  let displayName = room.name;
+  let displayName = me.remark ? me.remark : room.name;
   let displayAvatar = room.avatar;
   let peerId = 0;
+  let peerPresence = null;
   if (room.kind === "dm") {
     const peer = members.find((m) => m.user_id !== user.id);
     peerId = peer?.user_id || 0;
+    peerPresence = peer?.presence || null;
     const contact = peerId
       ? await db
           .prepare("SELECT alias FROM user_contacts WHERE owner_id = ? AND target_id = ?")
@@ -745,6 +770,7 @@ app.get("/rooms/:id", requireAuth, async (c) => {
       display_name: displayName,
       display_avatar: displayAvatar,
       peer_id: peerId,
+      peer_presence: peerPresence,
       member_count: members.length,
     },
     me,
@@ -786,6 +812,28 @@ app.patch("/rooms/:id", requireAuth, async (c) => {
   await db.prepare(`UPDATE chat_rooms SET ${sets.join(", ")} WHERE id = ?`).bind(...binds, roomId).run();
   await logUserAction(c.env.DB, user.id, "chat_room_update", `#${roomId}`, getClientIp(c));
   return ok({ updated: true });
+});
+
+// 解散群聊：群主或全局管理员（社区群、私信不可解散）
+app.delete("/rooms/:id", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const room = await roomById(db, roomId);
+  if (!room) return fail("会话不存在", 404);
+  if (room.kind !== "group") return fail("只有自建群聊可以解散", 403);
+  if (room.owner_id !== user.id && user.role !== "admin") {
+    return fail("只有群主或管理员可以解散群聊", 403);
+  }
+
+  await db.batch([
+    db.prepare("DELETE FROM chat_messages WHERE room_id = ?").bind(roomId),
+    db.prepare("DELETE FROM chat_room_members WHERE room_id = ?").bind(roomId),
+    db.prepare("DELETE FROM chat_rooms WHERE id = ?").bind(roomId),
+  ]);
+  await logUserAction(c.env.DB, user.id, "chat_group_dissolve", `解散群 #${roomId} ${room.name}`, getClientIp(c));
+  return ok({ dissolved: true });
 });
 
 app.post("/rooms/:id/join", requireAuth, async (c) => {
@@ -874,6 +922,24 @@ app.post("/rooms/:id/alias", requireAuth, async (c) => {
   return ok({ alias });
 });
 
+// 群备注：只对自己显示的群名称（类似 QQ 群备注，不影响其他成员）
+app.post("/rooms/:id/remark", requireAuth, async (c) => {
+  const user = c.get("user")!;
+  const db = fdb(c);
+  await ensureChatSchema(db);
+  const roomId = Number(c.req.param("id")) || 0;
+  const me = await memberOf(db, roomId, user.id);
+  if (!me) return fail("你不在该会话中", 403);
+
+  const body = await c.req.json().catch(() => ({}));
+  const remark = str(body.remark, 20).trim();
+  await db
+    .prepare("UPDATE chat_room_members SET remark = ? WHERE room_id = ? AND user_id = ?")
+    .bind(remark, roomId, user.id)
+    .run();
+  return ok({ remark });
+});
+
 // —— 成员 ——
 app.post("/rooms/:id/members", requireAuth, async (c) => {
   const user = c.get("user")!;
@@ -895,16 +961,29 @@ app.post("/rooms/:id/members", requireAuth, async (c) => {
     .prepare(`SELECT id FROM users WHERE status = 'active' AND id IN (${placeholders})`)
     .bind(...ids)
     .all<{ id: number }>();
-  const valid = (results ?? []).map((r) => r.id);
+  const valid = (results ?? []).map((r) => r.id).filter((id) => id !== user.id);
   if (!valid.length) return fail("没有可邀请的玩家");
+
+  // 只能拉「已通过」的好友进群：只发了好友申请的不算
+  const { results: friendRows } = await db
+    .prepare(
+      `SELECT target_id FROM user_contacts
+       WHERE owner_id = ? AND status = 'accepted' AND target_id IN (${valid.map(() => "?").join(",")})`,
+    )
+    .bind(user.id, ...valid)
+    .all<{ target_id: number }>();
+  const friends = new Set((friendRows ?? []).map((r) => r.target_id));
+  const allowed = valid.filter((id) => friends.has(id));
+  if (!allowed.length) return fail("只能邀请已成为好友的玩家，请先发送好友申请并等待对方同意", 403);
+
   await db.batch(
-    valid.map((id) =>
+    allowed.map((id) =>
       db
         .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
         .bind(roomId, id),
     ),
   );
-  return ok({ added: valid.length });
+  return ok({ added: allowed.length, skipped: valid.length - allowed.length });
 });
 
 app.post("/rooms/:id/members/:uid/role", requireAuth, async (c) => {
@@ -1079,9 +1158,12 @@ app.get("/contacts", requireAuth, async (c) => {
     .bind(user.id)
     .all<{ user_id: number; alias: string; created_at: string }>();
   const users = await userMap(c.env.DB, (results ?? []).map((r) => r.user_id));
+  const online = await presenceMap(db, (results ?? []).map((r) => r.user_id));
   const contacts = (results ?? []).flatMap((r) => {
     const u = users.get(r.user_id);
-    return u ? [{ ...r, username: u.username, avatar: u.avatar }] : [];
+    return u
+      ? [{ ...r, username: u.username, avatar: u.avatar, presence: online.get(r.user_id) || null }]
+      : [];
   });
   return ok({ contacts });
 });
@@ -1284,6 +1366,8 @@ app.get("/users/search", requireAuth, async (c) => {
     }
   }
 
+  const online = await presenceMap(db, ids);
+
   return ok({
     users: (results ?? []).map((r) => ({
       id: r.id,
@@ -1292,6 +1376,7 @@ app.get("/users/search", requireAuth, async (c) => {
       mc_username: r.mc_username,
       is_contact: statusMap.get(r.id) === "accepted" ? 1 : 0,
       friend_status: statusMap.get(r.id) || "none",
+      presence: online.get(r.id) || null,
     })),
   });
 });

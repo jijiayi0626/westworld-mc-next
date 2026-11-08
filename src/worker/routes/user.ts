@@ -41,6 +41,11 @@ app.post("/profile", async (c) => {
   const qq = str(body.qq, 20).replace(/[^\d]/g, "");
   const discord = str(body.discord, 50).replace(/[^\w.#-]/g, "");
   const mcUsername = str(body.mc_username, 32).trim();
+  // 填了 QQ 号且没有自定义头像时，自动使用腾讯高清头像（640px）
+  const qqAvatar = /^[1-9]\d{4,11}$/.test(qq)
+    ? `https://q.qlogo.cn/headimg_dl?dst_uin=${qq}&spec=640`
+    : "";
+  const finalAvatar = avatar || qqAvatar;
 
   if (mcUsername && !isValidPlayerName(mcUsername)) {
     return fail("游戏名需 3-16 位（字母/数字/下划线）");
@@ -64,7 +69,7 @@ app.post("/profile", async (c) => {
   await c.env.DB.prepare(
     "UPDATE users SET bio = ?, avatar = ?, qq = ?, discord = ?, mc_username = ?, updated_at = datetime('now') WHERE id = ?",
   )
-    .bind(bio, avatar, qq, discord, mcUsername, user.id)
+    .bind(bio, finalAvatar, qq, discord, mcUsername, user.id)
     .run();
   if (mcUsername) {
     await logUserAction(c.env.DB, user.id, "bind_game_name", `绑定游戏名 ${mcUsername}`, getClientIp(c), getUa(c));
