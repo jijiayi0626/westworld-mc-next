@@ -4,7 +4,6 @@ import { useEffect, useLayoutEffect, useState, useRef, type ReactNode } from "re
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "./AuthProvider";
-import { Spinner } from "./ui";
 import { MotionConfig } from "motion/react";
 
 interface ShellItemBase {
@@ -20,7 +19,7 @@ interface ShellLinkItem extends ShellItemBase {
 
 interface ShellGroupItem extends ShellItemBase {
   /** 分组导航：收进子菜单的二级项 */
-  children: { href: string; label: string; icon?: string }[];
+  children: { href: string; label: string; icon?: string; badge?: number }[];
 }
 
 type ShellItem = ShellLinkItem | ShellGroupItem;
@@ -142,6 +141,11 @@ const ICONS: Record<string, string[]> = {
   storefront: ["M3 9l1.5-5h15L21 9", "M4 9h16v11a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9", "M4 9a2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0 2 2 0 0 0 4 0"],
   settings: ["M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z", "M19.4 15a1.7 1.7 0 0 0 .3 1.9l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.9-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.9.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.9 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.9l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.9.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.9-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.9V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"],
   info: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M12 16v-4", "M12 8v.01"],
+  stars: ["M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1L3.2 9.5l6.1-.9L12 3z"],
+  report: ["M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18", "M12 8v5", "M12 16.5v.01"],
+  mail: ["M3 5h18v14H3V5z", "M3 6l9 7 9-7"],
+  payments: ["M2 7h20v12H2V7z", "M2 11h20", "M6 15h4"],
+  hub: ["M12 8a4 4 0 1 0 0 8 4 4 0 0 0 0-8", "M12 2v6", "M12 16v6", "M2 12h6", "M16 12h6"],
 };
 
 function NavIcon({ name }: { name: string }) {
@@ -425,6 +429,9 @@ function Shell({
                     >
                       {sub.icon && <NavIcon name={sub.icon} />}
                       <span>{sub.label}</span>
+                      {sub.badge != null && sub.badge > 0 && (
+                        <span className="nav-item-badge">{sub.badge > 99 ? "99+" : sub.badge}</span>
+                      )}
                     </Link>
                   ))}
                 </div>
@@ -500,6 +507,39 @@ function Shell({
   );
 }
 
+/** 首屏加载占位：使用内联样式，CSS 尚未就绪时也不会出现“无样式纯文字” */
+function BootLoader({ label }: { label: string }) {
+  return (
+    <div
+      style={{
+        position: "fixed",
+        inset: 0,
+        zIndex: 9999,
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 14,
+        background: "#f8fafc",
+        fontFamily: '-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans SC",sans-serif',
+      }}
+    >
+      <style>{"@keyframes ww-boot-spin{to{transform:rotate(360deg)}}"}</style>
+      <span
+        style={{
+          width: 34,
+          height: 34,
+          borderRadius: "50%",
+          border: "3px solid #d1fae5",
+          borderTopColor: "#10b981",
+          animation: "ww-boot-spin .8s linear infinite",
+        }}
+      />
+      <span style={{ fontSize: 13, color: "#64748b" }}>{label}</span>
+    </div>
+  );
+}
+
 /** 用户中心布局：未登录跳转登录页 */
 export function UserShell({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -531,19 +571,40 @@ export function UserShell({ children }: { children: ReactNode }) {
     };
   }, [user]);
 
-  if (loading) return <div className="user-page" style={{ padding: 40, textAlign: "center" }}><Spinner text="加载登录状态..." /></div>;
+  if (loading) return <BootLoader label="正在进入用户中心…" />;
   if (!user) return null;
 
   const items: ShellItem[] = [
-    { href: "/user", label: "个人中心", icon: "person" },
-    { href: "/user/application", label: "入服申请", icon: "edit_note" },
-    { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
-    { href: "/forum", label: "社区", icon: "forum" },
-    { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
-    { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
-    { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },
-    { href: "/user/logs", label: "操作日志", icon: "receipt_long" },
-    { href: "/user/security", label: "安全中心", icon: "lock" },
+    {
+      label: "账户",
+      icon: "person",
+      children: [
+        { href: "/user", label: "个人中心", icon: "person" },
+        { href: "/user/security", label: "安全中心", icon: "lock" },
+        { href: "/user/logs", label: "操作日志", icon: "receipt_long" },
+        { href: "/user/notifications", label: "通知中心", icon: "notifications", badge: unread },
+      ],
+    },
+    {
+      label: "社区",
+      icon: "forum",
+      children: [
+        { href: "/forum", label: "社区广场", icon: "forum" },
+        { href: "/user/chat", label: "社区私信", icon: "chat" },
+        { href: "/user/forum", label: "我的帖子", icon: "description" },
+        { href: "/user/points", label: "积分中心", icon: "stars" },
+      ],
+    },
+    {
+      label: "服务",
+      icon: "confirmation_number",
+      children: [
+        { href: "/user/application", label: "入服申请", icon: "edit_note" },
+        { href: "/user/tickets", label: "我的工单", icon: "confirmation_number" },
+        { href: "/user/orders", label: "我的订单", icon: "inventory_2" },
+        { href: "/user/ai", label: "AI 助手", icon: "smart_toy" },
+      ],
+    },
   ];
 
   return <Shell items={items} base="/user" homeTitle="用户中心" userRole={user.role} children={children} />;
@@ -559,7 +620,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
     else if (!loading && user && user.role !== "admin") router.replace("/user");
   }, [loading, user, router]);
 
-  if (loading) return <div style={{ padding: 40, textAlign: "center" }}><Spinner text="加载登录状态..." /></div>;
+  if (loading) return <BootLoader label="正在进入管理后台…" />;
   if (!user || user.role !== "admin") return null;
 
   const items: ShellItem[] = [

@@ -5,7 +5,7 @@ import { ok, fail } from "../lib/http";
 import { str } from "../lib/validate";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
-import { queueAdminMail } from "../lib/notify";
+import { queueAdminMail, siteNotifyEnabled } from "../lib/notify";
 import { escapeHtml } from "../lib/mail";
 import { aiComplete } from "./ai";
 
@@ -108,9 +108,12 @@ app.post("/create", async (c) => {
 
   await insertReply(c.env.DB, ticketId, user.id, content, attachments, 0);
 
-  await c.env.DB.prepare(
-    "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'ticket', ?, ?)",
-  ).bind(user.id, "工单已创建", `工单 #${ticketId} ${subject}`).run();
+  const notifyOn = await siteNotifyEnabled(c.env.DB);
+  if (notifyOn) {
+    await c.env.DB.prepare(
+      "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'ticket', ?, ?)",
+    ).bind(user.id, "工单已创建", `工单 #${ticketId} ${subject}`).run();
+  }
 
   queueAdminMail(
     c,

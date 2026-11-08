@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
 import { Btn, Card, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
 import type { Setting } from "./shared";
@@ -16,9 +16,16 @@ export default function BasicTab() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [keyword, setKeyword] = useState("");
 
+  // 网站图标
+  const [favicon, setFavicon] = useState("");
+  const [faviconBusy, setFaviconBusy] = useState(false);
+  const faviconFileRef = useRef<HTMLInputElement | null>(null);
+
   const load = useCallback(async () => {
     try {
-      setList(await api<Setting[]>("/admin/settings"));
+      const next = await api<Setting[]>("/admin/settings");
+      setList(next);
+      setFavicon(next.find((s) => s.key === "site_favicon")?.value || "");
     } catch (e) {
       setError(e instanceof Error ? e.message : "加载失败");
     }
@@ -57,6 +64,52 @@ export default function BasicTab() {
     }
   };
 
+  const saveFavicon = async (urlOverride?: string) => {
+    const url = (urlOverride ?? favicon).trim();
+    setError("");
+    setSuccess("");
+    setFaviconBusy(true);
+    try {
+      const saved = await api<{ url: string }>("/content/admin/favicon", {
+        method: "POST",
+        body: JSON.stringify({ url }),
+      });
+      setFavicon(saved.url);
+      setSuccess(saved.url ? "网站图标已保存，刷新页面后生效" : "已清除自定义网站图标");
+      await load();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "保存失败");
+    } finally {
+      setFaviconBusy(false);
+    }
+  };
+
+  const uploadFavicon = async (file: File) => {
+    setError("");
+    setSuccess("");
+    if (!file.type.startsWith("image/")) {
+      setError("请选择 PNG / JPG / WEBP / GIF 图片");
+      return;
+    }
+    if (file.size > 1024 * 1024) {
+      setError("图标建议小于 1MB");
+      return;
+    }
+    setFaviconBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await api<{ url: string }>("/upload/image", { method: "POST", body: fd });
+      setFavicon(res.url);
+      setSuccess("图标已上传，请点击保存");
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "上传失败");
+    } finally {
+      setFaviconBusy(false);
+      if (faviconFileRef.current) faviconFileRef.current.value = "";
+    }
+  };
+
   const filteredList = (list ?? []).filter(
     (s) => !keyword || `${s.key} ${s.value}`.toLowerCase().includes(keyword.toLowerCase()),
   );
@@ -65,6 +118,60 @@ export default function BasicTab() {
     <>
       <ErrorNote message={error} />
       <SuccessNote message={success} />
+
+      <Card className="mb-5">
+        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">网站图标</h3>
+        <p className="text-[0.82rem] text-slate-400 mb-4">
+          浏览器标签页与收藏夹图标。建议使用 64×64 或 128×128 的方形 PNG；留空则使用默认图标。
+        </p>
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="flex h-14 w-14 flex-shrink-0 items-center justify-center overflow-hidden rounded-[12px] border border-slate-200 bg-slate-50">
+            {favicon ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={favicon} alt="网站图标预览" className="h-full w-full object-cover" />
+            ) : (
+              <span className="text-[0.7rem] text-slate-400">默认</span>
+            )}
+          </div>
+          <div className="min-w-[220px] flex-1">
+            <Input
+              value={favicon}
+              onChange={(e) => setFavicon(e.target.value)}
+              placeholder="https://... 或上传后自动填充"
+              maxLength={500}
+            />
+          </div>
+          <input
+            ref={faviconFileRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void uploadFavicon(file);
+            }}
+          />
+          <Btn type="button" variant="ghost" disabled={faviconBusy} onClick={() => faviconFileRef.current?.click()}>
+            {faviconBusy ? "处理中..." : "上传图标"}
+          </Btn>
+          <Btn type="button" disabled={faviconBusy} onClick={() => void saveFavicon()}>
+            保存图标
+          </Btn>
+          {favicon && (
+            <Btn
+              type="button"
+              variant="ghost"
+              disabled={faviconBusy}
+              onClick={() => {
+                setFavicon("");
+                void saveFavicon("");
+              }}
+            >
+              恢复默认
+            </Btn>
+          )}
+        </div>
+      </Card>
 
       <Card className="mb-5">
         <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">

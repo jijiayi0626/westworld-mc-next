@@ -251,7 +251,7 @@ export async function aiComplete(
   if (!cfg.enabled && !options?.force) {
     return { ok: false, text: "", message: "AI 功能未启用，请先在「AI 管理」中开启总开关" };
   }
-  if (!cfg.api_key) {
+  if (!cfg.api_key && !(await readProviders(db)).some((p) => p.api_key)) {
     return { ok: false, text: "", message: "AI 服务未配置 API Key，请在「AI 管理」中填写" };
   }
   const scenarios = await loadAiScenarios(db);
@@ -263,42 +263,82 @@ export async function aiComplete(
     return { ok: false, text: "", message: `场景「${scenario.name}」已停用，请先在「AI 管理」中开启` };
   }
 
-  try {
-    const resp = await fetch(chatUrl(cfg.base_url || "https://api.openai.com/v1"), {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${cfg.api_key}`,
+  const activeRow = await db
+    .prepare("SELECT value FROM site_settings WHERE key = 'ai_active_provider'")
+    .first<{ value: string }>();
+  const activeId = activeRow?.value || "";
+  const providers = await readProviders(db);
+  const candidates: { id: string; cfg: AiConfig }[] = [];
+  if (cfg.api_key) candidates.push({ id: activeId || "default", cfg });
+  for (const p of providers) {
+    if (p.id === activeId || !p.api_key) continue;
+    candidates.push({
+      id: p.id,
+      cfg: {
+        ...cfg,
+        api_key: p.api_key,
+        base_url: p.base_url || cfg.base_url,
+        model: p.model || cfg.model,
       },
-      body: JSON.stringify({
-        model: cfg.model || "gpt-4o-mini",
-        temperature: scenario.temperature,
-        max_tokens: scenario.max_tokens,
-        messages: [
-          { role: "system", content: `${scenario.system_prompt}${AI_IDENTITY_GUARD}` },
-          ...messages
-            .filter((m) => m && typeof m.content === "string" && m.content)
-            .slice(-24)
-            .map((m) => ({
-              role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
-              content: sanitizeAiText(m.content).slice(0, 8000),
-            }))
-            .filter((m) => m.content),
-        ],
-      }),
-      signal: AbortSignal.timeout(30_000),
     });
-    if (!resp.ok) {
-      return { ok: false, text: "", message: `AI 服务异常：${await upstreamError(resp)}` };
-    }
-    const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
-    const text = sanitizeAiText(data.choices?.[0]?.message?.content || "");
-    if (!text) return { ok: false, text: "", message: "AI 响应为空，请稍后重试" };
-    return { ok: true, text, model: cfg.model };
-  } catch (e) {
-    const message = e instanceof Error && e.name === "TimeoutError" ? "AI 请求超时" : e instanceof Error ? e.message : "AI 请求失败";
-    return { ok: false, text: "", message };
   }
+  if (!candidates.length) {
+    return { ok: false, text: "", message: "AI 服务未配置 API Key，请在「AI 管理」中填写" };
+  }
+
+  const payload = {
+    messages: [
+      { role: "system", content: `${scenario.system_prompt}${AI_IDENTITY_GUARD}` },
+      ...messages
+        .filter((m) => m && typeof m.content === "string" && m.content)
+        .slice(-24)
+        .map((m) => ({
+          role: m.role === "assistant" ? "assistant" : m.role === "system" ? "system" : "user",
+          content: sanitizeAiText(m.content).slice(0, 8000),
+        }))
+        .filter((m) => m.content),
+    ],
+  };
+
+  let lastError = "AI 请求失败";
+  // 自动容灾：按「当前模板 → 其他模板」顺序最多尝试 4 个，成功即返回
+  for (const candidate of candidates.slice(0, 4)) {
+    const model = candidate.cfg.model || "gpt-4o-mini";
+    try {
+      const resp = await fetch(chatUrl(candidate.cfg.base_url || "https://api.openai.com/v1"), {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${candidate.cfg.api_key}`,
+        },
+        body: JSON.stringify({
+          model,
+          temperature: scenario.temperature,
+          max_tokens: scenario.max_tokens,
+          ...payload,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      if (!resp.ok) {
+        lastError = await upstreamError(resp);
+        continue;
+      }
+      const data = (await resp.json()) as { choices?: { message?: { content?: string } }[] };
+      const text = sanitizeAiText(data.choices?.[0]?.message?.content || "");
+      if (!text) {
+        lastError = "AI 响应为空";
+        continue;
+      }
+      // 备用模板调用成功时自动设为当前模板，后续请求直接走可用接口
+      if (candidate.id !== "default" && candidate.id !== activeId) {
+        await writeSetting(db, "ai_active_provider", candidate.id).catch(() => {});
+      }
+      return { ok: true, text, model };
+    } catch (e) {
+      lastError = e instanceof Error && e.name === "TimeoutError" ? "AI 请求超时" : e instanceof Error ? e.message : "AI 请求失败";
+    }
+  }
+  return { ok: false, text: "", message: `AI 服务不可用（已自动尝试 ${Math.min(candidates.length, 4)} 个接口）：${lastError}` };
 }
 
 // —— AI 接口模板（多供应商一键切换） ——
@@ -384,14 +424,10 @@ app.post("/admin/providers/activate", async (c) => {
   return ok({ active_id: id });
 });
 
-/** 连通性测试：向模板端点发一次最小补全请求 */
-app.post("/admin/providers/test", async (c) => {
-  const body = await c.req.json().catch(() => ({}));
-  const id = str(body.id, 64);
-  const providers = await readProviders(c.env.DB);
-  const p = providers.find((x) => x.id === id);
-  if (!p) return fail("模板不存在");
-  if (!p.api_key) return fail("该模板未配置 API 密钥");
+/** 单模板连通性探测：最小补全请求，返回耗时与可读结果 */
+async function probeProvider(p: AiProvider): Promise<{ id: string; name: string; ok: boolean; ms: number; message: string }> {
+  const name = p.name || p.id;
+  if (!p.api_key) return { id: p.id, name, ok: false, ms: 0, message: "未配置 API 密钥" };
   const baseUrl = p.base_url || "https://api.openai.com/v1";
   const model = p.model || "gpt-4o-mini";
   const started = Date.now();
@@ -404,19 +440,49 @@ app.post("/admin/providers/test", async (c) => {
         max_tokens: 4,
         messages: [{ role: "user", content: "hi" }],
       }),
-      signal: AbortSignal.timeout(15_000),
+      signal: AbortSignal.timeout(12_000),
     });
     const ms = Date.now() - started;
     if (!resp.ok) {
-      return ok({ ok: false, ms, message: await upstreamError(resp) });
+      return { id: p.id, name, ok: false, ms, message: await upstreamError(resp) };
     }
     const data = (await resp.json()) as { choices?: unknown[] };
-    if (!data.choices?.length) return ok({ ok: false, ms, message: "响应异常：无 choices" });
-    return ok({ ok: true, ms, message: `连接正常（${ms}ms，模型 ${model}）` });
+    if (!data.choices?.length) return { id: p.id, name, ok: false, ms, message: "响应异常：无 choices" };
+    return { id: p.id, name, ok: true, ms, message: `连接正常（${ms}ms，模型 ${model}）` };
   } catch (e) {
     const ms = Date.now() - started;
-    return ok({ ok: false, ms, message: e instanceof Error ? e.message : "连接失败" });
+    return { id: p.id, name, ok: false, ms, message: e instanceof Error ? e.message : "连接失败" };
   }
+}
+
+/** 一键体检：并发探测全部模板；当前模板不可用时自动切到第一个可用模板 */
+app.post("/admin/providers/health", async (c) => {
+  const [providers, activeRow] = await Promise.all([
+    readProviders(c.env.DB),
+    c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'ai_active_provider'").first<{ value: string }>(),
+  ]);
+  if (!providers.length) return ok({ results: [], active_id: activeRow?.value ?? "", switched_to: "" });
+  const results = await Promise.all(providers.map((p) => probeProvider(p)));
+  const activeId = activeRow?.value ?? "";
+  const current = results.find((r) => r.id === activeId);
+  const firstOk = results.find((r) => r.ok);
+  let switchedTo = "";
+  if (firstOk && (!current || !current.ok)) {
+    await writeSetting(c.env.DB, "ai_active_provider", firstOk.id);
+    switchedTo = firstOk.id;
+  }
+  return ok({ results, active_id: switchedTo || activeId, switched_to: switchedTo });
+});
+
+/** 连通性测试：向模板端点发一次最小补全请求 */
+app.post("/admin/providers/test", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const id = str(body.id, 64);
+  const providers = await readProviders(c.env.DB);
+  const p = providers.find((x) => x.id === id);
+  if (!p) return fail("模板不存在");
+  const result = await probeProvider(p);
+  return ok(result);
 });
 
 // 每用户每日默认限额（可在后台调整，启用 AI 后同样生效）

@@ -4,6 +4,7 @@ import { AuthProvider } from "@/components/AuthProvider";
 import { SiteContentProvider } from "@/components/SiteContentProvider";
 import { FrontThemeProvider } from "@/components/FrontThemeProvider";
 import { FRONT_THEME_BOOT } from "@/lib/appearance-boot";
+import { FaviconSync } from "@/components/FaviconSync";
 
 export const metadata: Metadata = {
   title: "我的世界Westworld西域之光",
@@ -26,12 +27,14 @@ export default function RootLayout({
         <link rel="stylesheet" href="/css/front-v2.css" />
         <link rel="stylesheet" href="/css/mobile.css" />
         <link
+          id="site-favicon"
           rel="icon"
           type="image/svg+xml"
           href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🟩</text></svg>"
         />
       </head>
       <body>
+        <FaviconSync />
         <AuthProvider>
           <SiteContentProvider>
             <FrontThemeProvider>{children}</FrontThemeProvider>

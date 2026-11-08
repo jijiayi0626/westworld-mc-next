@@ -6,7 +6,7 @@ import { isValidPlayerName, str } from "../lib/validate";
 import { isBlacklisted } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
-import { queueAdminMail } from "../lib/notify";
+import { queueAdminMail, siteNotifyEnabled } from "../lib/notify";
 import { escapeHtml } from "../lib/mail";
 import { getSecret } from "../lib/auth";
 import { decryptSecret } from "../lib/cipher";
@@ -82,9 +82,11 @@ app.post("/submit", async (c) => {
     .run();
 
   const id = Number(result.meta.last_row_id);
-  await c.env.DB.prepare(
-    "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'whitelist', ?, ?)",
-  ).bind(user.id, "入服申请已提交", `申请 #${id} 正在审核中`).run();
+  if (await siteNotifyEnabled(c.env.DB)) {
+    await c.env.DB.prepare(
+      "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'whitelist', ?, ?)",
+    ).bind(user.id, "入服申请已提交", `申请 #${id} 正在审核中`).run();
+  }
 
   queueAdminMail(
     c,
@@ -242,9 +244,11 @@ app.post("/admin/:id/review", async (c) => {
   const content = status === "approved"
     ? `游戏名 ${appRow.mc_name} 已通过审核，欢迎加入西域之光！`
     : `游戏名 ${appRow.mc_name} 未通过审核${note ? `：${note}` : ""}`;
-  await c.env.DB.prepare(
-    "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'whitelist', ?, ?)",
-  ).bind(appRow.user_id, title, content).run();
+  if (await siteNotifyEnabled(c.env.DB)) {
+    await c.env.DB.prepare(
+      "INSERT INTO notifications (user_id, type, title, content) VALUES (?, 'whitelist', ?, ?)",
+    ).bind(appRow.user_id, title, content).run();
+  }
 
   await logOp(c.env.DB, c, admin.id, "whitelist_review", appRow.mc_name, status);
 

@@ -13,7 +13,6 @@ export default function UserHomePage() {
   const [bio, setBio] = useState(user?.bio || "");
   const [avatar, setAvatar] = useState(user?.avatar || "");
   const [mcName, setMcName] = useState("");
-  const [qqAvatar, setQqAvatar] = useState("");
   const [qqId, setQqId] = useState("");
   const [discord, setDiscord] = useState("");
   const [appStatus, setAppStatus] = useState("");
@@ -201,26 +200,23 @@ export default function UserHomePage() {
                   autoComplete="off"
                 />
               </Field>
-              <Field label="QQ 头像" hint="输入 QQ 号，一键使用腾讯 QQ 高清头像（640px）">
-                <div className="flex items-center gap-3">
-                  <Input
-                    value={qqAvatar}
-                    onChange={(e) => setQqAvatar(e.target.value.replace(/\D/g, "").slice(0, 12))}
-                    placeholder="QQ 号"
-                    inputMode="numeric"
-                  />
-                  <Btn variant="ghost" onClick={() => { const n = qqAvatar.trim(); if (n) setAvatar(`https://q.qlogo.cn/headimg_dl?dst_uin=${n}&spec=640`); }}>使用 QQ 头像</Btn>
-                  <Btn variant="subtle" onClick={() => { setAvatar(""); setQqAvatar(""); }}>清除</Btn>
-                </div>
+              <Field label="QQ 号" hint="填写后自动使用 QQ 高清头像（640px），仅用于社区联系，不公开显示">
+                <Input
+                  value={qqId}
+                  onChange={(e) => {
+                    const next = e.target.value.replace(/\D/g, "").slice(0, 12);
+                    setQqId(next);
+                    if (next && (!avatar || avatar.startsWith("https://q.qlogo.cn/"))) {
+                      setAvatar(`https://q.qlogo.cn/headimg_dl?dst_uin=${next}&spec=640`);
+                    }
+                  }}
+                  placeholder="例如 10001"
+                  inputMode="numeric"
+                />
               </Field>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <Field label="QQ 号" hint="仅用于社区联系，不公开显示">
-                  <Input value={qqId} onChange={(e) => setQqId(e.target.value.replace(/\D/g, "").slice(0, 12))} placeholder="例如 10001" inputMode="numeric" />
-                </Field>
-                <Field label="Discord" hint="填写用户名或 ID">
-                  <Input value={discord} onChange={(e) => setDiscord(e.target.value.slice(0, 50))} placeholder="例如 name#1234" />
-                </Field>
-              </div>
+              <Field label="Discord" hint="填写用户名或 ID">
+                <Input value={discord} onChange={(e) => setDiscord(e.target.value.slice(0, 50))} placeholder="例如 name#1234" />
+              </Field>
               <Field label="个性签名">
                 <TextArea value={bio} onChange={(e) => setBio(e.target.value)} placeholder="介绍一下自己吧~（200 字内）" maxLength={200} />
               </Field>

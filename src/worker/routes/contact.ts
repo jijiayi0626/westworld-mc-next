@@ -7,7 +7,7 @@ import { isBlacklisted } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
 import { queueAdminMail } from "../lib/notify";
-import { escapeHtml } from "../lib/mail";
+import { escapeHtml, loadMailConfig, loadMailNotifySettings, mailEnabled, type MailEvent } from "../lib/mail";
 
 const app = new Hono<AppEnv>();
 
@@ -83,6 +83,85 @@ app.post("/admin/delete", async (c) => {
   const id = Number(body.id);
   await c.env.DB.prepare("DELETE FROM contact_messages WHERE id = ?").bind(id).run();
   return ok({ deleted: true });
+});
+
+// —— 消息通知设置 ——
+
+const MAIL_EVENTS: MailEvent[] = ["contact", "ticket", "application", "order"];
+
+app.get("/admin/notify-settings", async (c) => {
+  const [siteRow, notify, mail] = await Promise.all([
+    c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'site_notify_enabled'").first<{ value: string }>(),
+    loadMailNotifySettings(c.env.DB),
+    loadMailConfig(c.env.DB),
+  ]);
+  return ok({
+    enabled: siteRow?.value !== "false",
+    events: notify.events,
+    recipients: notify.recipients,
+    mail_ready: mailEnabled(mail),
+  });
+});
+
+app.post("/admin/notify-settings", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const enabled = body.enabled !== false;
+  const inputEvents = (body.events && typeof body.events === "object" ? body.events : {}) as Record<string, unknown>;
+  const events = Object.fromEntries(MAIL_EVENTS.map((key) => [key, inputEvents[key] !== false])) as Record<
+    MailEvent,
+    boolean
+  >;
+  const recipients = String(body.recipients || "")
+    .split(/[\n,;]/)
+    .map((s) => s.trim())
+    .filter((s) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s))
+    .slice(0, 10);
+
+  const upsert = (key: string, value: string) =>
+    c.env.DB.prepare(
+      `INSERT INTO site_settings (key, value, updated_at) VALUES (?, ?, datetime('now'))
+       ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+    )
+      .bind(key, value)
+      .run();
+
+  await Promise.all([
+    upsert("site_notify_enabled", enabled ? "true" : "false"),
+    upsert("mail_events", JSON.stringify(events)),
+    upsert("mail_notify_emails", recipients.join("\n")),
+  ]);
+  await logOp(c.env.DB, c, c.get("user")!.id, "notify_settings_update", enabled ? "site=on" : "site=off");
+  return ok({ enabled, events, recipients });
+});
+
+app.post("/admin/cleanup", async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const days = Math.max(1, Math.min(365, Math.floor(Number(body.days) || 30)));
+  const cutoff = `-${days} days`;
+  const [messages, notices] = await Promise.all([
+    c.env.DB.prepare(
+      `DELETE FROM contact_messages
+       WHERE status = 'replied' AND replied_at IS NOT NULL AND replied_at < datetime('now', ?)`,
+    )
+      .bind(cutoff)
+      .run(),
+    c.env.DB.prepare(
+      "DELETE FROM notifications WHERE is_read = 1 AND created_at < datetime('now', ?)",
+    )
+      .bind(cutoff)
+      .run()
+      .catch(() => null),
+  ]);
+  const removedMessages = messages.meta.changes || 0;
+  const removedNotices = notices?.meta.changes || 0;
+  await logOp(
+    c.env.DB,
+    c,
+    c.get("user")!.id,
+    "notify_cleanup",
+    `${days}d: messages=${removedMessages}, notifications=${removedNotices}`,
+  );
+  return ok({ days, messages: removedMessages, notifications: removedNotices });
 });
 
 export default app;

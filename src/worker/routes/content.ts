@@ -30,6 +30,34 @@ app.get("/theme", async (c) => {
   return ok({ theme });
 });
 
+// 获取站点图标（公开）：后台「网站设置 → 基础设置」可上传 / 填写
+app.get("/favicon", async (c) => {
+  const row = await c.env.DB.prepare(
+    "SELECT value FROM site_settings WHERE key = 'site_favicon'",
+  ).first<{ value: string }>();
+  const url = String(row?.value || "").trim();
+  const safe = /^(https?:\/\/|\/static\/)/i.test(url) ? url : "";
+  return ok({ url: safe });
+});
+
+// 保存站点图标（管理员）：只接受 http(s) 或站内上传路径
+app.post("/admin/favicon", requireAuth, requireAdmin, async (c) => {
+  const body = await c.req.json().catch(() => ({}));
+  const url = String(body.url || "").trim().slice(0, 500);
+  if (url && !/^(https?:\/\/|\/static\/)/i.test(url)) {
+    return fail("图标地址必须是 http(s) 链接或站内上传路径");
+  }
+  await c.env.DB.prepare(
+    `INSERT INTO site_settings (key, value, updated_at)
+     VALUES ('site_favicon', ?, datetime('now'))
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = datetime('now')`,
+  )
+    .bind(url)
+    .run();
+  await logOp(c.env.DB, c, c.get("user")!.id, "favicon_update", url || "(cleared)");
+  return ok({ url });
+});
+
 // 获取全部站点内容（公开）
 app.get("/", async (c) => {
   const { results } = await c.env.DB.prepare("SELECT page, field, value FROM site_content").all();
