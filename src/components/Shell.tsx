@@ -635,6 +635,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
         { href: "/admin/points", label: "积分中心", icon: "stars" },
         { href: "/admin/tickets", label: "工单管理", icon: "confirmation_number" },
         { href: "/admin/oplogs", label: "行为日志", icon: "history" },
+        { href: "/admin/d1", label: "D1 用量", icon: "backup" },
         { href: "/admin/blacklist", label: "风控看板", icon: "shield" },
       ],
     },
