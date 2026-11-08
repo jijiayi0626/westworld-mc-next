@@ -55,6 +55,7 @@ export default function RoomChat({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [nameDraft, setNameDraft] = useState("");
   const [noticeDraft, setNoticeDraft] = useState("");
+  const [qqGroup, setQqGroup] = useState("");
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
@@ -264,7 +265,31 @@ export default function RoomChat({
   const openSettings = () => {
     setNameDraft(detail?.room.name || "");
     setNoticeDraft(detail?.room.notice || "");
+    const matched = (detail?.room.avatar || "").match(/p\.qlogo\.cn\/gh\/(\d+)/);
+    setQqGroup(matched?.[1] || "");
     setSettingsOpen(true);
+  };
+
+  /** 用 QQ 群号直接取群头像（640px 高清） */
+  const applyQqGroupAvatar = async () => {
+    const g = qqGroup.replace(/\D/g, "");
+    if (!/^\d{5,12}$/.test(g)) {
+      setError("请输入 5-12 位 QQ 群号");
+      return;
+    }
+    setUploading(true);
+    setError("");
+    try {
+      await api(`/chat/rooms/${roomId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ avatar: `https://p.qlogo.cn/gh/${g}/${g}/640/` }),
+      });
+      await loadDetail();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "群头像设置失败");
+    } finally {
+      setUploading(false);
+    }
   };
 
   const saveSettings = async () => {
@@ -679,6 +704,27 @@ export default function RoomChat({
               maxLength={200}
               placeholder="填写群公告，例如群规、活动通知…"
             />
+          </div>
+          <div>
+            <p className="mb-1.5 text-[11px] text-white/40">QQ 群号（自动使用群头像）</p>
+            <div className="flex gap-2">
+              <input
+                className={INPUT}
+                value={qqGroup}
+                onChange={(e) => setQqGroup(e.target.value.replace(/\D/g, "").slice(0, 12))}
+                placeholder="例如 838177210"
+                inputMode="numeric"
+              />
+              <button
+                type="button"
+                className={`${BTN_GHOST} flex-shrink-0`}
+                disabled={uploading}
+                onClick={() => void applyQqGroupAvatar()}
+              >
+                {uploading ? "设置中..." : "使用群头像"}
+              </button>
+            </div>
+            <p className="mt-1 text-[10px] text-white/30">填写后会拉取该 QQ 群的高清群头像作为当前群聊头像。</p>
           </div>
           <div className="flex justify-end gap-2">
             <button className={BTN_GHOST} onClick={() => setSettingsOpen(false)}>
