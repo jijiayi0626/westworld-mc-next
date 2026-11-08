@@ -57,6 +57,7 @@ interface ForumReply {
   ip_region?: string;
   parent_id?: number;
   reply_to?: string;
+  image_url?: string;
   content: string;
   created_at: string;
 }
@@ -146,6 +147,48 @@ async function ensureForumSchema(db: D1Database): Promise<void> {
           PRIMARY KEY(post_id, user_id)
         )`,
       ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS forum_notifications (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          user_id INTEGER NOT NULL,
+          type TEXT NOT NULL DEFAULT 'reply',
+          post_id INTEGER NOT NULL DEFAULT 0,
+          reply_id INTEGER NOT NULL DEFAULT 0,
+          actor_id INTEGER,
+          actor_name TEXT DEFAULT '',
+          content TEXT DEFAULT '',
+          read INTEGER NOT NULL DEFAULT 0,
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`,
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS forum_checkins (
+          user_id INTEGER NOT NULL,
+          day TEXT NOT NULL,
+          points INTEGER NOT NULL DEFAULT 0,
+          streak INTEGER NOT NULL DEFAULT 1,
+          created_at TEXT NOT NULL DEFAULT (datetime('now')),
+          PRIMARY KEY(user_id, day)
+        )`,
+      ),
+      db.prepare(
+        `CREATE TABLE IF NOT EXISTS forum_reports (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          target_type TEXT NOT NULL DEFAULT 'post',
+          target_id INTEGER NOT NULL,
+          post_id INTEGER NOT NULL DEFAULT 0,
+          reporter_id INTEGER NOT NULL,
+          reporter_name TEXT DEFAULT '',
+          reason TEXT NOT NULL DEFAULT '',
+          detail TEXT DEFAULT '',
+          status TEXT NOT NULL DEFAULT 'pending',
+          handled_by INTEGER,
+          handled_at TEXT DEFAULT '',
+          created_at TEXT NOT NULL DEFAULT (datetime('now'))
+        )`,
+      ),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_forum_notifications_user ON forum_notifications(user_id, read, id)"),
+      db.prepare("CREATE INDEX IF NOT EXISTS idx_forum_reports_status ON forum_reports(status, id)"),
     ]);
 
     // 旧库补列：IP 属地（只记录到省，不保存完整 IP）
@@ -155,6 +198,13 @@ async function ensureForumSchema(db: D1Database): Promise<void> {
       if (!cols.has("ip_region")) {
         try {
           await db.prepare(`ALTER TABLE ${table} ADD COLUMN ip_region TEXT DEFAULT ''`).run();
+        } catch {
+          /* 并发补列时忽略 */
+        }
+      }
+      if (!cols.has("image_url")) {
+        try {
+          await db.prepare(`ALTER TABLE ${table} ADD COLUMN image_url TEXT DEFAULT ''`).run();
         } catch {
           /* 并发补列时忽略 */
         }
@@ -193,6 +243,55 @@ function ageSeconds(createdAt: string): number {
   const t = new Date(createdAt.replace(" ", "T") + "Z").getTime();
   if (Number.isNaN(t)) return Number.POSITIVE_INFINITY;
   return (Date.now() - t) / 1000;
+}
+
+/** 只接受站内上传图库路径，避免外链与脏数据 */
+function normImage(value: unknown): string {
+  const url = String(value || "").trim().slice(0, 300);
+  return url.startsWith("/static/uploads/") ? url : "";
+}
+
+interface NotifyInput {
+  userId: number | null | undefined;
+  type: "reply" | "like";
+  postId: number;
+  replyId?: number;
+  actorId: number;
+  actorName: string;
+  content: string;
+}
+
+/** 写入站内通知；自己操作自己、接收人无效时跳过；点赞同一帖子同一人只提醒一次 */
+async function notify(db: D1Database, input: NotifyInput): Promise<void> {
+  const target = Number(input.userId) || 0;
+  if (!target || target === input.actorId) return;
+  try {
+    if (input.type === "like") {
+      const exists = await db
+        .prepare(
+          "SELECT 1 AS x FROM forum_notifications WHERE user_id = ? AND type = 'like' AND post_id = ? AND actor_id = ? LIMIT 1",
+        )
+        .bind(target, input.postId, input.actorId)
+        .first<{ x: number }>();
+      if (exists) return;
+    }
+    await db
+      .prepare(
+        "INSERT INTO forum_notifications (user_id, type, post_id, reply_id, actor_id, actor_name, content) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      )
+      .bind(
+        target,
+        input.type,
+        input.postId,
+        input.replyId || 0,
+        input.actorId,
+        input.actorName.slice(0, 40),
+        input.content.slice(0, 80),
+      )
+      .run();
+  } catch {
+    /* 通知失败不影响主流程 */
+  }
 }
 
 // 公告列表（公开：无需登录；官网「论坛」页与用户中心共用）
@@ -241,7 +340,7 @@ app.get("/posts", async (c) => {
   const { results } = await db
     .prepare(
       `SELECT p.id, p.board, p.title, substr(p.content, 1, 160) AS content, p.author_id, p.author_name,
-              p.ip_region, p.pinned, p.created_at, 0 AS views,
+              p.ip_region, p.image_url, p.pinned, p.created_at, 0 AS views,
               COALESCE(r.n, 0) AS reply_count, COALESCE(l.n, 0) AS like_count
        FROM forum_posts p
        LEFT JOIN (SELECT post_id, COUNT(*) AS n FROM forum_replies GROUP BY post_id) r ON r.post_id = p.id
@@ -277,7 +376,7 @@ app.get("/posts/:id", async (c) => {
 
   const post = await db
     .prepare(
-      `SELECT p.id, p.board, p.title, p.content, p.author_id, p.author_name, p.ip_region,
+      `SELECT p.id, p.board, p.title, p.content, p.author_id, p.author_name, p.ip_region, p.image_url,
               p.pinned, p.created_at, p.updated_at, 0 AS views,
               (SELECT COUNT(*) FROM forum_replies r WHERE r.post_id = p.id) AS reply_count,
               (SELECT COUNT(*) FROM forum_likes l WHERE l.post_id = p.id) AS like_count
@@ -289,7 +388,7 @@ app.get("/posts/:id", async (c) => {
 
   const { results: replies } = await db
     .prepare(
-      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.ip_region, r.content, r.created_at,
+      `SELECT r.id, r.post_id, r.author_id, r.author_name, r.ip_region, r.image_url, r.content, r.created_at,
               COALESCE(r.parent_id, 0) AS parent_id, p.author_name AS reply_to
        FROM forum_replies r
        LEFT JOIN forum_replies p ON p.id = r.parent_id
@@ -334,10 +433,11 @@ app.post("/posts", requireAuth, async (c) => {
   const board = str(body.board, 20).trim();
   const title = str(body.title, 120).trim();
   const content = str(body.content, 10000).trim();
+  const imageUrl = normImage(body.image_url);
 
   if (!USER_BOARDS.includes(board)) return fail("请选择有效的分区");
   if (title.length < 5 || title.length > 120) return fail("标题需为 5-120 个字符");
-  if (content.length < 5 || content.length > 10000) return fail("内容需为 5-10000 个字符");
+  if ((content.length < 5 && !imageUrl) || content.length > 10000) return fail("内容需为 5-10000 个字符，或至少上传一张图片");
 
   // 频率限制：单账号 10 分钟 6 帖，单 IP 10 分钟 20 帖
   if (
@@ -357,9 +457,9 @@ app.post("/posts", requireAuth, async (c) => {
 
   const result = await db
     .prepare(
-      "INSERT INTO forum_posts (board, title, content, author_id, author_name, ip_region, pinned) VALUES (?, ?, ?, ?, ?, ?, 0)",
+      "INSERT INTO forum_posts (board, title, content, author_id, author_name, ip_region, image_url, pinned) VALUES (?, ?, ?, ?, ?, ?, ?, 0)",
     )
-    .bind(board, title, content, user.id, user.username, ipRegion(c))
+    .bind(board, title, content, user.id, user.username, ipRegion(c), imageUrl)
     .run();
   const id = Number(result.meta.last_row_id);
 
@@ -374,23 +474,29 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
   const user = c.get("user")!;
   const postId = Number(c.req.param("id")) || 0;
 
-  const post = await db.prepare("SELECT id FROM forum_posts WHERE id = ?").bind(postId).first<{ id: number }>();
+  const post = await db
+    .prepare("SELECT id, author_id, title FROM forum_posts WHERE id = ?")
+    .bind(postId)
+    .first<{ id: number; author_id: number | null; title: string }>();
   if (!post) return fail("帖子不存在", 404);
 
   const body = await c.req.json().catch(() => ({}));
   const content = str(body.content, 5000).trim();
+  const imageUrl = normImage(body.image_url);
   const parentId = Number(body.parent_id) || 0;
-  if (content.length < 2 || content.length > 5000) return fail("回复需为 2-5000 个字符");
+  if ((content.length < 2 && !imageUrl) || content.length > 5000) return fail("回复需为 2-5000 个字符");
 
   // 楼中楼：父评论必须存在且属于同一帖子
   let replyTo = "";
+  let parentAuthorId = 0;
   if (parentId > 0) {
     const parent = await db
-      .prepare("SELECT post_id, author_name FROM forum_replies WHERE id = ?")
+      .prepare("SELECT post_id, author_id, author_name FROM forum_replies WHERE id = ?")
       .bind(parentId)
-      .first<{ post_id: number; author_name: string }>();
+      .first<{ post_id: number; author_id: number | null; author_name: string }>();
     if (!parent || parent.post_id !== postId) return fail("要回复的评论不存在", 404);
     replyTo = parent.author_name;
+    parentAuthorId = Number(parent.author_id) || 0;
   }
 
   // 频率限制：单账号 10 分钟 30 条，单 IP 10 分钟 60 条
@@ -411,9 +517,9 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
 
   const result = await db
     .prepare(
-      "INSERT INTO forum_replies (post_id, author_id, author_name, ip_region, parent_id, content) VALUES (?, ?, ?, ?, ?, ?)",
+      "INSERT INTO forum_replies (post_id, author_id, author_name, ip_region, parent_id, image_url, content) VALUES (?, ?, ?, ?, ?, ?, ?)",
     )
-    .bind(postId, user.id, user.username, ipRegion(c), parentId, content)
+    .bind(postId, user.id, user.username, ipRegion(c), parentId, imageUrl, content)
     .run();
 
   const profile = await c.env.DB.prepare("SELECT avatar FROM users WHERE id = ?")
@@ -429,9 +535,32 @@ app.post("/posts/:id/reply", requireAuth, async (c) => {
     ip_region: ipRegion(c),
     parent_id: parentId,
     reply_to: replyTo,
+    image_url: imageUrl,
     content,
     created_at: new Date().toISOString().slice(0, 19).replace("T", " "),
   };
+
+  // 通知：帖子作者；楼中楼额外通知被回复的评论作者
+  await notify(db, {
+    userId: post.author_id,
+    type: "reply",
+    postId,
+    replyId: reply.id,
+    actorId: user.id,
+    actorName: user.username,
+    content,
+  });
+  if (parentAuthorId) {
+    await notify(db, {
+      userId: parentAuthorId,
+      type: "reply",
+      postId,
+      replyId: reply.id,
+      actorId: user.id,
+      actorName: user.username,
+      content,
+    });
+  }
   await logUserAction(c.env.DB, user.id, "forum_reply", `#${postId}`);
   return ok(reply);
 });
@@ -443,7 +572,10 @@ app.post("/posts/:id/like", requireAuth, async (c) => {
   const user = c.get("user")!;
   const postId = Number(c.req.param("id")) || 0;
 
-  const post = await db.prepare("SELECT id FROM forum_posts WHERE id = ?").bind(postId).first<{ id: number }>();
+  const post = await db
+    .prepare("SELECT id, author_id FROM forum_posts WHERE id = ?")
+    .bind(postId)
+    .first<{ id: number; author_id: number | null }>();
   if (!post) return fail("帖子不存在", 404);
 
   const exists = await db
@@ -464,6 +596,14 @@ app.post("/posts/:id/like", requireAuth, async (c) => {
       .bind(postId, user.id)
       .run();
     liked = true;
+    await notify(db, {
+      userId: post.author_id,
+      type: "like",
+      postId,
+      actorId: user.id,
+      actorName: user.username,
+      content: "赞了你的帖子",
+    });
   }
 
   const countRow = await db
@@ -491,6 +631,8 @@ app.post("/posts/:id/delete", requireAuth, async (c) => {
   await db.batch([
     db.prepare("DELETE FROM forum_replies WHERE post_id = ?").bind(postId),
     db.prepare("DELETE FROM forum_likes WHERE post_id = ?").bind(postId),
+    db.prepare("DELETE FROM forum_notifications WHERE post_id = ?").bind(postId),
+    db.prepare("DELETE FROM forum_reports WHERE post_id = ?").bind(postId),
     db.prepare("DELETE FROM forum_posts WHERE id = ?").bind(postId),
   ]);
 
@@ -515,9 +657,245 @@ app.post("/replies/:id/delete", requireAuth, async (c) => {
   await db.batch([
     db.prepare("DELETE FROM forum_replies WHERE parent_id = ?").bind(replyId),
     db.prepare("DELETE FROM forum_replies WHERE id = ?").bind(replyId),
+    db.prepare("DELETE FROM forum_notifications WHERE reply_id = ?").bind(replyId),
+    db.prepare("DELETE FROM forum_reports WHERE target_type = 'reply' AND target_id = ?").bind(replyId),
   ]);
   await logUserAction(c.env.DB, user.id, "forum_reply_delete", `#${reply.post_id}/${replyId}`);
   return ok({ deleted: true });
+});
+
+// —— 社区通知 ——
+
+// 通知列表（登录）：unread 为未读数，items 按时间倒序
+app.get("/notifications", requireAuth, async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const user = c.get("user")!;
+  const limit = Math.max(1, Math.min(50, Number(c.req.query("limit")) || 20));
+
+  const { results } = await db
+    .prepare(
+      `SELECT id, user_id, type, post_id, reply_id, actor_id, actor_name, content, read, created_at
+       FROM forum_notifications WHERE user_id = ? ORDER BY id DESC LIMIT ?`,
+    )
+    .bind(user.id, limit)
+    .all<Record<string, unknown>>();
+
+  const avatars = await avatarMap(c.env.DB, (results ?? []).map((r) => Number(r.actor_id) || 0));
+  const unreadRow = await db
+    .prepare("SELECT COUNT(*) AS n FROM forum_notifications WHERE user_id = ? AND read = 0")
+    .bind(user.id)
+    .first<{ n: number }>();
+
+  return ok({
+    items: (results ?? []).map((r) => ({
+      ...r,
+      actor_avatar: avatars.get(Number(r.actor_id) || 0) || "",
+    })),
+    unread: unreadRow?.n ?? 0,
+  });
+});
+
+// 未读数（登录；用于导航红点轮询）
+app.get("/notifications/unread", requireAuth, async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const user = c.get("user")!;
+  const row = await db
+    .prepare("SELECT COUNT(*) AS n FROM forum_notifications WHERE user_id = ? AND read = 0")
+    .bind(user.id)
+    .first<{ n: number }>();
+  return ok({ unread: row?.n ?? 0 });
+});
+
+// 标记已读：传 id 标记单条，不传则全部已读
+app.post("/notifications/read", requireAuth, async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const user = c.get("user")!;
+  const body = await c.req.json().catch(() => ({}));
+  const id = Number(body.id) || 0;
+  if (id > 0) {
+    await db
+      .prepare("UPDATE forum_notifications SET read = 1 WHERE id = ? AND user_id = ?")
+      .bind(id, user.id)
+      .run();
+  } else {
+    await db
+      .prepare("UPDATE forum_notifications SET read = 1 WHERE user_id = ? AND read = 0")
+      .bind(user.id)
+      .run();
+  }
+  return ok({ read: true });
+});
+
+// —— 每日签到（积分余额存主库 users.points）——
+
+/** 以北京时间计算自然日 */
+function todayCN(): string {
+  return new Date(Date.now() + 8 * 3600_000).toISOString().slice(0, 10);
+}
+
+function yesterdayCN(): string {
+  return new Date(Date.now() + 8 * 3600_000 - 86400_000).toISOString().slice(0, 10);
+}
+
+app.get("/checkin", requireAuth, async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const user = c.get("user")!;
+
+  const [todayRow, lastRow, pointsRow] = await Promise.all([
+    db.prepare("SELECT 1 AS x FROM forum_checkins WHERE user_id = ? AND day = ?").bind(user.id, todayCN()).first<{ x: number }>(),
+    db.prepare("SELECT day, streak FROM forum_checkins WHERE user_id = ? ORDER BY day DESC LIMIT 1").bind(user.id).first<{ day: string; streak: number }>(),
+    c.env.DB.prepare("SELECT points FROM users WHERE id = ?").bind(user.id).first<{ points: number }>(),
+  ]);
+
+  return ok({
+    checked_in: !!todayRow,
+    date: todayCN(),
+    points: pointsRow?.points ?? 0,
+    streak: lastRow?.day === todayCN() || lastRow?.day === yesterdayCN() ? lastRow?.streak ?? 0 : 0,
+    next_points: Math.min(10, 4 + (lastRow?.day === yesterdayCN() ? (lastRow.streak || 0) + 1 : 1)),
+  });
+});
+
+app.post("/checkin", requireAuth, async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const user = c.get("user")!;
+  const day = todayCN();
+
+  const exists = await db
+    .prepare("SELECT 1 AS x FROM forum_checkins WHERE user_id = ? AND day = ?")
+    .bind(user.id, day)
+    .first<{ x: number }>();
+  if (exists) return fail("今天已经签到过了");
+
+  const prev = await db
+    .prepare("SELECT day, streak FROM forum_checkins WHERE user_id = ? ORDER BY day DESC LIMIT 1")
+    .bind(user.id)
+    .first<{ day: string; streak: number }>();
+
+  const streak = prev?.day === yesterdayCN() ? (prev.streak || 0) + 1 : 1;
+  const gained = Math.min(10, 4 + streak);
+  await db
+    .prepare("INSERT OR IGNORE INTO forum_checkins (user_id, day, points, streak) VALUES (?, ?, ?, ?)")
+    .bind(user.id, day, gained, streak)
+    .run();
+  await c.env.DB.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(gained, user.id).run();
+  await logUserAction(c.env.DB, user.id, "forum_checkin", `连续 ${streak} 天，+${gained} 积分`);
+
+  const pointsRow = await c.env.DB.prepare("SELECT points FROM users WHERE id = ?")
+    .bind(user.id)
+    .first<{ points: number }>();
+
+  return ok({ checked_in: true, gained, streak, points: pointsRow?.points ?? 0 });
+});
+
+// —— 玩家主页（公开）——
+
+app.get("/users/:id", async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const id = Number(c.req.param("id")) || 0;
+  if (!id) return fail("用户不存在", 404);
+
+  const profile = await c.env.DB.prepare(
+    "SELECT id, username, avatar, bio, role, points, created_at FROM users WHERE id = ? AND status != 'banned'",
+  )
+    .bind(id)
+    .first<{ id: number; username: string; avatar: string | null; bio: string | null; role: string; points: number; created_at: string }>();
+  if (!profile) return fail("用户不存在", 404);
+
+  const [postCount, replyCount, likeCount, posts, replies] = await Promise.all([
+    db.prepare("SELECT COUNT(*) AS n FROM forum_posts WHERE author_id = ?").bind(id).first<{ n: number }>(),
+    db.prepare("SELECT COUNT(*) AS n FROM forum_replies WHERE author_id = ?").bind(id).first<{ n: number }>(),
+    db
+      .prepare("SELECT COUNT(*) AS n FROM forum_likes l JOIN forum_posts p ON p.id = l.post_id WHERE p.author_id = ?")
+      .bind(id)
+      .first<{ n: number }>(),
+    db
+      .prepare(
+        "SELECT id, board, title, substr(content, 1, 90) AS content, image_url, created_at FROM forum_posts WHERE author_id = ? ORDER BY id DESC LIMIT 10",
+      )
+      .bind(id)
+      .all<Record<string, unknown>>(),
+    db
+      .prepare(
+        `SELECT r.id, r.post_id, r.content, r.parent_id, r.created_at, p.title AS post_title
+         FROM forum_replies r LEFT JOIN forum_posts p ON p.id = r.post_id
+         WHERE r.author_id = ? ORDER BY r.id DESC LIMIT 10`,
+      )
+      .bind(id)
+      .all<Record<string, unknown>>(),
+  ]);
+
+  return ok({
+    user: {
+      ...profile,
+      avatar: profile.avatar || "",
+      bio: profile.bio || "",
+      points: profile.points ?? 0,
+    },
+    stats: {
+      posts: postCount?.n ?? 0,
+      replies: replyCount?.n ?? 0,
+      likes: likeCount?.n ?? 0,
+    },
+    posts: posts.results ?? [],
+    replies: replies.results ?? [],
+  });
+});
+
+// —— 举报 ——
+
+app.post("/reports", requireAuth, async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const user = c.get("user")!;
+
+  const body = await c.req.json().catch(() => ({}));
+  const targetType = body.target_type === "reply" ? "reply" : "post";
+  const targetId = Number(body.target_id) || 0;
+  const reason = str(body.reason, 40).trim();
+  const detail = str(body.detail, 300).trim();
+  if (!targetId) return fail("举报对象不存在", 404);
+  if (reason.length < 2) return fail("请选择举报原因");
+
+  if (!(await rateLimit(c.env.DB, `forum-report:${user.id}`, 10, 3600))) {
+    return fail("举报过于频繁，请稍后再试", 429);
+  }
+
+  let postId = targetId;
+  let authorId = 0;
+  if (targetType === "post") {
+    const row = await db.prepare("SELECT id, author_id FROM forum_posts WHERE id = ?").bind(targetId).first<{ id: number; author_id: number | null }>();
+    if (!row) return fail("帖子不存在", 404);
+    postId = row.id;
+    authorId = Number(row.author_id) || 0;
+  } else {
+    const row = await db.prepare("SELECT id, post_id, author_id FROM forum_replies WHERE id = ?").bind(targetId).first<{ id: number; post_id: number; author_id: number | null }>();
+    if (!row) return fail("评论不存在", 404);
+    postId = row.post_id;
+    authorId = Number(row.author_id) || 0;
+  }
+  if (authorId === user.id) return fail("不能举报自己的内容");
+
+  const dup = await db
+    .prepare("SELECT 1 AS x FROM forum_reports WHERE reporter_id = ? AND target_type = ? AND target_id = ? AND status = 'pending'")
+    .bind(user.id, targetType, targetId)
+    .first<{ x: number }>();
+  if (dup) return fail("你已举报过该内容，管理员会尽快处理");
+
+  await db
+    .prepare(
+      "INSERT INTO forum_reports (target_type, target_id, post_id, reporter_id, reporter_name, reason, detail) VALUES (?, ?, ?, ?, ?, ?, ?)",
+    )
+    .bind(targetType, targetId, postId, user.id, user.username, reason, detail)
+    .run();
+  await logUserAction(c.env.DB, user.id, "forum_report", `${targetType}#${targetId} ${reason}`);
+  return ok({ reported: true });
 });
 
 // —— 管理端 ——
@@ -579,6 +957,105 @@ app.delete("/admin/announcements/:id", async (c) => {
   await fdb(c).prepare("DELETE FROM forum_posts WHERE id = ?").bind(id).run();
   await logOp(c.env.DB, c, admin.id, "forum_announcement_delete", `#${id}`);
   return ok({ deleted: true });
+});
+
+// —— 管理端：举报处理 ——
+
+interface ReportRow {
+  id: number;
+  target_type: "post" | "reply";
+  target_id: number;
+  post_id: number;
+  reporter_id: number;
+  reporter_name: string;
+  reason: string;
+  detail: string;
+  status: string;
+  created_at: string;
+}
+
+// 举报列表：默认只返回待处理，status=all 返回全部
+app.get("/admin/reports", async (c) => {
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const all = c.req.query("status") === "all";
+
+  const { results } = await db
+    .prepare(
+      `SELECT id, target_type, target_id, post_id, reporter_id, reporter_name, reason, detail, status, created_at
+       FROM forum_reports ${all ? "" : "WHERE status = 'pending'"} ORDER BY id DESC LIMIT 100`,
+    )
+    .all<ReportRow>();
+
+  const items: (ReportRow & { target: Record<string, unknown> | null })[] = [];
+  for (const r of results ?? []) {
+    let target: Record<string, unknown> | null = null;
+    if (r.target_type === "post") {
+      target = await db
+        .prepare("SELECT id, title, substr(content, 1, 120) AS content, author_name FROM forum_posts WHERE id = ?")
+        .bind(r.target_id)
+        .first<Record<string, unknown>>();
+    } else {
+      target = await db
+        .prepare(
+          `SELECT r.id, substr(r.content, 1, 120) AS content, r.author_name, r.post_id, p.title AS post_title
+           FROM forum_replies r LEFT JOIN forum_posts p ON p.id = r.post_id WHERE r.id = ?`,
+        )
+        .bind(r.target_id)
+        .first<Record<string, unknown>>();
+    }
+    items.push({ ...r, target });
+  }
+
+  return ok(items);
+});
+
+// 处理举报：action=delete 删除内容并标记已处理；action=reject 仅驳回
+app.post("/admin/reports/:id", async (c) => {
+  const admin = c.get("user")!;
+  const db = fdb(c);
+  await ensureForumSchema(db);
+  const id = Number(c.req.param("id")) || 0;
+  const body = await c.req.json().catch(() => ({}));
+  const action = body.action === "delete" ? "delete" : "reject";
+
+  const report = await db
+    .prepare("SELECT * FROM forum_reports WHERE id = ?")
+    .bind(id)
+    .first<ReportRow>();
+  if (!report) return fail("举报不存在", 404);
+  if (report.status !== "pending") return fail("该举报已处理");
+
+  if (action === "delete") {
+    if (report.target_type === "post") {
+      await db.batch([
+        db.prepare("DELETE FROM forum_replies WHERE post_id = ?").bind(report.target_id),
+        db.prepare("DELETE FROM forum_likes WHERE post_id = ?").bind(report.target_id),
+        db.prepare("DELETE FROM forum_notifications WHERE post_id = ?").bind(report.target_id),
+        db.prepare("DELETE FROM forum_posts WHERE id = ?").bind(report.target_id),
+      ]);
+      await db
+        .prepare("UPDATE forum_reports SET status = 'resolved' WHERE target_type = 'post' AND target_id = ?")
+        .bind(report.target_id)
+        .run();
+    } else {
+      await db.batch([
+        db.prepare("DELETE FROM forum_replies WHERE parent_id = ?").bind(report.target_id),
+        db.prepare("DELETE FROM forum_replies WHERE id = ?").bind(report.target_id),
+        db.prepare("DELETE FROM forum_notifications WHERE reply_id = ?").bind(report.target_id),
+      ]);
+      await db
+        .prepare("UPDATE forum_reports SET status = 'resolved' WHERE target_type = 'reply' AND target_id = ?")
+        .bind(report.target_id)
+        .run();
+    }
+    await logOp(c.env.DB, c, admin.id, "forum_report_delete", `${report.target_type}#${report.target_id}`);
+  } else {
+    await db.prepare("UPDATE forum_reports SET status = 'rejected' WHERE id = ?").bind(id).run();
+    await logOp(c.env.DB, c, admin.id, "forum_report_reject", `#${id}`);
+  }
+
+  return ok({ handled: true, action });
 });
 
 export default app;

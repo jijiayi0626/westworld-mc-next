@@ -6,6 +6,8 @@ import { useAuth } from "@/components/AuthProvider";
 import { useSiteContent } from "@/components/SiteContentProvider";
 import { api } from "@/lib/api";
 import FeedView from "./FeedView";
+import NotificationsView from "./NotificationsView";
+import ProfileView from "./ProfileView";
 import RoomChat from "./RoomChat";
 import RoomsView from "./RoomsView";
 import {
@@ -20,6 +22,7 @@ import {
 
 const NAV: { key: CommunityView; label: string; desc: string }[] = [
   { key: "feed", label: "社区动态", desc: "发帖 · 讨论" },
+  { key: "notifications", label: "通知", desc: "回复 · 点赞" },
   { key: "community", label: "社区群", desc: "全员频道" },
   { key: "dms", label: "私信", desc: "好友一对聊" },
   { key: "groups", label: "群聊", desc: "自建群组" },
@@ -33,6 +36,14 @@ function NavIcon({ view }: { view: CommunityView }) {
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}>
         <rect x="4" y="4" width="16" height="16" rx="2" />
         <path d="M8 9h8M8 13h8M8 17h5" strokeLinecap="round" />
+      </svg>
+    );
+  }
+  if (view === "notifications") {
+    return (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={cls}>
+        <path d="M6 9a6 6 0 1112 0c0 4 1.5 5.5 2 6H4c.5-.5 2-2 2-6z" strokeLinejoin="round" />
+        <path d="M10 19a2 2 0 004 0" strokeLinecap="round" />
       </svg>
     );
   }
@@ -80,6 +91,8 @@ export default function CommunityApp() {
   const [active, setActive] = useState<{ view: "dms" | "groups"; id: number; name: string } | null>(null);
   const [limits, setLimits] = useState<CommunityLimits | null>(null);
   const [unread, setUnread] = useState({ community: 0, dm: 0, group: 0, total: 0 });
+  const [notifUnread, setNotifUnread] = useState(0);
+  const [profileId, setProfileId] = useState<number | null>(null);
   const [uploading, setUploading] = useState(false);
   const avatarRef = useRef<HTMLInputElement | null>(null);
 
@@ -90,8 +103,11 @@ export default function CommunityApp() {
   }, []);
 
   useEffect(() => {
-    const v = new URLSearchParams(window.location.search).get("view");
+    const sp = new URLSearchParams(window.location.search);
+    const v = sp.get("view");
     if (v && NAV.some((n) => n.key === v)) setView(v as CommunityView);
+    const uid = Number(sp.get("user")) || 0;
+    if (uid > 0) setProfileId(uid);
   }, []);
 
   const loadUnread = useCallback(async () => {
@@ -123,6 +139,28 @@ export default function CommunityApp() {
     }, 10000);
     return () => clearInterval(timer);
   }, [loadUnread, user, view, active]);
+
+  const loadNotifUnread = useCallback(async () => {
+    if (!user) {
+      setNotifUnread(0);
+      return;
+    }
+    try {
+      const data = await api<{ unread: number }>("/forum/notifications/unread");
+      setNotifUnread(Number(data.unread) || 0);
+    } catch {
+      /* 通知统计失败不打扰 */
+    }
+  }, [user]);
+
+  useEffect(() => {
+    void loadNotifUnread();
+    if (!user) return;
+    const timer = setInterval(() => {
+      if (document.visibilityState === "visible") void loadNotifUnread();
+    }, 20000);
+    return () => clearInterval(timer);
+  }, [loadNotifUnread, user]);
 
   const needLogin = () => {
     window.location.href = "/login";
@@ -156,12 +194,52 @@ export default function CommunityApp() {
   const switchView = (v: CommunityView) => {
     setView(v);
     setActive(null);
+    setProfileId(null);
     try {
       const url = new URL(window.location.href);
       url.searchParams.set("view", v);
+      url.searchParams.delete("user");
       window.history.replaceState(null, "", url.toString());
     } catch {
       /* 忽略历史记录写入失败 */
+    }
+  };
+
+  const openProfile = (id: number) => {
+    setProfileId(id);
+    setActive(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("user", String(id));
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 忽略 */
+    }
+  };
+
+  const closeProfile = () => {
+    setProfileId(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.delete("user");
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 忽略 */
+    }
+  };
+
+  const openPost = (id: number) => {
+    setProfileId(null);
+    setView("feed");
+    setActive(null);
+    try {
+      const url = new URL(window.location.href);
+      url.searchParams.set("view", "feed");
+      url.searchParams.set("post", String(id));
+      url.searchParams.delete("user");
+      window.history.replaceState(null, "", url.toString());
+    } catch {
+      /* 忽略 */
     }
   };
 
@@ -170,6 +248,7 @@ export default function CommunityApp() {
   };
 
   const badgeOf = (key: CommunityView) => {
+    if (key === "notifications") return notifUnread;
     if (key === "community") return unread.community;
     if (key === "dms") return unread.dm;
     if (key === "groups") return unread.group;
@@ -197,8 +276,15 @@ export default function CommunityApp() {
   );
 
   const content = (() => {
-    if (view === "feed") return <FeedView me={user} onNeedLogin={needLogin} />;
+    if (profileId) {
+      return <ProfileView userId={profileId} me={user} onBack={closeProfile} onOpenPost={openPost} />;
+    }
+    if (view === "feed") return <FeedView me={user} onNeedLogin={needLogin} onOpenUser={openProfile} />;
     if (!user) return loginGate;
+
+    if (view === "notifications") {
+      return <NotificationsView onOpenPost={openPost} onRead={() => setNotifUnread(0)} />;
+    }
 
     if (view === "community") {
       return <RoomChat roomId={1} me={user} fallbackName="社区群" />;
@@ -370,6 +456,13 @@ export default function CommunityApp() {
                   个人中心
                   <span className="text-white/20">→</span>
                 </Link>
+                <button
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                  onClick={() => openProfile(user.id)}
+                >
+                  我的主页
+                  <span className="text-white/20">→</span>
+                </button>
                 <button
                   className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                   onClick={() => avatarRef.current?.click()}

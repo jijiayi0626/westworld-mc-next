@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 
-export type CommunityView = "feed" | "community" | "dms" | "groups" | "friends";
+export type CommunityView = "feed" | "community" | "dms" | "groups" | "friends" | "notifications";
 
 export interface RoomSummary {
   id: number;
@@ -83,6 +83,7 @@ export interface ForumPostItem {
   author_name: string;
   author_avatar: string;
   ip_region?: string;
+  image_url?: string;
   pinned: number;
   reply_count: number;
   like_count: number;
@@ -103,6 +104,7 @@ export interface ForumReply {
   ip_region?: string;
   parent_id?: number;
   reply_to?: string;
+  image_url?: string;
   content: string;
   created_at: string;
 }
