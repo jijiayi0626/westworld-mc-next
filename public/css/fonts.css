@@ -1,0 +1,47 @@
+/* ============================================================
+   站点字体切换
+   由后台「网站设置 → 外观模板 → 字体」写入 <html data-font="...">，
+   所有页面（含后台与用户中心）统一生效。
+   ============================================================ */
+
+:root[data-font="wenkai"] {
+  --site-font: "LXGW WenKai", "LXGW WenKai Screen", "KaiTi", "STKaiti", "楷体", system-ui, sans-serif;
+}
+
+:root[data-font="wenkai-screen"] {
+  --site-font: "LXGW WenKai Screen", "LXGW WenKai", "KaiTi", "STKaiti", "楷体", system-ui, sans-serif;
+}
+
+:root[data-font="kaiti"] {
+  --site-font: "KaiTi", "STKaiti", "Kaiti SC", "楷体", "Noto Serif CJK SC", serif;
+}
+
+:root[data-font="wenkai"] body,
+:root[data-font="wenkai"] button,
+:root[data-font="wenkai"] input,
+:root[data-font="wenkai"] textarea,
+:root[data-font="wenkai"] select,
+:root[data-font="wenkai"] .font-sans,
+:root[data-font="wenkai-screen"] body,
+:root[data-font="wenkai-screen"] button,
+:root[data-font="wenkai-screen"] input,
+:root[data-font="wenkai-screen"] textarea,
+:root[data-font="wenkai-screen"] select,
+:root[data-font="wenkai-screen"] .font-sans,
+:root[data-font="kaiti"] body,
+:root[data-font="kaiti"] button,
+:root[data-font="kaiti"] input,
+:root[data-font="kaiti"] textarea,
+:root[data-font="kaiti"] select,
+:root[data-font="kaiti"] .font-sans {
+  font-family: var(--site-font) !important;
+}
+
+/* 等宽字体保持等宽，避免代码 / 终端区域被替换 */
+:root[data-font] pre,
+:root[data-font] code,
+:root[data-font] kbd,
+:root[data-font] .font-mono,
+:root[data-font] [class*="mono"] {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace !important;
+}

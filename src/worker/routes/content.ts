@@ -21,21 +21,25 @@ app.get("/site", async (c) => {
   }
 });
 
-// 获取当前启用的前台模板（公开）：后台「网站设置 → 外观模板」可切换
-// 可用模板由环境变量 THEME_SLOTS 决定（如 "v1,v2"），需与构建时的 THEME_SLOTS 一致
+// 获取当前启用的前台模板与字体（公开）：后台「网站设置 → 外观模板」可切换
+// 可用模板由环境变量 THEME_SLOTS 决定（如 "v1,v3"），需与构建时的 THEME_SLOTS 一致
 app.get("/theme", async (c) => {
-  const row = await c.env.DB.prepare(
-    "SELECT value FROM site_settings WHERE key = 'frontend_theme'",
-  ).first<{ value: string }>();
+  const rows = await c.env.DB.prepare(
+    "SELECT key, value FROM site_settings WHERE key IN ('frontend_theme', 'site_font')",
+  ).all<{ key: string; value: string }>();
+  const map = new Map((rows.results ?? []).map((r) => [r.key, String(r.value || "")]));
   const rawSlots = String(c.env.THEME_SLOTS ?? "").trim();
   const parsed = rawSlots
     .split(",")
     .map((v) => v.trim().toLowerCase())
     .filter((v) => /^[a-z0-9][a-z0-9_-]*$/.test(v));
-  const slots = parsed.length ? [...new Set(parsed)] : ["v1", "v2"];
-  const stored = String(row?.value || "").trim().toLowerCase();
+  const slots = parsed.length ? [...new Set(parsed)] : ["v1", "v3"];
+  const stored = String(map.get("frontend_theme") || "").trim().toLowerCase();
   const theme = stored && slots.includes(stored) ? stored : slots[0];
-  return ok({ theme, slots });
+  const FONT_KEYS = ["system", "wenkai", "wenkai-screen", "kaiti"];
+  const fontStored = String(map.get("site_font") || "").trim();
+  const font = FONT_KEYS.includes(fontStored) ? fontStored : "system";
+  return ok({ theme, slots, font });
 });
 
 // 获取站点图标（公开）：后台「网站设置 → 基础设置」可上传 / 填写

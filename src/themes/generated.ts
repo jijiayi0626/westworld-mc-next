@@ -4,8 +4,6 @@
 import type { ComponentType, ReactNode } from "react";
 import LayoutV1 from "./v1/Layout";
 import HomeV1 from "./v1/Home";
-import LayoutV2 from "./v2/Layout";
-import HomeV2 from "./v2/Home";
 import LayoutV3 from "./v3/Layout";
 import HomeV3 from "./v3/Home";
 
@@ -30,16 +28,6 @@ export const THEMES: GeneratedTheme[] = [
     css: "",
     Layout: LayoutV1,
     Home: HomeV1,
-  },
-  {
-    key: "v2",
-    name: "模板二 · 暗夜绿光",
-    desc: "极夜底色 + 网格霓虹绿光，序号化窄栏排版、数据化状态条，更克制现代的科技风。",
-    version: "1.0.0",
-    swatch: ["#05080a","#2ce88a","#35d6d0"],
-    css: "/themes/v2/theme.css",
-    Layout: LayoutV2,
-    Home: HomeV2,
   },
   {
     key: "v3",

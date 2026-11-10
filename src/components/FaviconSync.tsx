@@ -11,11 +11,15 @@ export function FaviconSync() {
       .then((body) => {
         const url = body?.data?.url;
         if (cancelled || !url) return;
-        document.querySelectorAll('link[rel~="icon"]').forEach((el) => el.remove());
+        document.querySelectorAll('link[rel~="icon"], link[rel="apple-touch-icon"]').forEach((el) => el.remove());
         const link = document.createElement("link");
         link.rel = "icon";
         link.href = url;
         document.head.appendChild(link);
+        const apple = document.createElement("link");
+        apple.rel = "apple-touch-icon";
+        apple.href = url;
+        document.head.appendChild(apple);
       })
       .catch(() => {
         /* 图标加载失败时保留默认图标 */
