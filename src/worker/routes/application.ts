@@ -3,7 +3,7 @@ import type { AppEnv } from "../lib/auth";
 import { requireAuth, requireAdmin } from "../lib/auth";
 import { ok, fail } from "../lib/http";
 import { isValidPlayerName, str } from "../lib/validate";
-import { isBlacklisted } from "../lib/ratelimit";
+import { isBlacklisted, rateLimit } from "../lib/ratelimit";
 import { getClientIp, getUa } from "../lib/net";
 import { logOp } from "../lib/log";
 import { queueAdminMail, siteNotifyEnabled } from "../lib/notify";
@@ -57,8 +57,17 @@ app.use("/submit", requireAuth);
 
 // 提交入服申请
 app.post("/submit", async (c) => {
-  if (await isBlacklisted(c.env.DB, getClientIp(c))) return fail("请求被拒绝", 403);
   const user = c.get("user")!;
+  const ip = getClientIp(c);
+  if (await isBlacklisted(c.env.DB, ip)) return fail("请求被拒绝", 403);
+  // 同一账号每天 3 份、同一 IP 每天 10 份：入服申请没有频率上限时可被反复提交，
+  // 既刷爆审核队列，也会持续给管理员发通知邮件
+  if (
+    !(await rateLimit(c.env.DB, `whitelist-submit:${user.id}`, 3, 86400)) ||
+    !(await rateLimit(c.env.DB, `whitelist-submit-ip:${ip}`, 10, 86400))
+  ) {
+    return fail("提交过于频繁，请明天再试", 429);
+  }
   const body = await c.req.json().catch(() => ({}));
   const mcName = str(body.mc_name, 16).trim();
   const type = ["java", "bedrock"].includes(body.type) ? body.type : "java";

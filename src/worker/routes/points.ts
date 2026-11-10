@@ -123,12 +123,25 @@ app.post("/exchange", requireAuth, async (c) => {
     server.password,
     fillTemplate(economy.give_cmd, mcName, String(currency)),
     8,
-  ).catch((e: unknown) => ({ ok: false, message: e instanceof Error ? e.message : "RCON 执行失败" }));
+  );
 
   if (!result.ok) {
-    // 发放失败，原路退回积分
+    // 超时/断连这类失败无法确定命令是否已经执行：此时退回积分会出现「积分退回 + 游戏币到账」的双花，
+    // 因此保留扣款、写入待核对流水并交给管理员处理
+    if (result.uncertain) {
+      const reason = (result.message || "RCON 结果未确认").slice(0, 200);
+      await db
+        .prepare(
+          "INSERT INTO points_logs (user_id, amount, reason, detail) VALUES (?, 0, 'exchange_unknown', ?)",
+        )
+        .bind(user.id, `${currency} ${economy.currency_name}；${reason}`)
+        .run();
+      await logOp(db, c, user.id, "points_exchange_unknown", `${cost} → ${currency} ${economy.currency_name}：${reason}`);
+      return fail("发放结果待确认，积分暂未退回，请联系管理员核对", 502);
+    }
+    // 确定失败（未连接、认证失败等）才原路退回
     await db.prepare("UPDATE users SET points = points + ? WHERE id = ?").bind(cost, user.id).run();
-    await logOp(db, c, user.id, "points_exchange_failed", result.message || "rcn_failed");
+    await logOp(db, c, user.id, "points_exchange_failed", result.message || "rcon_failed");
     return fail("发放失败，积分已退回，请稍后再试", 502);
   }
 

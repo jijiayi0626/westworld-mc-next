@@ -78,7 +78,9 @@ export async function requireAuth(c: Context<AppEnv>, next: Next) {
     c.set("user", { id: row.id, username: row.username, role: row.role });
     await next();
   } catch (e) {
-    return c.json({ code: 500, message: (e as Error).message, data: null }, 500);
+    // 详情只进日志：把内部异常（签名解析、密钥缺失、D1 抖动）回传给客户端既无用又泄露实现细节
+    console.error("[auth] 会话校验异常:", e instanceof Error ? e.message : e);
+    return c.json({ code: 401, message: "登录状态异常，请重新登录", data: null }, 401);
   }
 }
 

@@ -494,7 +494,9 @@ async function sendTextCore(
     }
   }
 
-  const content = str(raw, cfg.max_text).trim();
+  // 注意：str() 自身会按第二个参数截断，若直接传 cfg.max_text，下面的超长判断永远不成立，
+  // 用户只会看到消息被悄悄截断。这里先放宽到上限的 10 倍，再由下面的长度判断明确报错。
+  const content = str(raw, cfg.max_text * 10).trim();
   if (!content) return { ok: false, message: "消息不能为空" };
   if (content.length > cfg.max_text) return { ok: false, message: `消息需在 ${cfg.max_text} 字以内` };
 

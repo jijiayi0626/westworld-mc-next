@@ -19,10 +19,13 @@ interface TicketAttachment {
   type: string;
 }
 
-/** 校验并收敛客户端提交的附件列表（最多 5 个，仅允许 uploads/tickets/） */
-function parseAttachments(raw: unknown): TicketAttachment[] {
+/** 工单附件命名规则（见 routes/upload.ts 的 ticket-file） */
+const ATTACHMENT_KEY_RE = /^uploads\/tickets\/\d+-\d+-[a-z0-9]{1,12}\.(?:png|jpg|webp|gif|pdf|zip)$/;
+
+/** 校验并收敛客户端提交的附件列表（最多 5 个，仅允许 uploads/tickets/ 下真实存在的对象） */
+async function parseAttachments(env: AppEnv["Bindings"], raw: unknown): Promise<TicketAttachment[]> {
   if (!Array.isArray(raw)) return [];
-  return raw
+  const items = raw
     .slice(0, 5)
     .map((item) => {
       const a = (item ?? {}) as Record<string, unknown>;
@@ -30,7 +33,7 @@ function parseAttachments(raw: unknown): TicketAttachment[] {
       const name = str(a.name, 120);
       const size = Number(a.size) || 0;
       const type = str(a.type, 100);
-      if (!key.startsWith("uploads/tickets/")) return null;
+      if (!ATTACHMENT_KEY_RE.test(key)) return null;
       return {
         key,
         url: `/static/${key}`,
@@ -40,6 +43,28 @@ function parseAttachments(raw: unknown): TicketAttachment[] {
       };
     })
     .filter((x): x is TicketAttachment => !!x);
+
+  if (items.length === 0) return [];
+  // R2 未绑定（本地开发）时退化为仅格式校验；绑定后必须确认对象真实存在，
+  // 否则客户端可以拼出任意 uploads/tickets/ 路径塞进工单
+  if (!env.ASSETS) return items;
+
+  const checked = await Promise.all(
+    items.map(async (item) => {
+      try {
+        const obj = await env.ASSETS!.head(item.key);
+        if (!obj) return null;
+        return {
+          ...item,
+          size: Math.max(0, Math.min(obj.size, 10 * 1024 * 1024)),
+          type: obj.httpMetadata?.contentType || item.type,
+        };
+      } catch {
+        return null;
+      }
+    }),
+  );
+  return checked.filter((x): x is TicketAttachment => !!x);
 }
 
 function replyView(r: {
@@ -94,7 +119,7 @@ app.post("/create", async (c) => {
   const category = ["general", "apply", "bug", "payment"].includes(body.category) ? body.category : "general";
   const priority = ["low", "normal", "high"].includes(body.priority) ? body.priority : "normal";
   const content = str(body.content, 5000).trim();
-  const attachments = parseAttachments(body.attachments);
+  const attachments = await parseAttachments(c.env, body.attachments);
 
   if (!subject || (!content && attachments.length === 0)) return fail("标题和内容不能为空");
 
@@ -179,7 +204,7 @@ app.post("/:id/reply", requireAuth, async (c) => {
   const id = Number(c.req.param("id"));
   const body = await c.req.json().catch(() => ({}));
   const content = str(body.content, 5000).trim();
-  const attachments = parseAttachments(body.attachments);
+  const attachments = await parseAttachments(c.env, body.attachments);
   if (!content && attachments.length === 0) return fail("回复内容不能为空");
 
   const ticket = await c.env.DB.prepare(

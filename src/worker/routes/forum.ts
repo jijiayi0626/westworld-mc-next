@@ -617,21 +617,25 @@ app.post("/posts/:id/like", requireAuth, async (c) => {
       .run();
     liked = false;
   } else {
-    await db
+    // 并发点赞时两个请求都可能查到「未点赞」，INSERT OR IGNORE 只会有一次真正写入；
+    // 必须按实际写入行数判定，否则作者会被重复发放点赞积分、重复收到通知
+    const inserted = await db
       .prepare("INSERT OR IGNORE INTO forum_likes (post_id, user_id) VALUES (?, ?)")
       .bind(postId, user.id)
       .run();
     liked = true;
-    await notify(db, {
-      userId: post.author_id,
-      type: "like",
-      postId,
-      actorId: user.id,
-      actorName: user.username,
-      content: "赞了你的帖子",
-    });
-    if (post.author_id && post.author_id !== user.id) {
-      await awardAction(c.env.DB, post.author_id, "like", `帖子 #${postId}`);
+    if (Number(inserted.meta.changes) > 0) {
+      await notify(db, {
+        userId: post.author_id,
+        type: "like",
+        postId,
+        actorId: user.id,
+        actorName: user.username,
+        content: "赞了你的帖子",
+      });
+      if (post.author_id && post.author_id !== user.id) {
+        await awardAction(c.env.DB, post.author_id, "like", `帖子 #${postId}`);
+      }
     }
   }
 

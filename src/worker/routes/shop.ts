@@ -203,6 +203,18 @@ export async function deliverOrder(env: AppEnv["Bindings"], orderId: number): Pr
     return true;
   }
 
+  // 命令可能已经送达（响应超时 / 连接中断）：继续重试会导致同一笔订单重复发货，
+  // 因此标记为 unknown 并停止自动重试，交由管理员核对后再手动重试
+  if (res.uncertain) {
+    await env.DB.prepare(
+      `UPDATE shop_orders SET delivery_status = 'unknown', delivery_attempts = ?, delivery_log = ?,
+         next_retry_at = NULL WHERE id = ?`,
+    )
+      .bind(attempts, `发货结果未确认，已停止自动重试，请人工核对：${(res.message || "").slice(0, 800)}`, orderId)
+      .run();
+    return false;
+  }
+
   const exhausted = attempts >= DELIVERY_MAX_ATTEMPTS;
   await env.DB.prepare(
     `UPDATE shop_orders SET delivery_status = ?, delivery_attempts = ?, delivery_log = ?,
@@ -243,7 +255,7 @@ export async function processDeliveryQueue(env: AppEnv["Bindings"]): Promise<voi
 export async function expireStaleOrders(env: AppEnv["Bindings"]): Promise<void> {
   const { results } = await env.DB.prepare(
     `SELECT id, product_id, qty FROM shop_orders
-     WHERE status = 'pending' AND provider != 'economy'
+     WHERE status = 'pending' AND (provider IS NULL OR provider <> 'economy')
        AND created_at <= datetime('now','-30 minutes') LIMIT 50`,
   ).all<{ id: number; product_id: number; qty: number }>();
   for (const o of results) {
@@ -324,7 +336,8 @@ app.post("/order", async (c) => {
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const productId = Number(body.product_id);
-  const qty = Math.min(Math.max(Number(body.qty) || 1, 1), 99);
+  // 件数必须是正整数：小数件数（如 2.5）会让订单金额与发货数量对不上，也可能绕过库存校验
+  const qty = Math.min(Math.max(Math.trunc(Number(body.qty)) || 1, 1), 99);
   const payEconomy = body.payment_method === "economy";
 
   const product = await c.env.DB.prepare(
@@ -386,12 +399,22 @@ app.post("/order", async (c) => {
 
     const deductRes = await runRconCommand(c, server.host, server.port, server.password, fillTemplate(cfg.deduct_cmd, mcName, amount), 8);
     if (!deductRes.ok) {
-      // 扣款没成功：取消订单并归还库存，避免库存被永久占用
+      const reason = (deductRes.message || "RCON 结果未确认").slice(0, 300);
+      if (deductRes.uncertain) {
+        // 扣款结果未知（超时/断连）：服务器可能已经扣款，此时取消订单并归还库存等于白送商品，
+        // 因此只记录状态，订单保持 pending 等待管理员核对
+        await c.env.DB.prepare(
+          "UPDATE shop_orders SET delivery_log = ? WHERE id = ? AND status = 'pending'",
+        ).bind(`扣款结果待确认：${reason}`.slice(0, 500), orderId).run();
+        await logOp(c.env.DB, c, user.id, "shop_order_economy_deduct_unknown", `${orderNo} ${mcName} ${total}${currency}: ${reason}`);
+        return fail(`扣款结果未确认，订单 ${orderNo} 已保留，请联系管理员核对`, 502);
+      }
+      // 确定失败（未连接、认证失败等）才取消订单并归还库存
       await c.env.DB.prepare(
         "UPDATE shop_orders SET status = 'cancelled', delivery_log = ? WHERE id = ? AND status = 'pending'",
-      ).bind(`扣款失败：${deductRes.message || ""}`.slice(0, 500), orderId).run();
+      ).bind(`扣款失败：${reason}`.slice(0, 500), orderId).run();
       await restoreStock(c.env.DB, product.id, qty);
-      await logOp(c.env.DB, c, user.id, "shop_order_economy_deduct_failed", `${orderNo} ${mcName} ${total}${currency}: ${deductRes.message || ""}`);
+      await logOp(c.env.DB, c, user.id, "shop_order_economy_deduct_failed", `${orderNo} ${mcName} ${total}${currency}: ${reason}`);
       return fail("扣款失败，订单已取消，请稍后再试或联系管理员", 502);
     }
 
