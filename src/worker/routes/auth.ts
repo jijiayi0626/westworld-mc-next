@@ -101,7 +101,10 @@ app.post("/login", async (c) => {
   if (!user || !(await verifyPassword(password, user.password_hash))) {
     return fail("账号或密码错误", 401);
   }
-  if (user.status === "banned") return fail("该账号已被封禁", 403);
+  // 与 requireAuth 保持一致：只有 active 才能登录；banned 单独提示，其余状态统一拦截
+  if (user.status !== "active") {
+    return fail(user.status === "banned" ? "该账号已被封禁" : "账号状态异常，请联系管理员", 403);
+  }
 
   const token = await signToken(
     { sub: String(user.id), username: user.username, role: user.role },
