@@ -1,0 +1,9 @@
+{
+  "id": "v3",
+  "name": "模板三 · 极光幻境",
+  "version": "1.0.0",
+  "description": "深空靛蓝底 + 极光渐变，悬浮胶囊导航、超大标题与便当式卡片布局，偏现代 SaaS 的科技风。",
+  "swatch": ["#070812", "#6d5efc", "#22d3ee"],
+  "css": "theme.css",
+  "entry": "src/themes/v3"
+}

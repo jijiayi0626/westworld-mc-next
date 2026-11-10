@@ -60,6 +60,6 @@
     "INU_ORIGIN": "https://inu-space-pass.mr-jijiayi.workers.dev",
     "INU_REDIRECT_URI": "https://westworld.inumc.dpdns.org/api/inu/callback",
     "INU_SCOPES": "profile email",
-    "THEME_SLOTS": "v1,v2"
+    "THEME_SLOTS": "v1,v2,v3"
   }
 }

@@ -6,6 +6,8 @@ import LayoutV1 from "./v1/Layout";
 import HomeV1 from "./v1/Home";
 import LayoutV2 from "./v2/Layout";
 import HomeV2 from "./v2/Home";
+import LayoutV3 from "./v3/Layout";
+import HomeV3 from "./v3/Home";
 
 export interface GeneratedTheme {
   key: string;
@@ -38,5 +40,15 @@ export const THEMES: GeneratedTheme[] = [
     css: "/themes/v2/theme.css",
     Layout: LayoutV2,
     Home: HomeV2,
+  },
+  {
+    key: "v3",
+    name: "模板三 · 极光幻境",
+    desc: "深空靛蓝底 + 极光渐变，悬浮胶囊导航、超大标题与便当式卡片布局，偏现代 SaaS 的科技风。",
+    version: "1.0.0",
+    swatch: ["#070812","#6d5efc","#22d3ee"],
+    css: "/themes/v3/theme.css",
+    Layout: LayoutV3,
+    Home: HomeV3,
   },
 ];
