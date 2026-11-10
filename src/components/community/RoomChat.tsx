@@ -198,6 +198,7 @@ export default function RoomChat({
     setMentionIds([]);
     setMentionOpen(false);
     setMenuOpen(false);
+    setText("");
 
     (async () => {
       try {
