@@ -136,6 +136,20 @@ function publicConfig(cfg: RconWhitelistConfig) {
   };
 }
 
+/** RCON 命令执行结果。uncertain=true 表示「命令可能已经送达服务器，但没拿到响应」，
+ *  调用方必须保留资金/库存状态等待人工核对，不能按失败回滚。 */
+export interface RconResult {
+  ok: boolean;
+  output?: string;
+  message?: string;
+  uncertain?: boolean;
+}
+
+/** 这些错误发生在命令写进 TCP 之后：服务器可能已经执行，只是响应没回来 */
+function isUncertainRconError(message: string): boolean {
+  return /响应超时|非预期响应|连接已断开|已关闭/.test(message);
+}
+
 /** 通过 RconDO 执行命令：host/port/password/command/timeout（供商城经济插件等模块复用） */
 export async function runRconCommand(
   c: { env: AppEnv["Bindings"] },
@@ -144,7 +158,7 @@ export async function runRconCommand(
   password: string,
   command: string,
   timeout: number,
-): Promise<{ ok: boolean; output?: string; message?: string }> {
+): Promise<RconResult> {
   const ns = c.env.RCON;
   if (!ns) return { ok: false, message: "RCON Durable Object 未绑定" };
   const stub = ns.get(ns.idFromName(`server-${host}-${port}`));
@@ -157,9 +171,12 @@ export async function runRconCommand(
       }),
     );
     const data = (await resp.json()) as { ok?: boolean; output?: string; message?: string };
-    return { ok: data.ok === true, output: data.output, message: data.message };
+    if (data.ok === true) return { ok: true, output: data.output };
+    const message = data.message || "RCON 执行失败";
+    return { ok: false, message, uncertain: isUncertainRconError(message) };
   } catch (e) {
-    return { ok: false, message: (e as Error).message };
+    const message = e instanceof Error ? e.message : String(e);
+    return { ok: false, message, uncertain: isUncertainRconError(message) };
   }
 }
 
