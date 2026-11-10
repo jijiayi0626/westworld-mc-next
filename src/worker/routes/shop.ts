@@ -243,7 +243,7 @@ export async function processDeliveryQueue(env: AppEnv["Bindings"]): Promise<voi
 export async function expireStaleOrders(env: AppEnv["Bindings"]): Promise<void> {
   const { results } = await env.DB.prepare(
     `SELECT id, product_id, qty FROM shop_orders
-     WHERE status = 'pending' AND provider != 'economy'
+     WHERE status = 'pending' AND (provider IS NULL OR provider <> 'economy')
        AND created_at <= datetime('now','-30 minutes') LIMIT 50`,
   ).all<{ id: number; product_id: number; qty: number }>();
   for (const o of results) {
@@ -324,7 +324,8 @@ app.post("/order", async (c) => {
   const user = c.get("user")!;
   const body = await c.req.json().catch(() => ({}));
   const productId = Number(body.product_id);
-  const qty = Math.min(Math.max(Number(body.qty) || 1, 1), 99);
+  // 件数必须是正整数：小数件数（如 2.5）会让订单金额与发货数量对不上，也可能绕过库存校验
+  const qty = Math.min(Math.max(Math.trunc(Number(body.qty)) || 1, 1), 99);
   const payEconomy = body.payment_method === "economy";
 
   const product = await c.env.DB.prepare(
