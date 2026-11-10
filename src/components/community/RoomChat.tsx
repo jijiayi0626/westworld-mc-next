@@ -30,6 +30,51 @@ function ts(s: string): number {
   return Number.isNaN(d.getTime()) ? 0 : d.getTime();
 }
 
+/** 把 @昵称 渲染成高亮；仅对群内成员昵称生效，避免误伤普通文本 */
+function highlightMentions(content: string, names: Set<string>, mentionedMe: boolean) {
+  const parts = content.split(/(@[^\s@，。,.!?！？]{1,20})/g);
+  return parts.map((part, i) => {
+    if (part.startsWith("@") && names.has(part.slice(1))) {
+      return (
+        <span
+          key={i}
+          className={`rounded px-0.5 font-semibold ${
+            mentionedMe ? "bg-emerald-400/30 text-emerald-100" : "bg-emerald-400/15 text-emerald-300"
+          }`}
+        >
+          {part}
+        </span>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
+function MenuItem({
+  label,
+  onClick,
+  danger,
+  disabled,
+}: {
+  label: string;
+  onClick: () => void;
+  danger?: boolean;
+  disabled?: boolean;
+}) {
+  return (
+    <button
+      type="button"
+      disabled={disabled}
+      onClick={onClick}
+      className={`block w-full px-3.5 py-2 text-left text-[12px] transition hover:bg-white/[0.07] disabled:opacity-40 ${
+        danger ? "text-rose-300" : "text-white/75"
+      }`}
+    >
+      {label}
+    </button>
+  );
+}
+
 export default function RoomChat({
   roomId,
   me,
@@ -56,6 +101,10 @@ export default function RoomChat({
   const [nameDraft, setNameDraft] = useState("");
   const [noticeDraft, setNoticeDraft] = useState("");
   const [qqGroup, setQqGroup] = useState("");
+  const [replyTarget, setReplyTarget] = useState<ChatMessage | null>(null);
+  const [mentionIds, setMentionIds] = useState<number[]>([]);
+  const [mentionOpen, setMentionOpen] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
   const [searchQ, setSearchQ] = useState("");
   const [searchResults, setSearchResults] = useState<SearchUser[]>([]);
   const [searching, setSearching] = useState(false);
@@ -68,6 +117,7 @@ export default function RoomChat({
   const fileRef = useRef<HTMLInputElement | null>(null);
   const avatarRef = useRef<HTMLInputElement | null>(null);
   const readRef = useRef(0);
+  const roomRef = useRef(roomId);
 
   const scrollToBottom = useCallback((smooth = false) => {
     bottomRef.current?.scrollIntoView({ behavior: smooth ? "smooth" : "auto", block: "end" });
@@ -107,10 +157,13 @@ export default function RoomChat({
   }, [roomId]);
 
   const poll = useCallback(async () => {
+    const rid = roomId;
     try {
       const data = await api<{ messages: ChatMessage[] }>(
-        `/chat/rooms/${roomId}/messages?after_id=${lastIdRef.current}`,
+        `/chat/rooms/${rid}/messages?after_id=${lastIdRef.current}`,
       );
+      // 切换会话后旧请求可能才返回，丢弃非当前会话的结果
+      if (roomRef.current !== rid) return;
       if (data.messages.length > 0) {
         setMessages((prev) => {
           const seen = new Set(prev.map((m) => m.id));
@@ -132,6 +185,7 @@ export default function RoomChat({
     let alive = true;
     let timer: ReturnType<typeof setTimeout> | undefined;
     let detailTimer: ReturnType<typeof setInterval> | undefined;
+    roomRef.current = roomId;
     lastIdRef.current = 0;
     readRef.current = 0;
     setMessages([]);
@@ -140,6 +194,10 @@ export default function RoomChat({
     setError("");
     setAliasDraft("");
     setRemarkDraft("");
+    setReplyTarget(null);
+    setMentionIds([]);
+    setMentionOpen(false);
+    setMenuOpen(false);
 
     (async () => {
       try {
@@ -147,7 +205,7 @@ export default function RoomChat({
           api<{ messages: ChatMessage[] }>(`/chat/rooms/${roomId}/messages`),
           loadDetail(),
         ]);
-        if (!alive) return;
+        if (!alive || roomRef.current !== roomId) return;
         setMessages(data.messages);
         if (data.messages.length) lastIdRef.current = data.messages[data.messages.length - 1].id;
         setLoaded(true);
@@ -197,9 +255,16 @@ export default function RoomChat({
     try {
       const msg = await api<ChatMessage>(`/chat/rooms/${roomId}/send`, {
         method: "POST",
-        body: JSON.stringify({ content }),
+        body: JSON.stringify({
+          content,
+          reply_to: replyTarget?.id || 0,
+          mentions: mentionIds,
+        }),
       });
       setText("");
+      setReplyTarget(null);
+      setMentionIds([]);
+      setMentionOpen(false);
       setMessages((prev) => (prev.some((m) => m.id === msg.id) ? prev : [...prev, msg]));
       lastIdRef.current = Math.max(lastIdRef.current, msg.id);
       stickRef.current = true;
@@ -416,6 +481,12 @@ export default function RoomChat({
   };
 
   const title = room?.display_name || fallbackName || "会话";
+  const members = detail?.members ?? [];
+  const mentionNames = new Set<string>();
+  for (const m of members) {
+    if (m.username) mentionNames.add(m.username);
+    if (m.alias) mentionNames.add(m.alias);
+  }
   const subtitle =
     kind === "dm"
       ? `私信 · ${presenceLabel(room?.peer_presence)}${
@@ -454,44 +525,58 @@ export default function RoomChat({
           <p className="truncate text-[11px] text-white/35">{subtitle}</p>
         </div>
 
-        <div className="flex items-center gap-1.5">
-          <button className={`${BTN_GHOST} !px-2.5 !py-1.5 !text-xs`} onClick={() => setAliasOpen(true)}>
-            备注
+        <div className="relative flex items-center gap-1.5">
+          <input
+            ref={avatarRef}
+            type="file"
+            accept="image/png,image/jpeg,image/webp,image/gif"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0];
+              if (f) void changeAvatar(f);
+              e.target.value = "";
+            }}
+          />
+          <button
+            className={`${BTN_GHOST} !px-2.5 !py-1.5 !text-xs`}
+            onClick={() => setMenuOpen((v) => !v)}
+            aria-label="更多操作"
+            aria-expanded={menuOpen}
+          >
+            <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4">
+              <circle cx="5" cy="12" r="1.7" />
+              <circle cx="12" cy="12" r="1.7" />
+              <circle cx="19" cy="12" r="1.7" />
+            </svg>
           </button>
-          {kind !== "dm" && (
-            <button className={`${BTN_GHOST} !px-2.5 !py-1.5 !text-xs`} onClick={() => setPanelOpen(true)}>
-              成员
-            </button>
-          )}
-          {canEditRoom && (
+          {menuOpen && (
             <>
-              <button className={`${BTN_GHOST} !px-2.5 !py-1.5 !text-xs`} onClick={openSettings}>
-                群设置
-              </button>
-              <input
-                ref={avatarRef}
-                type="file"
-                accept="image/png,image/jpeg,image/webp,image/gif"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void changeAvatar(f);
-                  e.target.value = "";
-                }}
-              />
-              <button
-                className={`${BTN_GHOST} hidden !px-2.5 !py-1.5 !text-xs sm:inline-flex`}
-                disabled={uploading}
-                onClick={() => avatarRef.current?.click()}
-              >
-                换头像
-              </button>
+              <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
+              <div className="absolute right-0 top-full z-40 mt-1.5 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#101a2b] py-1 shadow-2xl">
+                {kind !== "dm" && (
+                  <MenuItem label="查看群成员" onClick={() => { setMenuOpen(false); setPanelOpen(true); }} />
+                )}
+                <MenuItem
+                  label={kind === "dm" ? "设置对方备注" : "我的群昵称 / 群备注"}
+                  onClick={() => { setMenuOpen(false); setAliasOpen(true); }}
+                />
+                {canEditRoom && <MenuItem label="修改群名称" onClick={() => { setMenuOpen(false); openSettings(); }} />}
+                {canEditRoom && <MenuItem label="编辑群公告" onClick={() => { setMenuOpen(false); openSettings(); }} />}
+                {canEditRoom && (
+                  <MenuItem
+                    label="更换群头像"
+                    disabled={uploading}
+                    onClick={() => { setMenuOpen(false); avatarRef.current?.click(); }}
+                  />
+                )}
+                {kind !== "dm" && kind !== "community" && myRole !== "owner" && (
+                  <MenuItem label="退出群聊" danger onClick={() => { setMenuOpen(false); void leaveRoom(); }} />
+                )}
+                {kind === "group" && myRole === "owner" && (
+                  <MenuItem label="解散群聊" danger onClick={() => { setMenuOpen(false); void dissolveRoom(); }} />
+                )}
+              </div>
             </>
-          )}
-          {kind !== "community" && myRole !== "owner" && (
-            <button className={`${BTN_DANGER} !px-2.5 !py-1.5 !text-xs`} onClick={() => void leaveRoom()}>
-              退出
-            </button>
           )}
         </div>
       </div>
@@ -531,7 +616,7 @@ export default function RoomChat({
               }
               const mine = m.user_id === me.id;
               return (
-                <div key={m.id} className={`group flex gap-2.5 ${mine ? "flex-row-reverse" : ""}`}>
+                <div key={m.id} data-mid={m.id} className={`group flex gap-2.5 ${mine ? "flex-row-reverse" : ""}`}>
                   <Avatar src={m.avatar_url} name={m.username} size={32} />
                   <div className={`flex min-w-0 max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
                     <div className={`mb-1 flex items-center gap-1.5 ${mine ? "flex-row-reverse" : ""}`}>
@@ -548,6 +633,18 @@ export default function RoomChat({
                           : "rounded-tl-sm border border-white/5 bg-white/[0.06] text-white/75"
                       }`}
                     >
+                      {m.reply_to_id ? (
+                        <div
+                          className="mb-1.5 rounded-lg border-l-2 border-emerald-400/50 bg-black/20 px-2 py-1 text-[11px] leading-snug text-white/45"
+                          onClick={() => {
+                            const el = listRef.current?.querySelector(`[data-mid="${m.reply_to_id}"]`);
+                            el?.scrollIntoView({ behavior: "smooth", block: "center" });
+                          }}
+                        >
+                          <span className="font-semibold text-emerald-300/80">{m.reply_to_name}</span>
+                          <span className="ml-1 line-clamp-2 break-words">{m.reply_to_text || "[消息]"}</span>
+                        </div>
+                      ) : null}
                       {m.image_url ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
@@ -557,17 +654,30 @@ export default function RoomChat({
                           onClick={() => window.open(m.image_url, "_blank")}
                         />
                       ) : (
-                        <p className="whitespace-pre-wrap break-words">{m.content}</p>
+                        <p className="whitespace-pre-wrap break-words">
+                          {highlightMentions(m.content, mentionNames, (m.mentions ?? []).includes(me.id))}
+                        </p>
                       )}
                     </div>
-                    {canRecall(m) && (
+                    <div className={`mt-0.5 flex items-center gap-2 opacity-0 transition group-hover:opacity-100 ${mine ? "flex-row-reverse" : ""}`}>
                       <button
-                        onClick={() => void recall(m.id)}
-                        className="mt-0.5 text-[10px] text-white/20 opacity-0 transition hover:text-rose-300 group-hover:opacity-100"
+                        onClick={() => {
+                          setReplyTarget(m);
+                          setMentionIds((prev) => (prev.includes(m.user_id) ? prev : [...prev, m.user_id]).slice(0, 10));
+                        }}
+                        className="text-[10px] text-white/20 transition hover:text-emerald-300"
                       >
-                        撤回
+                        引用
                       </button>
-                    )}
+                      {canRecall(m) && (
+                        <button
+                          onClick={() => void recall(m.id)}
+                          className="text-[10px] text-white/20 transition hover:text-rose-300"
+                        >
+                          撤回
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               );
@@ -579,6 +689,47 @@ export default function RoomChat({
 
       {/* 输入区 */}
       <div className="border-t border-white/10 p-2.5 sm:p-3">
+        {replyTarget && (
+          <div className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-emerald-400/60 bg-white/[0.04] px-2.5 py-1.5">
+            <div className="min-w-0 flex-1 text-[11px] leading-snug text-white/45">
+              正在回复 <span className="font-semibold text-emerald-300/80">{replyTarget.username}</span>
+              <p className="mt-0.5 line-clamp-1 break-words">{replyTarget.content || "[图片]"}</p>
+            </div>
+            <button
+              className="text-[11px] text-white/35 transition hover:text-white"
+              onClick={() => setReplyTarget(null)}
+              aria-label="取消引用"
+            >
+              ✕
+            </button>
+          </div>
+        )}
+        {mentionOpen && (
+          <div className="mb-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-[#101a2b] p-1.5">
+            <p className="px-2 py-1 text-[10px] text-white/30">选择要 @ 的成员</p>
+            {members.filter((m) => m.user_id !== me.id).length === 0 ? (
+              <p className="px-2 py-2 text-[11px] text-white/30">暂无可提及的成员</p>
+            ) : (
+              members
+                .filter((m) => m.user_id !== me.id)
+                .map((m) => (
+                  <button
+                    key={m.user_id}
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-white/70 transition hover:bg-white/[0.07]"
+                    onClick={() => {
+                      const name = m.alias || m.username;
+                      setText((prev) => `${prev}${prev && !prev.endsWith(" ") ? " " : ""}@${name} `);
+                      setMentionIds((prev) => (prev.includes(m.user_id) ? prev : [...prev, m.user_id]).slice(0, 10));
+                      setMentionOpen(false);
+                    }}
+                  >
+                    <Avatar src={m.avatar} name={m.username} size={22} />
+                    <span className="truncate">{m.alias || m.username}</span>
+                  </button>
+                ))
+            )}
+          </div>
+        )}
         <div className="mb-2 flex flex-wrap gap-1">
           {EMOJIS.map((e) => (
             <button
@@ -617,6 +768,17 @@ export default function RoomChat({
                 <path d="M21 15l-5-5L5 21" strokeLinecap="round" strokeLinejoin="round" />
               </svg>
             )}
+          </button>
+          <button
+            className={`mb-0.5 rounded-xl border p-2 transition disabled:opacity-40 ${
+              mentionOpen
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                : "border-white/10 bg-white/[0.04] text-white/45 hover:bg-white/10 hover:text-white"
+            }`}
+            onClick={() => setMentionOpen((v) => !v)}
+            aria-label="@ 成员"
+          >
+            <span className="block h-4 w-4 text-center text-[13px] font-bold leading-4">@</span>
           </button>
           <textarea
             className={`${INPUT} max-h-28 min-h-[42px] flex-1 resize-none`}

@@ -1,36 +1,9 @@
-import Hero from "@/components/Hero";
-import AnnouncementsSection from "@/components/AnnouncementsSection";
-import SpecsSection from "@/components/SpecsSection";
-import HelpSteps from "@/components/HelpSteps";
-import FeaturesSection from "@/components/FeaturesSection";
-import GalleryCarousel from "@/components/GalleryCarousel";
-import TeamCarousel from "@/components/TeamCarousel";
-import ContactForm from "@/components/ContactForm";
-import CommunitySection from "@/components/CommunitySection";
-import HomeV2 from "@/components/front/v2/HomeV2";
+import ThemeHome from "@/components/front/ThemeHome";
 
 /**
- * 首页同时渲染模板一 / 模板二两套结构，
- * 由 <html data-frontend> + CSS 决定展示哪一套，切换无需重新部署（见 front-v2.css）。
+ * 首页只挂载当前主题的那一份组件文件（src/themes/<key>/Home.tsx）。
+ * 可用主题由环境变量 THEME_SLOTS 控制，后台「网站设置 → 外观模板」负责切换。
  */
 export default function HomePage() {
-  return (
-    <>
-      <div className="front-page" data-front="v1">
-        <Hero />
-        <AnnouncementsSection />
-        <SpecsSection />
-        <HelpSteps />
-        <FeaturesSection />
-        <GalleryCarousel />
-        <TeamCarousel />
-        <ContactForm />
-        <CommunitySection />
-      </div>
-
-      <div className="front-page" data-front="v2">
-        <HomeV2 />
-      </div>
-    </>
-  );
+  return <ThemeHome />;
 }

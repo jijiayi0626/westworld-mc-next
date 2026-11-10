@@ -68,6 +68,10 @@ export interface ChatMessage {
   recalled: boolean;
   recalled_at: string;
   recalled_by: number;
+  reply_to_id?: number;
+  reply_to_name?: string;
+  reply_to_text?: string;
+  mentions?: number[];
   created_at: string;
 }
 

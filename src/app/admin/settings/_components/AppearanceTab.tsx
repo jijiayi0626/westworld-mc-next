@@ -10,6 +10,7 @@ export default function AppearanceTab() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [themeBusy, setThemeBusy] = useState(false);
+  const [slots, setSlots] = useState<string[]>(FRONT_THEMES.map((t) => t.key));
 
   const load = useCallback(async () => {
     try {
@@ -21,7 +22,17 @@ export default function AppearanceTab() {
 
   useEffect(() => {
     void load();
+    (async () => {
+      try {
+        const res = await api<{ theme: string; slots: string[] }>("/content/theme");
+        if (Array.isArray(res.slots) && res.slots.length) setSlots(res.slots);
+      } catch {
+        /* 读取失败时默认两套都显示 */
+      }
+    })();
   }, [load]);
+
+  const visibleThemes = FRONT_THEMES.filter((t) => slots.includes(t.key));
 
   const currentTheme = list?.find((s) => s.key === "frontend_theme")?.value === "v2" ? "v2" : "v1";
 
@@ -52,10 +63,13 @@ export default function AppearanceTab() {
       <Card>
         <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">前台页面模板</h3>
         <p className="text-[0.85rem] text-slate-500 mb-5">
-          选择前台展示使用的页面模板，保存后前台刷新即可切换，无需重新部署。已访问过的访客会缓存上次模板以避免首屏闪烁。
+          选择前台展示使用的页面模板，保存后前台刷新即可切换，无需重新部署。每个模板都是独立的主题文件，
+          切换时会直接替换挂载的页面组件，而不是用 CSS 隐藏另一套结构。可用模板由环境变量
+          <span className="mx-1 font-mono text-slate-600">THEME_SLOTS</span>
+          控制（例如 <span className="font-mono text-slate-600">v1,v2</span>）。
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {FRONT_THEMES.map((t) => {
+          {visibleThemes.map((t) => {
             const isCurrent = currentTheme === t.key;
             return (
               <button

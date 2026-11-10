@@ -74,6 +74,10 @@ interface MessageRow {
   recalled: number | null;
   recalled_at: string | null;
   recalled_by: number | null;
+  reply_to_id?: number | null;
+  reply_to_name?: string | null;
+  reply_to_text?: string | null;
+  mentions?: string | null;
 }
 
 const app = new Hono<AppEnv>();
@@ -187,6 +191,10 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
           recalled INTEGER NOT NULL DEFAULT 0,
           recalled_at TEXT DEFAULT '',
           recalled_by INTEGER,
+          reply_to_id INTEGER NOT NULL DEFAULT 0,
+          reply_to_name TEXT DEFAULT '',
+          reply_to_text TEXT DEFAULT '',
+          mentions TEXT DEFAULT '',
           created_at TEXT NOT NULL DEFAULT (datetime('now'))
         )`,
       ),
@@ -217,6 +225,18 @@ async function ensureChatSchema(db: D1Database): Promise<void> {
     }
     if (!cols.has("recalled_by")) {
       alters.push("ALTER TABLE chat_messages ADD COLUMN recalled_by INTEGER");
+    }
+    if (!cols.has("reply_to_id")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN reply_to_id INTEGER NOT NULL DEFAULT 0");
+    }
+    if (!cols.has("reply_to_name")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN reply_to_name TEXT DEFAULT ''");
+    }
+    if (!cols.has("reply_to_text")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN reply_to_text TEXT DEFAULT ''");
+    }
+    if (!cols.has("mentions")) {
+      alters.push("ALTER TABLE chat_messages ADD COLUMN mentions TEXT DEFAULT ''");
     }
 
     const contactInfo = await db
@@ -335,8 +355,20 @@ async function canManageRoom(
 
 const MSG_SELECT = `SELECT m.id, COALESCE(m.room_id, 1) AS room_id, m.user_id,
   m.username, m.avatar_url, m.role, m.content, m.image_key, m.created_at,
-  COALESCE(m.recalled, 0) AS recalled, m.recalled_at, m.recalled_by
+  COALESCE(m.recalled, 0) AS recalled, m.recalled_at, m.recalled_by,
+  COALESCE(m.reply_to_id, 0) AS reply_to_id, COALESCE(m.reply_to_name, '') AS reply_to_name,
+  COALESCE(m.reply_to_text, '') AS reply_to_text, COALESCE(m.mentions, '') AS mentions
 FROM chat_messages m`;
+
+function parseMentions(raw: string | null | undefined): number[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0) : [];
+  } catch {
+    return [];
+  }
+}
 
 function messageShape(r: MessageRow) {
   const recalled = !!r.recalled;
@@ -352,6 +384,10 @@ function messageShape(r: MessageRow) {
     recalled,
     recalled_at: r.recalled_at || "",
     recalled_by: r.recalled_by || 0,
+    reply_to_id: recalled ? 0 : Number(r.reply_to_id) || 0,
+    reply_to_name: recalled ? "" : r.reply_to_name || "",
+    reply_to_text: recalled ? "" : r.reply_to_text || "",
+    mentions: recalled ? [] : parseMentions(r.mentions),
     created_at: r.created_at,
   };
 }
@@ -441,6 +477,7 @@ async function sendTextCore(
   user: UserSession,
   roomId: number,
   raw: string,
+  meta?: { replyTo?: number; mentions?: number[] },
 ): Promise<CoreResult<ReturnType<typeof messageShape>>> {
   const db = fdb(c);
   await ensureChatSchema(db);
@@ -467,11 +504,33 @@ async function sendTextCore(
   }
 
   const profile = await currentProfile(c.env.DB, user.id);
+
+  // 引用回复：只允许引用同一会话内的消息，并保存快照避免原消息撤回后丢失上下文
+  let replyToId = 0;
+  let replyToName = "";
+  let replyToText = "";
+  const replyTarget = Number(meta?.replyTo) || 0;
+  if (replyTarget > 0) {
+    const target = await db
+      .prepare("SELECT id, room_id, username, content, image_key, recalled FROM chat_messages WHERE id = ? LIMIT 1")
+      .bind(replyTarget)
+      .first<{ id: number; room_id: number; username: string; content: string; image_key: string; recalled: number }>();
+    if (target && Number(target.room_id) === roomId && !target.recalled) {
+      replyToId = target.id;
+      replyToName = String(target.username || "玩家").slice(0, 40);
+      replyToText = (target.content || (target.image_key ? "[图片]" : "")).slice(0, 80);
+    }
+  }
+
+  // @ 提及：去重、限制数量，避免一次刷屏太多人
+  const mentionIds = [...new Set((meta?.mentions ?? []).map((v) => Number(v)).filter((v) => Number.isInteger(v) && v > 0))].slice(0, 10);
+  const mentionJson = mentionIds.length ? JSON.stringify(mentionIds) : "";
+
   const result = await db
     .prepare(
-      "INSERT INTO chat_messages (room_id, user_id, username, avatar_url, role, content, image_key) VALUES (?, ?, ?, ?, ?, ?, '')",
+      "INSERT INTO chat_messages (room_id, user_id, username, avatar_url, role, content, image_key, reply_to_id, reply_to_name, reply_to_text, mentions) VALUES (?, ?, ?, ?, ?, ?, '', ?, ?, ?, ?)",
     )
-    .bind(roomId, user.id, user.username, profile.avatar, user.role, content)
+    .bind(roomId, user.id, user.username, profile.avatar, user.role, content, replyToId, replyToName, replyToText, mentionJson)
     .run();
   await logUserAction(c.env.DB, user.id, "chat_send", `房间 ${roomId} 发送消息`, getClientIp(c));
 
@@ -490,6 +549,10 @@ async function sendTextCore(
       recalled: 0,
       recalled_at: "",
       recalled_by: null,
+      reply_to_id: replyToId,
+      reply_to_name: replyToName,
+      reply_to_text: replyToText,
+      mentions: mentionJson,
     }),
   };
 }
@@ -1083,7 +1146,10 @@ app.post("/rooms/:id/send", requireAuth, async (c) => {
   const user = c.get("user")!;
   const roomId = Number(c.req.param("id")) || 0;
   const body = await c.req.json().catch(() => ({}));
-  const res = await sendTextCore(c, user, roomId, String(body.content ?? ""));
+  const res = await sendTextCore(c, user, roomId, String(body.content ?? ""), {
+    replyTo: Number(body.reply_to) || 0,
+    mentions: Array.isArray(body.mentions) ? body.mentions : [],
+  });
   if (!res.ok) return fail(res.message, res.status || 400);
   return ok(res.data);
 });
@@ -1485,7 +1551,10 @@ app.post("/send", requireAuth, async (c) => {
   await ensureChatSchema(db);
   await ensureCommunityMembership(db, user.id);
   const body = await c.req.json().catch(() => ({}));
-  const res = await sendTextCore(c, user, COMMUNITY_ID, String(body.content ?? ""));
+  const res = await sendTextCore(c, user, COMMUNITY_ID, String(body.content ?? ""), {
+    replyTo: Number(body.reply_to) || 0,
+    mentions: Array.isArray(body.mentions) ? body.mentions : [],
+  });
   if (!res.ok) return fail(res.message, res.status || 400);
   return ok(res.data);
 });

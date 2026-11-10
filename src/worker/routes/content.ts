@@ -22,12 +22,20 @@ app.get("/site", async (c) => {
 });
 
 // 获取当前启用的前台模板（公开）：后台「网站设置 → 外观模板」可切换
+// 可用模板由环境变量 THEME_SLOTS 决定（如 "v1,v2"），未配置时两套都可用
 app.get("/theme", async (c) => {
   const row = await c.env.DB.prepare(
     "SELECT value FROM site_settings WHERE key = 'frontend_theme'",
   ).first<{ value: string }>();
-  const theme = row?.value === "v2" ? "v2" : "v1";
-  return ok({ theme });
+  const rawSlots = String(c.env.THEME_SLOTS ?? "").trim();
+  const parsed = rawSlots
+    .split(",")
+    .map((v) => v.trim().toLowerCase())
+    .filter((v) => v === "v1" || v === "v2");
+  const slots = parsed.length ? [...new Set(parsed)] : ["v1", "v2"];
+  const stored = row?.value === "v2" ? "v2" : row?.value === "v1" ? "v1" : "";
+  const theme = stored && slots.includes(stored) ? stored : slots[0];
+  return ok({ theme, slots });
 });
 
 // 获取站点图标（公开）：后台「网站设置 → 基础设置」可上传 / 填写
