@@ -1,0 +1,9 @@
+{
+  "id": "v1",
+  "name": "模板一 · 经典",
+  "version": "1.0.0",
+  "description": "深色玻璃质感 + 翠绿点缀，全屏 Hero 大图与卡片式区块，信息密度高、氛围浓厚。",
+  "swatch": ["#0f172a", "#10b981", "#ffffff"],
+  "css": "",
+  "entry": "src/themes/v1"
+}

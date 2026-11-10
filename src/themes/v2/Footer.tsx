@@ -1,8 +1,8 @@
 "use client";
 
 import Link from "next/link";
-import { useSiteContent } from "../../SiteContentProvider";
-import { FW2_MAIN_ITEMS, FW2_MORE_ITEMS } from "./NavV2";
+import { useSiteContent } from "@/components/SiteContentProvider";
+import { FW2_MAIN_ITEMS, FW2_MORE_ITEMS } from "./Nav";
 
 export default function FooterV2() {
   const { site } = useSiteContent();

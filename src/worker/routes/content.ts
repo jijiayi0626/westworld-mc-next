@@ -22,7 +22,7 @@ app.get("/site", async (c) => {
 });
 
 // 获取当前启用的前台模板（公开）：后台「网站设置 → 外观模板」可切换
-// 可用模板由环境变量 THEME_SLOTS 决定（如 "v1,v2"），未配置时两套都可用
+// 可用模板由环境变量 THEME_SLOTS 决定（如 "v1,v2"），需与构建时的 THEME_SLOTS 一致
 app.get("/theme", async (c) => {
   const row = await c.env.DB.prepare(
     "SELECT value FROM site_settings WHERE key = 'frontend_theme'",
@@ -31,9 +31,9 @@ app.get("/theme", async (c) => {
   const parsed = rawSlots
     .split(",")
     .map((v) => v.trim().toLowerCase())
-    .filter((v) => v === "v1" || v === "v2");
+    .filter((v) => /^[a-z0-9][a-z0-9_-]*$/.test(v));
   const slots = parsed.length ? [...new Set(parsed)] : ["v1", "v2"];
-  const stored = row?.value === "v2" ? "v2" : row?.value === "v1" ? "v1" : "";
+  const stored = String(row?.value || "").trim().toLowerCase();
   const theme = stored && slots.includes(stored) ? stored : slots[0];
   return ok({ theme, slots });
 });

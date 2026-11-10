@@ -5,11 +5,13 @@
   "description": "MC 服务器宣传网站 - Next.js 14 重制版",
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "themes": "node scripts/build-themes.mjs",
+    "theme:add": "node scripts/theme-install.mjs",
+    "build": "node scripts/build-themes.mjs && next build",
     "start": "next start",
     "lint": "next lint",
     "preview": "next start",
-    "deploy": "next build && wrangler deploy"
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^5.20260830.1",

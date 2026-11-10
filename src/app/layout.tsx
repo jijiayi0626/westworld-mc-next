@@ -26,7 +26,6 @@ export default function RootLayout({
         <style dangerouslySetInnerHTML={{ __html: BOOT_SPLASH_CSS }} />
         <script dangerouslySetInnerHTML={{ __html: FRONT_THEME_BOOT }} />
         <link rel="stylesheet" href="/css/front.css" />
-        <link rel="stylesheet" href="/css/front-v2.css" />
         <link rel="stylesheet" href="/css/mobile.css" />
         <link
           id="site-favicon"

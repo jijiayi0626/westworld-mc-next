@@ -77,21 +77,8 @@ export const UPOP_FIELDS: { key: string; label: string; hint?: string }[] = [
   { key: "upop_username_field", label: "用户名字段", hint: "默认 username" },
 ];
 
-// 前台可选模板（取值写入 site_settings.frontend_theme）
-export const FRONT_THEMES: { key: "v1" | "v2"; name: string; desc: string; swatch: string[] }[] = [
-  {
-    key: "v1",
-    name: "模板一 · 经典",
-    desc: "深色玻璃质感 + 翠绿点缀，全屏 Hero 大图与卡片式区块，信息密度高、氛围浓厚。",
-    swatch: ["#0f172a", "#10b981", "#ffffff"],
-  },
-  {
-    key: "v2",
-    name: "模板二 · 暗夜绿光",
-    desc: "极夜底色 + 网格霓虹绿光，序号化窄栏排版、数据化状态条，更克制现代的科技风。",
-    swatch: ["#05080a", "#2ce88a", "#35d6d0"],
-  },
-];
+// 前台可选模板由 src/themes/*/theme.json 决定，构建时由 THEME_SLOTS 过滤，
+// 后台外观页直接读取 @/themes/registry 的 THEME_META。
 
 export const SETTINGS_TABS: { key: string; href: string; label: string }[] = [
   { key: "basic", href: "/admin/settings/basic", label: "基础配置" },

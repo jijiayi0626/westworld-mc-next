@@ -9,3 +9,6 @@ out
 .turbo
 .wrangler
 *.tsbuildinfo
+
+# 主题构建产物（由 scripts/build-themes.mjs 生成）
+public/themes/

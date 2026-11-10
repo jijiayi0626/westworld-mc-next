@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
 import { Badge, Card, ErrorNote, SuccessNote } from "@/components/ui";
-import { FRONT_THEMES, type Setting } from "./shared";
+import { THEME_META } from "@/themes/registry";
+import type { Setting } from "./shared";
 
 export default function AppearanceTab() {
   const [list, setList] = useState<Setting[] | null>(null);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [themeBusy, setThemeBusy] = useState(false);
-  const [slots, setSlots] = useState<string[]>(FRONT_THEMES.map((t) => t.key));
+  const [slots, setSlots] = useState<string[]>(THEME_META.map((t) => t.key));
 
   const load = useCallback(async () => {
     try {
@@ -32,11 +33,11 @@ export default function AppearanceTab() {
     })();
   }, [load]);
 
-  const visibleThemes = FRONT_THEMES.filter((t) => slots.includes(t.key));
+  const visibleThemes = THEME_META.filter((t) => slots.includes(t.key));
 
-  const currentTheme = list?.find((s) => s.key === "frontend_theme")?.value === "v2" ? "v2" : "v1";
+  const currentTheme = list?.find((s) => s.key === "frontend_theme")?.value || THEME_META[0]?.key || "v1";
 
-  const saveTheme = async (next: "v1" | "v2") => {
+  const saveTheme = async (next: string) => {
     if (next === currentTheme || themeBusy) return;
     setError("");
     setSuccess("");
@@ -46,7 +47,8 @@ export default function AppearanceTab() {
         method: "POST",
         body: JSON.stringify({ key: "frontend_theme", value: next }),
       });
-      setSuccess(`前台模板已切换到「${next === "v2" ? "模板二 · 暗夜绿光" : "模板一 · 经典"}」，前台刷新后即刻生效`);
+      const name = THEME_META.find((t) => t.key === next)?.name || next;
+      setSuccess(`前台模板已切换到「${name}」，前台刷新后即刻生效`);
       await load();
     } catch (err) {
       setError(err instanceof Error ? err.message : "切换失败");

@@ -3,9 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useAuth } from "../../AuthProvider";
-import { useSiteContent } from "../../SiteContentProvider";
-import ServerStatus from "../../ServerStatus";
+import { useAuth } from "@/components/AuthProvider";
+import { useSiteContent } from "@/components/SiteContentProvider";
+import ServerStatus from "@/components/ServerStatus";
 
 // 与模板一共用同一套导航结构，视觉语言改为「暗夜绿光」
 export const FW2_MAIN_ITEMS = [
