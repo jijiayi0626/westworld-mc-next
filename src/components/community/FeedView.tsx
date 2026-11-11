@@ -566,7 +566,7 @@ export default function FeedView({
             }
           />
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-3 stagger-list">
             {items.map((post) => {
               const meta = boardMeta(post.board);
               return (
@@ -912,7 +912,7 @@ export default function FeedView({
                 {detail.replies.length === 0 ? (
                   <p className="pb-2 text-xs text-white/30">还没有评论，来说两句吧。</p>
                 ) : (
-                  <div className="flex flex-col gap-3">
+                  <div className="flex flex-col gap-3 stagger-list">
                     {detail.replies
                       .filter((r) => !r.parent_id)
                       .map((r) => (

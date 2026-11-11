@@ -94,7 +94,7 @@ export default function AdminReportsPage() {
       ) : items.length === 0 ? (
         <Empty text={scope === "pending" ? "当前没有待处理的举报，社区很和谐。" : "还没有任何举报记录。"} />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="admin-stagger flex flex-col gap-3">
           {items.map((r) => (
             <Card key={r.id} className="flex flex-col gap-3">
               <div className="flex flex-wrap items-center gap-2">

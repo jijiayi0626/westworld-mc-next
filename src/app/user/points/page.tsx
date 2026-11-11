@@ -195,7 +195,7 @@ export default function UserPointsPage() {
             {data.history.length === 0 ? (
               <p className="py-8 text-center text-[0.85rem] text-slate-400">还没有积分记录，去签到或发帖试试吧。</p>
             ) : (
-              <ul className="divide-y divide-slate-100">
+              <ul className="divide-y divide-slate-100 stagger-list">
                 {data.history.map((log, i) => (
                   <li key={`${log.created_at}-${i}`} className="flex items-center gap-3 py-3">
                     <div className="min-w-0 flex-1">

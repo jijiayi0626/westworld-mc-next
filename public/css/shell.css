@@ -508,3 +508,69 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--sb-accent); }
 @media (prefers-reduced-motion: reduce) {
   .nav-item, .nav-subitem, .nav-group-toggle, .appearance-btn, .sidebar-toggle, .nav-item-icon { transition: none; }
 }
+
+/* ============================================================
+ * 管理后台：侧栏浮起样式（与用户中心一致）+ 内容区统一留白
+ * 作用域限定在 .admin-shell，避免影响用户中心
+ * ============================================================ */
+@media (min-width: 769px) {
+  .admin-shell .sidebar {
+    top: 16px;
+    left: 16px;
+    bottom: 16px;
+    width: calc(var(--sb-w) - 32px);
+    border: 1px solid var(--sb-border);
+    border-radius: 16px;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.06);
+  }
+  .admin-shell.sidebar-collapsed .sidebar {
+    top: 8px;
+    left: 8px;
+    bottom: 8px;
+    width: calc(var(--sb-w-c) - 16px);
+  }
+}
+
+/* 折叠态：图标居中、徽标收成小圆点、外观设置纵向排列，避免裁切 */
+.admin-shell.sidebar-collapsed .sidebar .sidebar-nav { padding-left: 8px; padding-right: 8px; }
+.admin-shell.sidebar-collapsed .sidebar .nav-item { position: relative; gap: 0; }
+.admin-shell.sidebar-collapsed .sidebar .nav-item-badge {
+  display: inline-flex;
+  position: absolute;
+  top: 6px;
+  right: 0;
+  width: 8px;
+  min-width: 8px;
+  height: 8px;
+  padding: 0;
+  border-radius: 50%;
+  font-size: 0;
+  line-height: 0;
+}
+.admin-shell.sidebar-collapsed .sidebar .appearance-row { flex-direction: column; gap: 4px; }
+.admin-shell.sidebar-collapsed .sidebar .appearance-btn { padding: 6px 0; }
+
+/* 内容区留白：桌面左右 32、上下 24；页面根层的 px-6/py-6 归零，避免双重留白 */
+.admin-shell .main-content { padding: 24px 32px; }
+.admin-shell .main-content > .px-6 { padding: 0; }
+
+/* 移动端：抽屉恢复贴边全高，内容左右 16（顶部让出固定顶栏） */
+@media (max-width: 768px) {
+  .admin-shell .sidebar,
+  .admin-shell.sidebar-collapsed .sidebar {
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: var(--sb-w);
+    border: 0;
+    border-right: 1px solid var(--sb-border);
+    border-radius: 0;
+    box-shadow: none;
+  }
+  .admin-shell .main-content { padding: calc(var(--sb-h) + 16px) 16px 24px; }
+  .admin-shell .main-content > .px-6 { padding: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .sidebar { transition: none; }
+}

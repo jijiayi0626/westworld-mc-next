@@ -659,3 +659,52 @@ input[type="checkbox"], input[type="radio"] { accent-color: #10b981; }
 @media (prefers-reduced-motion: reduce) {
   .btn, .boton-minecraft, .h-feature, .hero-badge, .glass-card, .gallery-item, .step-card { transition: none; }
 }
+
+/* ==================== 列表错峰入场 ==================== */
+/* CSS 动画仅在元素创建时播放一次；轮询/局部更新复用同一 DOM 节点，不会重播。
+ * 只动 opacity 与 transform，第 1–8 项依次延迟 30ms。 */
+@keyframes listRiseIn {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.stagger-list > * {
+  animation: listRiseIn 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.stagger-list > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-list > *:nth-child(2) { animation-delay: 30ms; }
+.stagger-list > *:nth-child(3) { animation-delay: 60ms; }
+.stagger-list > *:nth-child(4) { animation-delay: 90ms; }
+.stagger-list > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-list > *:nth-child(6) { animation-delay: 150ms; }
+.stagger-list > *:nth-child(7) { animation-delay: 180ms; }
+.stagger-list > *:nth-child(8) { animation-delay: 210ms; }
+
+/* 聊天消息：沿用 .chat-pop 的弹出曲线，只补足前 8 条的错峰延迟，
+ * 不新增第二个动画，新消息（第 9 条起）延迟为 0，保持即时弹出。 */
+@keyframes chatPopIn {
+  0%   { opacity: 0; transform: translateY(8px) scale(0.97); }
+  62%  { opacity: 1; transform: translateY(0) scale(1.012); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.stagger-chat > .chat-pop {
+  animation: chatPopIn 280ms var(--ease-spring) both;
+}
+.stagger-chat > *:nth-child(1) { animation-delay: 0ms; }
+.stagger-chat > *:nth-child(2) { animation-delay: 30ms; }
+.stagger-chat > *:nth-child(3) { animation-delay: 60ms; }
+.stagger-chat > *:nth-child(4) { animation-delay: 90ms; }
+.stagger-chat > *:nth-child(5) { animation-delay: 120ms; }
+.stagger-chat > *:nth-child(6) { animation-delay: 150ms; }
+.stagger-chat > *:nth-child(7) { animation-delay: 180ms; }
+.stagger-chat > *:nth-child(8) { animation-delay: 210ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stagger-list > *,
+  .stagger-chat > .chat-pop {
+    animation: none !important;
+    opacity: 1;
+    transform: none;
+  }
+  .stagger-chat > * { animation-delay: 0ms !important; }
+}

@@ -604,7 +604,7 @@ export default function RoomChat({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 stagger-chat">
             {messages.map((m) => {
               if (m.recalled) {
                 return (

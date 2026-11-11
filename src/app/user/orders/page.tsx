@@ -318,7 +318,7 @@ export default function OrdersPage() {
                   <th className="py-3 font-medium">操作</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-slate-100 stagger-list">
                 {filteredOrders.map((o) => (
                   <tr key={o.id} className="text-slate-600">
                     <td className="py-3 pr-3 font-mono text-[0.78rem]">{o.order_no}</td>

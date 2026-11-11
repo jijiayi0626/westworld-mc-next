@@ -68,7 +68,7 @@ export default function NotificationsView({
       ) : items.length === 0 ? (
         <EmptyState title="暂时没有通知" desc="别人评论或点赞你的帖子后，会在这里提醒你。" />
       ) : (
-        <div className="flex flex-col gap-3">
+        <div className="flex flex-col gap-3 stagger-list">
           {items.map((n) => (
             <button
               key={n.id}

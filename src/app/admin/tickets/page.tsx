@@ -233,7 +233,7 @@ export default function AdminTicketsPage() {
           ) : list.length === 0 ? (
             <Empty text="暂无工单" />
           ) : (
-            <div className="flex flex-col divide-y divide-white/10">
+            <div className="admin-stagger flex flex-col divide-y divide-white/10">
               {filtered.map((t) => (
                 <button key={t.id} type="button" onClick={() => openDetail(t.id)} className="py-4 text-left cursor-pointer group">
                   <div className="flex items-center justify-between gap-3">

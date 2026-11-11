@@ -6547,3 +6547,77 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--green); }
 @media (prefers-reduced-motion: reduce) {
   .btn, .nav-item, .nav-subitem, .user-detail-tab-btn, .img-orphan-btn, .stat-card { transition: none; }
 }
+
+/* ==================== 后台首页：四类淡色功能按钮（无渐变，悬停加深一档） ==================== */
+.stat-btn.sc-blue {
+  background: color-mix(in srgb, var(--blue) 14%, var(--bg-card));
+  color: color-mix(in srgb, var(--blue) 72%, var(--text-primary));
+}
+.stat-btn.sc-blue:hover { background: color-mix(in srgb, var(--blue) 24%, var(--bg-card)); }
+
+.stat-btn.sc-amber {
+  background: color-mix(in srgb, var(--amber) 16%, var(--bg-card));
+  color: color-mix(in srgb, var(--amber) 76%, var(--text-primary));
+}
+.stat-btn.sc-amber:hover { background: color-mix(in srgb, var(--amber) 26%, var(--bg-card)); }
+
+.stat-btn.sc-purple {
+  background: color-mix(in srgb, #8b5cf6 14%, var(--bg-card));
+  color: color-mix(in srgb, #8b5cf6 72%, var(--text-primary));
+}
+.stat-btn.sc-purple:hover { background: color-mix(in srgb, #8b5cf6 24%, var(--bg-card)); }
+
+.stat-btn.sc-rose {
+  background: color-mix(in srgb, #f43f5e 12%, var(--bg-card));
+  color: color-mix(in srgb, #f43f5e 72%, var(--text-primary));
+}
+.stat-btn.sc-rose:hover { background: color-mix(in srgb, #f43f5e 22%, var(--bg-card)); }
+
+/* ==================== 后台首页：系统健康折叠区 ==================== */
+.admin-health > summary {
+  list-style: none;
+  cursor: pointer;
+}
+.admin-health > summary::-webkit-details-marker { display: none; }
+.admin-health-chevron {
+  flex: 0 0 auto;
+  color: var(--text-muted);
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+.admin-health[open] .admin-health-chevron { transform: rotate(180deg); }
+
+/* ==================== 后台列表错峰入场（仅 opacity / transform） ==================== */
+@keyframes adminRowIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.admin-shell .main-content tbody tr,
+.admin-shell .main-content .admin-stagger > * {
+  animation: adminRowIn 220ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+.admin-shell .main-content tbody tr:nth-child(1),
+.admin-shell .main-content .admin-stagger > :nth-child(1) { animation-delay: 0ms; }
+.admin-shell .main-content tbody tr:nth-child(2),
+.admin-shell .main-content .admin-stagger > :nth-child(2) { animation-delay: 30ms; }
+.admin-shell .main-content tbody tr:nth-child(3),
+.admin-shell .main-content .admin-stagger > :nth-child(3) { animation-delay: 60ms; }
+.admin-shell .main-content tbody tr:nth-child(4),
+.admin-shell .main-content .admin-stagger > :nth-child(4) { animation-delay: 90ms; }
+.admin-shell .main-content tbody tr:nth-child(5),
+.admin-shell .main-content .admin-stagger > :nth-child(5) { animation-delay: 120ms; }
+.admin-shell .main-content tbody tr:nth-child(6),
+.admin-shell .main-content .admin-stagger > :nth-child(6) { animation-delay: 150ms; }
+.admin-shell .main-content tbody tr:nth-child(7),
+.admin-shell .main-content .admin-stagger > :nth-child(7) { animation-delay: 180ms; }
+.admin-shell .main-content tbody tr:nth-child(8),
+.admin-shell .main-content .admin-stagger > :nth-child(8) { animation-delay: 210ms; }
+.admin-shell .main-content tbody tr:nth-child(n+9),
+.admin-shell .main-content .admin-stagger > :nth-child(n+9) { animation-delay: 210ms; }
+
+@media (prefers-reduced-motion: reduce) {
+  .admin-shell .main-content tbody tr,
+  .admin-shell .main-content .admin-stagger > * {
+    animation: none;
+  }
+  .admin-health-chevron { transition: none; }
+}

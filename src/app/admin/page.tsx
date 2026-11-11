@@ -30,6 +30,11 @@ interface Health {
   items: HealthItem[];
 }
 
+/** 未配置 / 预留 / 可选项属于正常态，不按异常标红 */
+function isOptionalDetail(detail: string) {
+  return /未配置|预留|可选/.test(detail);
+}
+
 export default function AdminHomePage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [error, setError] = useState("");
@@ -68,7 +73,7 @@ export default function AdminHomePage() {
       num: stats?.pending_applications,
       btn: "去审核",
       href: "/admin/applications",
-      tone: "green",
+      tone: "blue",
     },
     {
       title: "白名单同步",
@@ -76,7 +81,7 @@ export default function AdminHomePage() {
       num: stats?.approved_unsynced,
       btn: "去同步",
       href: "/admin/applications",
-      tone: "green",
+      tone: "amber",
     },
     {
       title: "待跟进申请",
@@ -84,7 +89,7 @@ export default function AdminHomePage() {
       num: stats?.need_info_applications,
       btn: "查看申请",
       href: "/admin/applications",
-      tone: "amber",
+      tone: "purple",
     },
     {
       title: "待处理工单",
@@ -92,9 +97,12 @@ export default function AdminHomePage() {
       num: stats?.open_tickets,
       btn: "处理工单",
       href: "/admin/tickets",
-      tone: "red",
+      tone: "rose",
     },
   ];
+
+  // 只把真正异常计为待处理；未配置 / 预留 / 可选不计入
+  const healthPending = health ? health.items.filter((i) => !i.ok && !isOptionalDetail(i.detail)).length : 0;
 
   return (
     <AdminShell>
@@ -120,42 +128,60 @@ export default function AdminHomePage() {
           ))}
         </div>
 
-        {/* 系统健康自检：自动发现不可用组件 */}
-        <div className="bg-white border border-slate-200 rounded-[16px] p-6 mb-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between gap-3 mb-3">
+        {/* 系统健康自检：自动发现不可用组件，可折叠（默认展开） */}
+        <details
+          open
+          className="admin-health bg-white border border-slate-200 rounded-[16px] mb-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+        >
+          <summary className="flex items-center justify-between gap-3 p-6">
             <div className="flex items-center gap-3">
               <h3 className="text-[1.02rem] font-bold text-slate-900">系统健康</h3>
               {health && (
-                <span className={`px-2 py-1 rounded-full text-[0.72rem] font-medium ${health.all_ok ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
-                  {health.all_ok ? "全部正常" : health.items.filter((i) => !i.ok).length + " 项待处理"}
+                <span className={`px-2 py-1 rounded-full text-[0.72rem] font-medium ${healthPending === 0 ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                  {healthPending === 0 ? "全部正常" : `${healthPending} 项待处理`}
                 </span>
               )}
             </div>
-            <button
-              type="button"
-              onClick={() => void loadHealth()}
-              disabled={healthBusy}
-              className="px-3 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
-            >
-              {healthBusy ? "检测中..." : "重新检测"}
-            </button>
-          </div>
-          {health === null ? (
-            <p className="text-slate-400 text-[0.88rem]">{healthBusy ? "自动检测中..." : "健康状态加载失败"}</p>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
-              {health.items.map((i) => (
-                <div key={i.id} className="flex items-start gap-3">
-                  <span className={`mt-[7px] w-2 h-2 rounded-full shrink-0 ${i.ok ? "bg-emerald-500" : "bg-red-500"}`} />
-                  <div className="min-w-0">
-                    <div className={`text-[0.88rem] font-medium ${i.ok ? "text-slate-700" : "text-red-600"}`}>{i.label}</div>
-                    <div className={`text-[0.78rem] mt-1 leading-relaxed ${i.ok ? "text-slate-400" : "text-red-500"}`}>{i.detail}</div>
-                  </div>
-                </div>
-              ))}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  void loadHealth();
+                }}
+                disabled={healthBusy}
+                className="px-3 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+              >
+                {healthBusy ? "检测中..." : "重新检测"}
+              </button>
+              <svg className="admin-health-chevron" viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M6 9l6 6 6-6" />
+              </svg>
             </div>
-          )}
-        </div>
+          </summary>
+          <div className="px-6 pb-6">
+            {health === null ? (
+              <p className="text-slate-400 text-[0.88rem]">{healthBusy ? "自动检测中..." : "健康状态加载失败"}</p>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
+                {health.items.map((i) => {
+                  const optional = !i.ok && isOptionalDetail(i.detail);
+                  const abnormal = !i.ok && !optional;
+                  return (
+                    <div key={i.id} className="flex items-start gap-3">
+                      <span className={`mt-[7px] w-2 h-2 rounded-full shrink-0 ${i.ok ? "bg-emerald-500" : abnormal ? "bg-red-500" : "bg-slate-400"}`} />
+                      <div className="min-w-0">
+                        <div className={`text-[0.88rem] font-medium ${i.ok ? "text-slate-700" : abnormal ? "text-red-600" : "text-slate-600"}`}>{i.label}</div>
+                        <div className={`text-[0.78rem] mt-1 leading-relaxed ${i.ok ? "text-slate-400" : abnormal ? "text-red-500" : "text-slate-500"}`}>{i.detail}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </details>
 
         {/* 功能卡片区 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">

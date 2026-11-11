@@ -93,7 +93,7 @@ export default function RoomsView({
           action={<button className={BTN_PRIMARY} onClick={onGoFriends}>去好友列表</button>}
         />
       ) : (
-        <div className={`${CARD} divide-y divide-white/5 overflow-hidden`}>
+        <div className={`${CARD} divide-y divide-white/5 overflow-hidden stagger-list`}>
           {dms.map((room) => (
             <button
               key={room.id}
@@ -215,7 +215,7 @@ function GroupsPanel({
           }
         />
       ) : (
-        <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+        <div className="grid grid-cols-1 gap-3 md:grid-cols-2 stagger-list">
           {groups.map((room) => (
             <button
               key={room.id}
@@ -572,7 +572,7 @@ function FriendsPanel({
           desc="搜索玩家名称发送好友申请，对方同意后就能互相发私信、设置专属备注。"
         />
       ) : (
-        <div className={`${CARD} divide-y divide-white/5 overflow-hidden`}>
+        <div className={`${CARD} divide-y divide-white/5 overflow-hidden stagger-list`}>
           {contacts.map((c) => (
             <div key={c.user_id} className="flex items-center gap-3 px-4 py-3">
               <Avatar src={c.avatar} name={c.alias || c.username} size={42} />
