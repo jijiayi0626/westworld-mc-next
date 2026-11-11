@@ -50,8 +50,9 @@ export function Btn({
   };
   return (
     <motion.button
-      whileTap={props.disabled ? undefined : { scale: 0.96 }}
-      transition={{ duration: 0.12, ease: "easeOut" }}
+      whileHover={props.disabled ? undefined : { scale: 1.02 }}
+      whileTap={props.disabled ? undefined : { scale: 0.95 }}
+      transition={{ type: "spring", stiffness: 420, damping: 22, mass: 0.6 }}
       className={`inline-flex items-center justify-center gap-2 font-semibold cursor-pointer transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${sizes[size]} ${className}`}
       {...props}
     />

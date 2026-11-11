@@ -198,12 +198,12 @@
   border-radius: 8px;
   font-size: 13.5px;
   font-weight: 600;
-  color: #0f172a;
+  color: #ffffff;
   text-decoration: none;
-  background: #e2e8f0;
+  background: linear-gradient(135deg, #10b981, #059669);
 }
 :root[data-frontend="v3"] .m3-cta:hover {
-  filter: brightness(1.08);
+  filter: brightness(1.06);
 }
 
 :root[data-frontend="v3"] .m3-burger {
@@ -297,7 +297,10 @@
   color: var(--m3-text);
 }
 :root[data-frontend="v3"] .m3-grad {
-  color: #ffffff;
+  background: linear-gradient(100deg, #34d399, #10b981 55%, #059669);
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 :root[data-frontend="v3"] .m3-sub {
@@ -333,9 +336,9 @@
   transform: translateY(-1px);
 }
 :root[data-frontend="v3"] .m3-btn-primary {
-  color: #0f172a;
-  background: #f8fafc;
-  box-shadow: 0 8px 24px -12px rgba(0, 0, 0, 0.8);
+  color: #ffffff;
+  background: linear-gradient(135deg, #10b981, #059669);
+  box-shadow: 0 8px 24px -14px rgba(16, 185, 129, 0.55);
 }
 :root[data-frontend="v3"] .m3-btn-ip {
   color: var(--m3-text);

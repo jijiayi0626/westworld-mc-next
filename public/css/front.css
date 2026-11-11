@@ -237,8 +237,8 @@ body.has-announcement-popup {
 /* Buttons */
 .hero-buttons { display: flex; gap: 24px; margin-bottom: 56px; }
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 12px; padding: 16px 32px; border-radius: 12px; font-weight: 700; font-size: 1.05rem; cursor: pointer; transition: var(--transition); border: none; text-transform: uppercase; letter-spacing: 0.5px; position: relative; overflow: hidden; }
-.btn-primary { background: var(--primary-color); color: var(--bg-dark); box-shadow: 0 4px 16px rgba(0, 0, 0, 0.28); }
-.btn-primary:hover { background: var(--primary-hover); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(0, 0, 0, 0.32); }
+.btn-primary { background: linear-gradient(135deg, #10b981, #059669); color: #ffffff; box-shadow: 0 4px 16px rgba(16, 185, 129, 0.28); }
+.btn-primary:hover { background: linear-gradient(135deg, #059669, #047857); transform: translateY(-2px); box-shadow: 0 8px 24px rgba(16, 185, 129, 0.34); }
 .btn-secondary { background: rgba(255, 255, 255, 0.05); color: #fff; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); }
 .btn-secondary:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.4); transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0, 0, 0, 0.28); }
 

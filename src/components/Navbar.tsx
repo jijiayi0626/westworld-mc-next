@@ -71,7 +71,7 @@ export default function Navbar() {
 
   const linkCls = (href: string) =>
     `text-[0.95rem] font-semibold transition-all duration-300 relative py-1 ${
-      isActive(href) ? "text-white nav-link-active" : "text-white/80 hover:text-white"
+      isActive(href) ? "text-emerald-400 nav-link-active" : "text-white/80 hover:text-white"
     }`;
 
   return (
@@ -148,7 +148,7 @@ export default function Navbar() {
                   aria-expanded={moreOpen}
                   className={`text-[0.95rem] font-semibold relative py-1 flex items-center gap-1 cursor-pointer transition-colors duration-300 ${
                     moreOpen || moreItems.some((i) => isActive(i.href))
-                      ? "text-white nav-link-active"
+                      ? "text-emerald-400 nav-link-active"
                       : "text-white/80 hover:text-white"
                   }`}
                 >
@@ -190,7 +190,7 @@ export default function Navbar() {
                 {!user ? (
                   <Link
                     href="/login"
-                    className="nav-register-btn hm-press bg-white text-bg-dark px-4 py-2 rounded-lg text-[0.88rem] font-semibold tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.28)] transition-all duration-300 hover:bg-white/90 hover:-translate-y-px"
+                    className="nav-register-btn hm-press bg-gradient-to-r from-emerald-500 to-green-600 text-white px-4 py-2 rounded-lg text-[0.88rem] font-semibold tracking-wider shadow-[0_2px_8px_rgba(16,185,129,0.3)] transition-all duration-300 hover:from-emerald-600 hover:to-green-700 hover:-translate-y-px"
                   >
                     登录 / 注册
                   </Link>
