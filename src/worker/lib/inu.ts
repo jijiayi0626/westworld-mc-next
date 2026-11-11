@@ -2,7 +2,7 @@
 import type { AppEnv } from "./auth";
 import { decryptSecret } from "./cipher";
 
-const DEFAULT_ORIGIN = "https://inu-space-pass.mr-jijiayi.workers.dev";
+const DEFAULT_ORIGIN = "https://pass.inumc.dpdns.org";
 
 export interface InuConfig {
   origin: string;

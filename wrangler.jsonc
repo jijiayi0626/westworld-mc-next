@@ -57,7 +57,7 @@
     "RCON_ENABLED": "false",
     "MONITOR_ENABLED": "true",
     "TRUST_PROXY": "false",
-    "INU_ORIGIN": "https://inu-space-pass.mr-jijiayi.workers.dev",
+    "INU_ORIGIN": "https://pass.inumc.dpdns.org",
     "INU_REDIRECT_URI": "https://westworld.inumc.dpdns.org/api/inu/callback",
     "INU_SCOPES": "profile email",
     "THEME_SLOTS": "v1,v3"

@@ -293,7 +293,7 @@
 }
 .nav-subitem .nav-item-icon { width: 16px; height: 16px; }
 .nav-subitem:hover { background: var(--sb-hover); color: var(--sb-text-strong); }
-.nav-subitem.active { background: var(--sb-text-strong); color: var(--sb-bg); font-weight: 600; }
+.nav-subitem.active { background: var(--sb-accent); color: #fff; font-weight: 600; }
 
 /* ---------- 侧栏快捷入口（返回首页 / 用户中心 / 管理后台） ---------- */
 .sidebar-shortcuts {
@@ -487,9 +487,9 @@ body.sidebar-open { overflow: hidden; }
   color: var(--sb-text-strong);
 }
 .appearance-btn.active {
-  background: var(--sb-text-strong);
-  border-color: var(--sb-text-strong);
-  color: var(--sb-bg);
+  background: var(--sb-accent);
+  border-color: var(--sb-accent);
+  color: #fff;
 }
 /* 折叠态：只显示图标 */
 .sidebar-collapsed .appearance-btn span { display: none; }
