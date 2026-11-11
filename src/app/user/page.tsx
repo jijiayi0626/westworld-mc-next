@@ -72,11 +72,11 @@ export default function UserHomePage() {
   };
 
   const quickLinks = [
-    { href: "/user/application", label: "入服申请", desc: "申请白名单", color: "#ecfdf5", text: "#047857" },
-    { href: "/user/tickets", label: "我的工单", desc: "提交与跟进问题", color: "#eff6ff", text: "#1d4ed8" },
-    { href: "/user/ai", label: "AI 助手", desc: "咨询服务器问题", color: "#f5f3ff", text: "#6d28d9" },
-    { href: "/user/orders", label: "我的订单", desc: "查看商城订单", color: "#fef9c3", text: "#a16207" },
-    { href: "/user/points", label: "积分中心", desc: `${user.points ?? 0} 积分`, color: "#ecfeff", text: "#0e7490" },
+    { href: "/user/application", label: "入服申请", desc: "申请白名单" },
+    { href: "/user/tickets", label: "我的工单", desc: "提交与跟进问题" },
+    { href: "/user/ai", label: "AI 助手", desc: "咨询服务器问题" },
+    { href: "/user/orders", label: "我的订单", desc: "查看商城订单" },
+    { href: "/user/points", label: "积分中心", desc: `${user.points ?? 0} 积分` },
   ];
 
   // 新人任务：与 PHP 版一致的 6 项引导，全部由真实资料计算，不做假进度
@@ -95,26 +95,26 @@ export default function UserHomePage() {
     <UserShell>
       <PageHeader title="个人中心" desc={`欢迎回来，${user.username}`} right={<StatusBadge status={user.status} />} />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* 左侧：账号信息 */}
         <Card className="lg:col-span-1 h-fit">
-          <div className="flex flex-col items-center text-center gap-3 pb-5 border-b border-slate-200">
+          <div className="flex flex-col items-center text-center gap-3 pb-6 border-b border-slate-200">
             {user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border-2 border-accent-emerald/40" />
+              <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border border-slate-200" />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[color:var(--green,#10b981)] to-[color:var(--green-dark,#059669)] flex items-center justify-center text-3xl font-extrabold text-white">
+              <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center text-3xl font-extrabold text-white">
                 {user.username.slice(0, 1).toUpperCase()}
               </div>
             )}
             <div>
               <div className="text-lg font-bold text-slate-800">{user.username}</div>
-              <div className="text-[0.8rem] text-slate-500 mt-0.5">{user.email}</div>
+              <div className="text-[0.8rem] text-slate-500 mt-1">{user.email}</div>
             </div>
-            {user.role === "admin" && <Badge color="yellow">管理员</Badge>}
+            {user.role === "admin" && <Badge color="gray">管理员</Badge>}
           </div>
 
-          <ul className="mt-5 flex flex-col gap-3 text-[0.85rem]">
+          <ul className="mt-6 flex flex-col gap-3 text-[0.85rem]">
             <Row label="注册时间" value={fmtTime(user.created_at)} />
             <Row label="社区积分" value={`${user.points ?? 0} 分`} />
             <Row label="最近登录" value={fmtTime(user.last_login_at)} />
@@ -123,27 +123,33 @@ export default function UserHomePage() {
             {user.mc_uuid && <Row label="绑定 UUID" value={user.mc_uuid} mono />}
           </ul>
 
-          <Link href="/user/security" className="block mt-5 text-center">
+          <Link href="/user/security" className="block mt-6 text-center">
             <Btn variant="ghost" className="w-full">安全设置（改密 / 绑定微软）</Btn>
           </Link>
         </Card>
 
         {/* 右侧：快捷入口 + 资料编辑 */}
-        <div className="lg:col-span-2 flex flex-col gap-5">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           <Card>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[1.05rem] font-bold text-slate-800">新人任务</h3>
-              <span className="text-[0.85rem] font-semibold text-emerald-600">{doneCount} / {tasks.length}</span>
+              <span className="text-[0.85rem] font-semibold text-slate-700 tabular-nums">{doneCount} / {tasks.length}</span>
             </div>
-            <p className="text-[0.8rem] text-slate-400 mb-3">完善资料后即可获得更完整的社区体验</p>
+            <p className="text-[0.8rem] text-slate-500 mb-3">完善资料后即可获得更完整的社区体验</p>
             <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-4">
-              <div className="h-full bg-gradient-to-r from-[color:var(--green,#10b981)] to-[color:var(--green-dark,#059669)] transition-all" style={{ width: `${percent}%` }} />
+              <div className="h-full bg-slate-900 transition-all" style={{ width: `${percent}%` }} />
             </div>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {tasks.map((t) => (
                 <li key={t.label} className="flex items-center gap-2 text-[0.85rem]">
-                  <span className={`inline-flex w-5 h-5 items-center justify-center rounded-full text-[0.7rem] font-bold ${t.done ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
-                    {t.done ? "✓" : "•"}
+                  <span className={`inline-flex w-5 h-5 items-center justify-center rounded-full ${t.done ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"}`}>
+                    {t.done ? (
+                      <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M20 6L9 17l-5-5" />
+                      </svg>
+                    ) : (
+                      <span className="w-1 h-1 rounded-full bg-current" />
+                    )}
                   </span>
                   <span className={t.done ? "text-slate-400 line-through" : "text-slate-700"}>{t.label}</span>
                 </li>
@@ -151,16 +157,24 @@ export default function UserHomePage() {
             </ul>
           </Card>
 
-          <div className="grid grid-cols-2 gap-4">
-            {quickLinks.map((q) => (
-              <Link key={q.href} href={q.href}>
-                <div className="rounded-[14px] border border-slate-100 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-all hover:shadow-md hover:-translate-y-0.5" style={{ background: q.color }}>
-                  <div className="text-[1rem] font-bold" style={{ color: q.text }}>{q.label}</div>
-                  <div className="text-[0.82rem] mt-1" style={{ color: q.text, opacity: 0.75 }}>{q.desc}</div>
-                </div>
-              </Link>
-            ))}
-          </div>
+          <Card>
+            <h3 className="text-[1.05rem] font-bold text-slate-800 mb-2">快捷入口</h3>
+            <ul className="flex flex-col">
+              {quickLinks.map((q) => (
+                <li key={q.href} className="border-b border-slate-100 last:border-b-0">
+                  <Link href={q.href} className="flex items-center justify-between gap-3 py-3 group">
+                    <span className="min-w-0">
+                      <span className="block text-[0.95rem] font-semibold text-slate-800">{q.label}</span>
+                      <span className="block text-[0.82rem] text-slate-500 mt-1">{q.desc}</span>
+                    </span>
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400" aria-hidden="true">
+                      <path d="m9 18 6-6-6-6" />
+                    </svg>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </Card>
 
           <ServerStatus variant="panel" />
 
@@ -186,7 +200,10 @@ export default function UserHomePage() {
                         e.target.value = "";
                       }}
                     />
-                    <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors">
+                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                        <path d="M12 5v14M5 12h14" />
+                      </svg>
                       {uploading ? "上传中..." : "上传头像"}
                     </span>
                   </label>

@@ -57,7 +57,7 @@ export default function NotificationsPage() {
       />
 
       <Card>
-        {error && <div className="mb-3 text-red-300 text-[0.85rem]">{error}</div>}
+        {error && <div className="mb-3 text-red-600 text-[0.85rem]">{error}</div>}
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
@@ -65,23 +65,23 @@ export default function NotificationsPage() {
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {list.map((n) => (
-              <div key={n.id} className={`py-4 ${!n.is_read ? "bg-accent-emerald/[0.04] -mx-4 px-4 rounded-[8px]" : ""}`}>
+              <div key={n.id} className={`py-4 ${!n.is_read ? "bg-slate-50 -mx-4 px-4 rounded-[8px]" : ""}`}>
                 <div className="flex items-center justify-between gap-3">
-                  <div className="flex items-center gap-2.5 min-w-0">
+                  <div className="flex items-center gap-3 min-w-0">
                     <StatusBadge status={n.type} />
                     <span className={`text-slate-800 font-medium truncate ${!n.is_read ? "font-semibold" : ""}`}>{n.title}</span>
-                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-accent-emerald flex-shrink-0" />}
+                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-slate-700 flex-shrink-0" />}
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
-                    <span className="text-[0.75rem] text-slate-500">{fmtTime(n.created_at)}</span>
+                    <span className="text-[0.75rem] text-slate-500 tabular-nums">{fmtTime(n.created_at)}</span>
                     {!n.is_read && (
-                      <button type="button" onClick={() => markRead(n.id)} className="text-[0.75rem] text-accent-emerald hover:underline cursor-pointer">
+                      <button type="button" onClick={() => markRead(n.id)} className="text-[0.75rem] text-slate-700 hover:text-slate-900 underline underline-offset-2 cursor-pointer">
                         标为已读
                       </button>
                     )}
                   </div>
                 </div>
-                {n.content && <div className="mt-1.5 text-[0.85rem] text-slate-500 whitespace-pre-wrap pl-1">{n.content}</div>}
+                {n.content && <div className="mt-2 text-[0.85rem] text-slate-500 whitespace-pre-wrap pl-1">{n.content}</div>}
               </div>
             ))}
           </div>

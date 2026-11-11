@@ -105,22 +105,22 @@ export default function AdminVisualPage() {
       {success && <div className="mb-4"><SuccessNote message={success} /></div>}
 
       {loading ? (
-        <div className="rounded-xl border border-slate-200 p-10 text-center text-slate-400 text-sm bg-white">
+        <div className="rounded-xl border border-slate-200 p-8 text-center text-slate-400 text-sm bg-white">
           加载内容中...
         </div>
       ) : (
         <div className="flex flex-col lg:flex-row gap-4 lg:h-[calc(100vh-190px)]">
           {/* 左：区块列表 */}
           <aside className="lg:w-44 flex-shrink-0">
-            <div className="flex lg:flex-col gap-1.5 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
+            <div className="flex lg:flex-col gap-2 overflow-x-auto lg:overflow-visible pb-2 lg:pb-0">
               {blocks.map((b) => (
                 <button
                   key={b.key}
                   type="button"
                   onClick={() => setTab(b.key)}
-                  className={`flex-shrink-0 px-3.5 py-2.5 rounded-[10px] text-left text-[0.85rem] font-semibold cursor-pointer border transition-all duration-200 whitespace-nowrap lg:whitespace-normal ${
+                  className={`flex-shrink-0 px-4 py-3 rounded-[12px] text-left text-[0.85rem] font-semibold cursor-pointer border transition-all duration-200 whitespace-nowrap lg:whitespace-normal ${
                     tab === b.key
-                      ? "bg-accent-emerald text-white border-accent-emerald shadow-[0_4px_12px_rgba(16,185,129,0.35)]"
+                      ? "bg-accent-emerald text-white border-accent-emerald shadow-sm"
                       : "bg-white text-slate-700 border-slate-200 hover:border-emerald-300 hover:bg-emerald-50/50"
                   }`}
                 >
@@ -132,11 +132,11 @@ export default function AdminVisualPage() {
 
           {/* 中：实时预览 */}
           <div className="flex-1 min-w-0 flex flex-col">
-            <div className="flex items-center justify-between px-3 py-2 rounded-t-[14px] bg-[#0b1220] border border-b-0 border-white/10 text-[0.8rem] text-slate-400">
+            <div className="flex items-center justify-between px-3 py-2 rounded-t-[16px] bg-[#0b1220] border border-b-0 border-white/10 text-[0.8rem] text-slate-400">
               <span>实时预览（仅示意，完整页面请访问前台）</span>
-              <span className="text-emerald-400">● 已同步编辑内容</span>
+              <span className="text-slate-500">已同步编辑内容</span>
             </div>
-            <div className="visual-preview flex-1 min-h-[420px] lg:min-h-0 bg-[#0f172a] rounded-b-[14px] border border-white/10 overflow-y-auto">
+            <div className="visual-preview flex-1 min-h-[420px] lg:min-h-0 bg-[#0f172a] rounded-b-[16px] border border-white/10 overflow-y-auto">
               <SiteContentProvider value={content}>
                 <Hero />
                 <SpecsSection />
@@ -152,7 +152,7 @@ export default function AdminVisualPage() {
 
           {/* 右：字段表单 */}
           <aside className="lg:w-[360px] flex-shrink-0 lg:overflow-y-auto lg:max-h-[calc(100vh-190px)]">
-            <div className="rounded-[14px] bg-white border border-slate-200 p-4">
+            <div className="rounded-[16px] bg-white border border-slate-200 p-4">
               <h3 className="text-[0.95rem] font-bold text-slate-800 mb-3 flex items-center gap-2">
                 编辑「{blocks.find((b) => b.key === tab)?.label}」
               </h3>

@@ -111,7 +111,7 @@ export default function AiPage() {
         right={<Btn onClick={newConvo} variant={current === null ? "ghost" : "primary"}>新对话</Btn>}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-5 items-start">
+      <div className="grid grid-cols-1 lg:grid-cols-[260px_1fr] gap-6 items-start">
         {/* 会话列表 */}
         <Card className="h-fit">
           <h3 className="text-[0.9rem] font-bold text-slate-600 mb-3">历史会话</h3>
@@ -127,19 +127,21 @@ export default function AiPage() {
                     type="button"
                     onClick={() => openConvo(c.id)}
                     className={`flex-1 text-left px-3 py-2 rounded-[8px] text-[0.85rem] transition-colors cursor-pointer truncate ${
-                      current === c.id ? "bg-accent-emerald/20 text-accent-emerald" : "text-slate-600 hover:bg-slate-100"
+                      current === c.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     {c.title}
-                    <span className="block text-[0.7rem] text-slate-500 mt-0.5">{fmtTime(c.created_at)} · {c.messages} 条</span>
+                    <span className={`block text-[0.7rem] mt-1 tabular-nums ${current === c.id ? "text-slate-300" : "text-slate-500"}`}>{fmtTime(c.created_at)} · {c.messages} 条</span>
                   </button>
                   <button
                     type="button"
                     onClick={() => delConvo(c.id)}
-                    className="text-slate-600 hover:text-red-400 px-1 cursor-pointer text-[0.8rem]"
+                    className="text-slate-500 hover:text-red-600 p-1 cursor-pointer"
                     aria-label="删除会话"
                   >
-                    ✕
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                      <path d="M18 6 6 18M6 6l12 12" />
+                    </svg>
                   </button>
                 </div>
               ))}
@@ -150,10 +152,10 @@ export default function AiPage() {
         {/* 聊天区 */}
         <Card className="flex flex-col h-[560px]">
           <div className="flex-1 overflow-y-auto pr-1 flex flex-col gap-3">
-            {error && <div className="px-3 py-2 text-[0.82rem] text-red-300 bg-red-500/10 border border-red-500/25 rounded-[8px]">{error}</div>}
+            {error && <div className="px-3 py-2 text-[0.82rem] text-red-600 bg-red-50 border border-red-200 rounded-[8px]">{error}</div>}
             {!messages || messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-                <div className="w-16 h-16 rounded-[18px] bg-accent-emerald/10 border border-accent-emerald/25 flex items-center justify-center text-accent-emerald">
+                <div className="w-16 h-16 rounded-[16px] bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
                   <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12 2a4 4 0 0 1 4 4h1a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h1a4 4 0 0 1 4-4z" />
                     <path d="M9 12v.01" />
@@ -171,8 +173,8 @@ export default function AiPage() {
                   key={m.id}
                   className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed whitespace-pre-wrap max-w-[85%] ${
                     m.role === "user"
-                      ? "self-end bg-accent-emerald/15 border border-accent-emerald/25 text-slate-800"
-                      : "self-start bg-slate-50 border border-slate-200 text-slate-600"
+                      ? "self-end bg-slate-900 text-white"
+                      : "self-start bg-slate-50 border border-slate-200 text-slate-700"
                   }`}
                 >
                   {m.content}
@@ -193,7 +195,7 @@ export default function AiPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="输入你的问题..."
               maxLength={4000}
-              className="flex-1 bg-white border border-slate-200 rounded-[10px] px-4 py-2.5 text-slate-800 text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-white"
+              className="flex-1 bg-white border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-slate-400"
             />
             <Btn type="submit" disabled={busy || !input.trim()}>{busy ? "..." : "发送"}</Btn>
           </form>

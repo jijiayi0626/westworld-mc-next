@@ -181,7 +181,7 @@ export default function AdminRainyunPage() {
       <ErrorNote message={error} />
       <SuccessNote message={success} />
 
-      <Card className="mb-5">
+      <Card className="mb-6">
         <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">API 配置</h3>
         <p className="text-[0.8rem] text-slate-400 mb-4">
           在雨云控制台「个人中心 → API 密钥」生成密钥。填写服务器 ID 后，面板只允许操作该实例，避免误操作其他机器。
@@ -245,12 +245,12 @@ export default function AdminRainyunPage() {
               <div className="flex items-start justify-between gap-3">
                 <div>
                   <div className="text-slate-900 font-bold">{ins.name}</div>
-                  <div className="text-[0.78rem] text-slate-400 font-mono mt-0.5">#{ins.id}{ins.zone ? ` · ${ins.zone}` : ""}</div>
+                  <div className="text-[0.78rem] text-slate-400 font-mono mt-1">#{ins.id}{ins.zone ? ` · ${ins.zone}` : ""}</div>
                 </div>
                 <Badge color={TONE[ins.status_tone]}>{ins.status}</Badge>
               </div>
 
-              <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 mt-4 text-[0.82rem]">
+              <div className="grid grid-cols-2 gap-x-4 gap-y-2 mt-4 text-[0.82rem]">
                 <div className="text-slate-400">IP</div>
                 <div className="text-slate-700 font-mono break-all">{ins.ip || "—"}</div>
                 {ins.domain && (

@@ -70,7 +70,7 @@ export default function Navbar() {
     href === "/" ? pathname === "/" : pathname.startsWith(href);
 
   const linkCls = (href: string) =>
-    `text-[0.95rem] font-semibold transition-all duration-300 relative py-[5px] ${
+    `text-[0.95rem] font-semibold transition-all duration-300 relative py-1 ${
       isActive(href) ? "text-white nav-link-active" : "text-white/80 hover:text-white"
     }`;
 
@@ -87,7 +87,7 @@ export default function Navbar() {
             className="logo flex items-center gap-3 text-xl font-extrabold text-white uppercase tracking-wider"
           >
             <svg
-              className="logo-svg text-white drop-shadow-[0_0_5px_rgba(255,255,255,0.5)] flex-shrink-0"
+              className="logo-svg text-white flex-shrink-0"
               width="32"
               height="32"
               viewBox="0 0 24 24"
@@ -106,7 +106,7 @@ export default function Navbar() {
             </span>
           </Link>
 
-          <div className="flex items-center gap-3 sm:gap-5">
+          <div className="flex items-center gap-3 sm:gap-4">
             {/* 桌面端服务器状态 */}
             <ServerStatus className="hidden md:inline-flex" />
 
@@ -146,7 +146,7 @@ export default function Navbar() {
                   type="button"
                   onClick={() => setMoreOpen((v) => !v)}
                   aria-expanded={moreOpen}
-                  className={`text-[0.95rem] font-semibold relative py-[5px] flex items-center gap-1 cursor-pointer transition-colors duration-300 ${
+                  className={`text-[0.95rem] font-semibold relative py-1 flex items-center gap-1 cursor-pointer transition-colors duration-300 ${
                     moreOpen || moreItems.some((i) => isActive(i.href))
                       ? "text-white nav-link-active"
                       : "text-white/80 hover:text-white"
@@ -168,14 +168,14 @@ export default function Navbar() {
                   </svg>
                 </button>
                 {moreOpen && (
-                  <div className="absolute right-0 top-full mt-3 w-40 rounded-[14px] overflow-hidden border border-white/12 bg-slate-900/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.45)] py-1.5">
+                  <div className="absolute right-0 top-full mt-3 w-40 rounded-2xl overflow-hidden border border-white/12 bg-slate-900/95 backdrop-blur-xl shadow-[0_12px_36px_rgba(0,0,0,0.45)] py-2">
                     {moreItems.map((item) => (
                       <Link
                         key={item.href}
                         href={item.href}
-                        className={`block px-4 py-2.5 text-[0.9rem] font-medium transition-colors ${
+                        className={`block px-4 py-2 text-[0.9rem] font-medium transition-colors ${
                           isActive(item.href)
-                            ? "text-emerald-300 bg-emerald-400/10"
+                            ? "text-white bg-white/10"
                             : "text-white/75 hover:text-white hover:bg-white/10"
                         }`}
                       >
@@ -190,7 +190,7 @@ export default function Navbar() {
                 {!user ? (
                   <Link
                     href="/login"
-                    className="nav-register-btn hm-press bg-gradient-to-br from-green-500 to-green-600 text-white px-[18px] py-[6px] rounded-full text-[0.88rem] font-semibold tracking-wider shadow-[0_2px_10px_rgba(34,197,94,0.35)] transition-all duration-300 hover:from-green-600 hover:to-green-700 hover:-translate-y-px"
+                    className="nav-register-btn hm-press bg-white text-bg-dark px-4 py-2 rounded-lg text-[0.88rem] font-semibold tracking-wider shadow-[0_2px_8px_rgba(0,0,0,0.28)] transition-all duration-300 hover:bg-white/90 hover:-translate-y-px"
                   >
                     登录 / 注册
                   </Link>
@@ -201,14 +201,14 @@ export default function Navbar() {
                     </span>
                     <Link
                       href="/user"
-                      className="px-[14px] py-[6px] rounded-full text-[0.85rem] font-semibold bg-white/10 border border-white/15 text-white/90 hover:bg-white/20 transition-all duration-300"
+                      className="px-4 py-1 rounded-lg text-[0.85rem] font-semibold bg-white/10 border border-white/15 text-white/90 hover:bg-white/20 transition-all duration-300"
                     >
                       用户中心
                     </Link>
                     {user.role === "admin" && (
                       <Link
                         href="/admin"
-                        className="px-[14px] py-[6px] rounded-full text-[0.85rem] font-semibold bg-white/10 border border-white/15 text-white/90 hover:bg-white/20 transition-all duration-300"
+                        className="px-4 py-1 rounded-lg text-[0.85rem] font-semibold bg-white/10 border border-white/15 text-white/90 hover:bg-white/20 transition-all duration-300"
                       >
                         管理后台
                       </Link>

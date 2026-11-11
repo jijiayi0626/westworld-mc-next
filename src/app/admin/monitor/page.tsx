@@ -155,13 +155,13 @@ export default function AdminMonitorPage() {
         </div>
       </Card>
 
-      <Card className="mb-5">
+      <Card className="mb-6">
         <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">MOTD 在线查询</h3>
         <p className="text-[0.8rem] text-slate-400 mb-3">通过 MineBBS MOTD API 查询任意服务器的图标、MOTD、版本与在线人数；前台「帮助」页也提供同款查询。</p>
         <MotdQuery defaultHost={servers?.[0] ? `${servers[0].host}:${servers[0].port}` : undefined} />
       </Card>
 
-      <div className="flex flex-col gap-4 mb-5">
+      <div className="flex flex-col gap-4 mb-6">
         {servers === null ? (
           <Empty text="加载中..." />
         ) : servers.length === 0 ? (
@@ -172,7 +172,7 @@ export default function AdminMonitorPage() {
               <div className="flex items-center justify-between gap-3 flex-wrap">
                 <div>
                   <div className="text-slate-800 font-bold">{s.server_name}</div>
-                  <div className="mt-0.5 text-[0.82rem] text-slate-500 font-mono">{s.host}:{s.port} · {s.game}</div>
+                  <div className="mt-1 text-[0.82rem] text-slate-500 font-mono">{s.host}:{s.port} · {s.game}</div>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={s.status} />
@@ -185,7 +185,7 @@ export default function AdminMonitorPage() {
                 版本：{s.version || "未知"} · 最近检测：{fmtTime(s.last_check)}
               </div>
               {s.motd && (
-                <div className="mt-2 rounded-[9px] bg-slate-50 border border-slate-100 px-3 py-2 text-[0.8rem] text-slate-600 whitespace-pre-wrap break-words font-mono max-h-20 overflow-y-auto">
+                <div className="mt-2 rounded-[8px] bg-slate-50 border border-slate-100 px-3 py-2 text-[0.8rem] text-slate-600 whitespace-pre-wrap break-words font-mono max-h-20 overflow-y-auto">
                   {s.motd}
                 </div>
               )}
@@ -197,7 +197,7 @@ export default function AdminMonitorPage() {
         )}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card>
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">手动更新状态</h3>
           <form onSubmit={manualUpdate} className="flex flex-col gap-4">
@@ -236,7 +236,7 @@ export default function AdminMonitorPage() {
             </div>
           </form>
           {cmdOutput && (
-            <div className="mt-4 px-4 py-3 rounded-[10px] bg-white border border-slate-200 font-mono text-[0.82rem] text-emerald-300 whitespace-pre-wrap">
+            <div className="mt-4 px-4 py-3 rounded-[12px] bg-white border border-slate-200 font-mono text-[0.82rem] text-emerald-300 whitespace-pre-wrap">
               {cmdOutput}
             </div>
           )}

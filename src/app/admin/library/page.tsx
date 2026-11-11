@@ -140,14 +140,14 @@ export default function AdminLibraryPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-[1.35rem] font-bold text-slate-900">图片管理</h1>
           <div className="flex items-center gap-2">
             <button
               type="button"
               onClick={() => void cleanupOrphans()}
               disabled={cleaning || uploading}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-[10px] bg-white border border-slate-200 text-slate-600 text-[0.86rem] font-semibold hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-60"
+              className="inline-flex items-center gap-2 px-4 py-2 rounded-[12px] bg-white border border-slate-200 text-slate-600 text-[0.86rem] font-semibold hover:bg-slate-50 transition-colors cursor-pointer disabled:opacity-60"
             >
               {cleaning ? "扫描中..." : "清理未使用图片"}
             </button>
@@ -163,7 +163,7 @@ export default function AdminLibraryPage() {
                 if (f) void upload(f);
               }}
             />
-            <span className="inline-flex items-center gap-1.5 px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">
               {uploading ? "上传中..." : "+ 上传图片"}
             </span>
           </label>
@@ -171,7 +171,7 @@ export default function AdminLibraryPage() {
         </div>
 
         {/* 分类 Tab + 检索区 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="bg-white border border-slate-200 rounded-[16px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="flex flex-wrap items-center gap-2 mb-3">
             {([
               { key: "mine", label: "我上传的图片" },
@@ -181,7 +181,7 @@ export default function AdminLibraryPage() {
                 key={t.key}
                 type="button"
                 onClick={() => setTab(t.key)}
-                className={`px-4 py-1.5 rounded-full text-[0.85rem] font-medium transition-colors cursor-pointer ${tab === t.key ? "bg-[color:var(--green,#10b981)] text-white" : "bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"}`}
+                className={`px-4 py-2 rounded-full text-[0.85rem] font-medium transition-colors cursor-pointer ${tab === t.key ? "bg-[color:var(--green,#10b981)] text-white" : "bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100"}`}
               >
                 {t.label}
               </button>
@@ -191,7 +191,7 @@ export default function AdminLibraryPage() {
             value={keyword}
             onChange={(e) => setKeyword(e.target.value)}
             placeholder="搜索文件名..."
-            className="w-full sm:w-[300px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.9rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+            className="w-full sm:w-[300px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.9rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
           />
         </div>
 
@@ -199,9 +199,9 @@ export default function AdminLibraryPage() {
         {success && <div className="mb-4"><SuccessNote message={success} /></div>}
 
         {items === null ? (
-          <div className="bg-white border border-slate-200 rounded-[14px]"><Empty text="加载中..." /></div>
+          <div className="bg-white border border-slate-200 rounded-[16px]"><Empty text="加载中..." /></div>
         ) : filtered.length === 0 ? (
-          <div className="bg-white border border-slate-200 rounded-[14px]"><Empty text="暂无图片，点击右上角上传" /></div>
+          <div className="bg-white border border-slate-200 rounded-[16px]"><Empty text="暂无图片，点击右上角上传" /></div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {filtered.map((i) => (
@@ -216,36 +216,36 @@ export default function AdminLibraryPage() {
                 />
                 <div className="absolute top-1.5 left-1.5 flex gap-1">
                   {i.system && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-slate-900/70 text-white text-[0.62rem] font-medium backdrop-blur-sm">系统</span>
+                    <span className="px-2 py-1 rounded-full bg-slate-900/70 text-white text-[0.62rem] font-medium backdrop-blur-sm">系统</span>
                   )}
                   {i.in_use && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-emerald-500/85 text-white text-[0.62rem] font-medium">使用中</span>
+                    <span className="px-2 py-1 rounded-full bg-emerald-500/85 text-white text-[0.62rem] font-medium">使用中</span>
                   )}
                   {!i.system && i.in_use === false && (
-                    <span className="px-1.5 py-0.5 rounded-full bg-amber-500/85 text-white text-[0.62rem] font-medium" title="未检测到引用，可清理">未使用</span>
+                    <span className="px-2 py-1 rounded-full bg-amber-500/85 text-white text-[0.62rem] font-medium" title="未检测到引用，可清理">未使用</span>
                   )}
                 </div>
-                <div className="p-2.5">
+                <div className="p-3">
                   <div className="text-[0.78rem] text-slate-800 font-medium truncate" title={i.name || i.key}>{i.name || "未命名"}</div>
                   <div className="font-mono text-[0.64rem] text-slate-400 truncate" title={i.key}>{i.key.split("/").pop()}</div>
-                  <div className="flex items-center justify-between gap-1.5 mt-2">
+                  <div className="flex items-center justify-between gap-2 mt-2">
                     <button
                       type="button"
                       onClick={() => copy(i.url)}
-                      className="px-1.5 py-1 rounded-[6px] bg-slate-50 border border-slate-200 text-[0.7rem] text-slate-600 hover:bg-slate-100 cursor-pointer"
+                      className="px-2 py-1 rounded-[8px] bg-slate-50 border border-slate-200 text-[0.7rem] text-slate-600 hover:bg-slate-100 cursor-pointer"
                     >
                       {copied === i.url ? "已复制" : "链接"}
                     </button>
                     <button
                       type="button"
                       onClick={() => startRename(i)}
-                      className="px-1.5 py-1 rounded-[6px] bg-slate-50 border border-slate-200 text-[0.7rem] text-slate-600 hover:bg-slate-100 cursor-pointer"
+                      className="px-2 py-1 rounded-[8px] bg-slate-50 border border-slate-200 text-[0.7rem] text-slate-600 hover:bg-slate-100 cursor-pointer"
                     >
                       命名
                     </button>
                     {i.system ? (
                       <span
-                        className="px-1.5 py-1 rounded-[6px] bg-slate-50 border border-slate-200 text-[0.7rem] text-slate-300 select-none"
+                        className="px-2 py-1 rounded-[8px] bg-slate-50 border border-slate-200 text-[0.7rem] text-slate-300 select-none"
                         title="系统默认图片不可删除"
                       >
                         受保护
@@ -254,7 +254,7 @@ export default function AdminLibraryPage() {
                       <button
                         type="button"
                         onClick={() => remove(i)}
-                        className="px-1.5 py-1 rounded-[6px] bg-red-50 border border-red-200 text-[0.7rem] text-red-600 hover:bg-red-100 cursor-pointer"
+                        className="px-2 py-1 rounded-[8px] bg-red-50 border border-red-200 text-[0.7rem] text-red-600 hover:bg-red-100 cursor-pointer"
                       >
                         删除
                       </button>
@@ -287,7 +287,7 @@ export default function AdminLibraryPage() {
                   <button
                     type="button"
                     onClick={() => copy(preview.url)}
-                    className="px-3 py-1.5 rounded-[8px] bg-white/15 hover:bg-white/25 cursor-pointer"
+                    className="px-3 py-2 rounded-[8px] bg-white/15 hover:bg-white/25 cursor-pointer"
                   >
                     {copied === preview.url ? "已复制" : "复制链接"}
                   </button>
@@ -298,14 +298,14 @@ export default function AdminLibraryPage() {
                       setPreview(null);
                       startRename(current);
                     }}
-                    className="px-3 py-1.5 rounded-[8px] bg-white/15 hover:bg-white/25 cursor-pointer"
+                    className="px-3 py-2 rounded-[8px] bg-white/15 hover:bg-white/25 cursor-pointer"
                   >
                     命名
                   </button>
                   <button
                     type="button"
                     onClick={() => setPreview(null)}
-                    className="px-3 py-1.5 rounded-[8px] bg-white/15 hover:bg-white/25 cursor-pointer"
+                    className="px-3 py-2 rounded-[8px] bg-white/15 hover:bg-white/25 cursor-pointer"
                   >
                     关闭
                   </button>

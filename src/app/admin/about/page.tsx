@@ -43,10 +43,10 @@ export default function AdminAboutPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">关于本站</h1>
+        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-6">关于本站</h1>
 
         {/* Tab 导航 */}
-        <div className="flex gap-1 mb-5 bg-slate-100 rounded-[12px] p-1 w-fit max-w-full overflow-x-auto">
+        <div className="flex gap-1 mb-6 bg-slate-100 rounded-[12px] p-1 w-fit max-w-full overflow-x-auto">
           {([
             { key: "info", label: "项目信息" },
             { key: "readme", label: "README" },
@@ -56,7 +56,7 @@ export default function AdminAboutPage() {
               key={t.key}
               type="button"
               onClick={() => setTab(t.key)}
-              className={`px-4 py-2 rounded-[9px] text-[0.88rem] font-medium whitespace-nowrap transition-colors cursor-pointer ${
+              className={`px-4 py-2 rounded-[8px] text-[0.88rem] font-medium whitespace-nowrap transition-colors cursor-pointer ${
                 tab === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -66,9 +66,9 @@ export default function AdminAboutPage() {
         </div>
 
         {tab === "info" && (
-          <Card className="max-w-xl mb-5">
-            <div className="flex items-center gap-4 mb-5">
-              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white text-2xl font-extrabold shadow-md flex-shrink-0">
+          <Card className="max-w-xl mb-6">
+            <div className="flex items-center gap-4 mb-6">
+              <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white text-2xl font-extrabold shadow-md flex-shrink-0">
                 {PROJECT.name.slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0">
@@ -85,7 +85,7 @@ export default function AdminAboutPage() {
               <InfoRow label="版本" value={PROJECT.version} />
             </div>
 
-            <div className="mt-5 pt-4 border-t border-slate-100 text-slate-500 text-[0.88rem] leading-relaxed">{PROJECT.desc}</div>
+            <div className="mt-6 pt-4 border-t border-slate-100 text-slate-500 text-[0.88rem] leading-relaxed">{PROJECT.desc}</div>
           </Card>
         )}
 

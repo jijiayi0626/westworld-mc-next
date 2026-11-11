@@ -5,14 +5,12 @@
 @layer base {
   html {
     scroll-behavior: smooth;
-    scroll-padding-top: 80px;
+    scroll-padding-top: 96px;
   }
 
   body {
     @apply bg-bg-dark text-text-main leading-relaxed overflow-x-hidden;
-    background-image:
-      radial-gradient(circle at 10% 20%, rgba(255, 255, 255, 0.08) 0%, transparent 20%),
-      radial-gradient(circle at 90% 80%, rgba(233, 30, 99, 0.08) 0%, transparent 20%);
+    background-color: #0f172a;
   }
 
   a {
@@ -50,21 +48,13 @@
   }
 
   .text-rainbow {
-    background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98, #00ff7f, #adff2f, #7cfc00);
-    background-size: 400% 400%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    @apply inline-block animate-rainbow-flow-slow;
+    @apply inline-block font-extrabold;
+    color: #ffffff;
   }
 
   .text-rainbow-fast {
-    background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98);
-    background-size: 300% 300%;
-    -webkit-background-clip: text;
-    background-clip: text;
-    -webkit-text-fill-color: transparent;
-    @apply font-extrabold animate-rainbow-flow;
+    @apply inline-block font-extrabold;
+    color: #ffffff;
   }
 }
 
@@ -129,9 +119,8 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: var(--accent-green, #00e676);
-  box-shadow: 0 0 8px var(--accent-green, #00e676);
-  border-radius: 2px;
+  background: #e2e8f0;
+  border-radius: 0;
 }
 
 /* Hamburger 动画 */
@@ -181,10 +170,9 @@ body.nav-open {
     align-items: stretch;
     justify-content: flex-start;
     gap: 4px;
-    padding: 16px 14px 24px;
+    padding: 16px 16px 24px;
     text-align: left;
     background-color: #0f172a;
-    background-image: linear-gradient(180deg, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 1));
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -206,14 +194,14 @@ body.nav-open {
     display: block;
     font-size: 1rem;
     font-weight: 600;
-    padding: 12px 14px;
-    border-radius: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
     color: rgba(255, 255, 255, 0.88);
     transition: background 0.2s ease, color 0.2s ease;
   }
   .nav-links a:hover,
   .nav-links a:active {
-    background: rgba(34, 197, 94, 0.12);
+    background: rgba(255, 255, 255, 0.08);
     color: #ffffff;
   }
   .nav-link-active::after {
@@ -222,13 +210,13 @@ body.nav-open {
   /* 账号区：贴底并分隔 */
   .nav-actions {
     margin-top: auto;
-    padding-top: 14px;
+    padding-top: 16px;
     border-top: 1px solid rgba(255, 255, 255, 0.08);
   }
   .nav-actions .nav-register-btn {
     display: block;
     text-align: center;
-    padding: 12px 18px;
+    padding: 12px 16px;
     font-size: 0.95rem;
   }
   .nav-account {
@@ -245,8 +233,8 @@ body.nav-open {
     display: block;
     width: 100%;
     text-align: center;
-    padding: 12px 14px;
-    border-radius: 10px;
+    padding: 12px 16px;
+    border-radius: 8px;
   }
 }
 
@@ -281,7 +269,7 @@ body.nav-open {
 }
 .ripple-ink {
   position: absolute;
-  border-radius: 9999px;
+  border-radius: 50%;
   background: rgba(255, 255, 255, 0.35);
   transform: scale(0);
   animation: hm-ripple 0.55s var(--hm-ease-standard) forwards;
@@ -298,7 +286,7 @@ body.nav-open {
 .hm-enter {
   opacity: 0;
   transform: translateY(14px) scale(0.985);
-  animation: hm-enter 0.45s var(--hm-ease-emphasized) forwards;
+  animation: hm-enter 0.24s var(--hm-ease-emphasized) forwards;
 }
 @keyframes hm-enter {
   to {
@@ -315,13 +303,9 @@ body.nav-open {
   border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* 呼吸光晕（状态点/在线徽章） */
+/* 呼吸光晕已移除：状态点保持静态，不做无限循环动画 */
 .hm-breathe {
-  animation: hm-breathe 2.4s var(--hm-ease-standard) infinite;
-}
-@keyframes hm-breathe {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.55; }
+  animation: none;
 }
 
 /* ============================================================
@@ -340,55 +324,15 @@ body.nav-open {
 }
 
 /* ============================================================
-   Hero 光效背景（网格 + 径向光晕）
-   ============================================================ */.hero-glow {
-  background:
-    radial-gradient(ellipse at 15% 35%, rgba(0, 230, 118, 0.18) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 70%, rgba(59, 130, 246, 0.16) 0%, transparent 45%),
-    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-  background-size: auto, auto, 44px 44px, 44px 44px;
-  -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 78%);
-  mask-image: radial-gradient(ellipse at center, black 25%, transparent 78%);
+   Hero 背景：纯中性色，不再使用光晕与网格渐变
+   ============================================================ */
+.hero-glow {
+  background: none;
 }
 
-/* Hero 浮动方块粒子（贴合 MC 主题，纯 CSS 动画，移动端禁用省性能） */
+/* Hero 浮动装饰已移除，保留容器占位以兼容既有结构 */
 .hero-floating {
-  position: absolute;
-  inset: 0;
-  overflow: hidden;
-  pointer-events: none;
-  z-index: 1;
-}
-.hero-cube {
-  position: absolute;
-  bottom: -60px;
-  opacity: 0;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.05));
-  border: 1px solid rgba(255, 255, 255, 0.12);
-  box-shadow:
-    inset 0 0 12px rgba(0, 230, 118, 0.15),
-    0 0 20px rgba(0, 230, 118, 0.06);
-  animation: hero-cube-rise linear infinite;
-}
-.hero-cube-1 { left: 8%;  width: 18px; height: 18px; animation-duration: 16s; animation-delay: 0s; }
-.hero-cube-2 { left: 20%; width: 12px; height: 12px; animation-duration: 21s; animation-delay: 3s; }
-.hero-cube-3 { left: 34%; width: 26px; height: 26px; animation-duration: 18s; animation-delay: 6s; }
-.hero-cube-4 { left: 48%; width: 14px; height: 14px; animation-duration: 23s; animation-delay: 9s; }
-.hero-cube-5 { left: 62%; width: 20px; height: 20px; animation-duration: 17s; animation-delay: 4s; }
-.hero-cube-6 { left: 74%; width: 15px; height: 15px; animation-duration: 20s; animation-delay: 7s; }
-.hero-cube-7 { left: 86%; width: 22px; height: 22px; animation-duration: 19s; animation-delay: 11s; }
-.hero-cube-8 { left: 93%; width: 11px; height: 11px; animation-duration: 24s; animation-delay: 2s; }
-
-@keyframes hero-cube-rise {
-  0%   { transform: translateY(0) rotate(0deg); opacity: 0; }
-  10%  { opacity: 0.9; }
-  90%  { opacity: 0.5; }
-  100% { transform: translateY(-110vh) rotate(540deg); opacity: 0; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .hero-cube { display: none; }
+  display: none;
 }
 
 /* ============================================================
@@ -416,7 +360,7 @@ body.nav-open {
   }
   /* 相册轮播图片圆角与留白 */
   .gallery-slide img {
-    border-radius: 14px;
+    border-radius: 16px;
   }
   /* 触控目标与间距 */
   .btn,
@@ -436,7 +380,7 @@ body.nav-open {
 .section-title {
   position: relative;
   display: inline-block;
-  padding-bottom: 10px;
+  padding-bottom: 12px;
 }
 .section-title::after {
   content: '';
@@ -445,34 +389,33 @@ body.nav-open {
   left: 50%;
   transform: translateX(-50%);
   width: 56px;
-  height: 3px;
-  border-radius: 3px;
-  background: linear-gradient(90deg, var(--accent-green, #00e676), var(--accent-blue, #3b82f6));
-  box-shadow: 0 0 10px var(--accent-green, #00e676);
+  height: 2px;
+  border-radius: 0;
+  background: #94a3b8;
 }
 
 /* ============================================================
    公告区（首页，兼容 front.css 遗留模板样式，覆盖为深色主题）
    ============================================================ */
 .home-announcements {
-  background: linear-gradient(180deg, rgba(15, 23, 42, 0.96), rgba(15, 23, 42, 0.82));
+  background: rgba(15, 23, 42, 0.96);
 }
 .home-announcements .home-announcement {
   background: rgba(255, 255, 255, 0.05);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  padding: 16px 18px;
+  padding: 16px;
   backdrop-filter: blur(6px);
   box-shadow: 0 10px 30px rgba(15, 23, 42, 0.15);
   color: #fff;
 }
 .home-announcements .home-announcement:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(16, 185, 129, 0.4);
+  border-color: rgba(255, 255, 255, 0.3);
 }
 .home-announcements .home-announcement-level {
-  background: rgba(16, 185, 129, 0.16);
-  color: #34d399;
+  background: rgba(255, 255, 255, 0.1);
+  color: #e2e8f0;
 }
 .home-announcements .home-announcement-time {
   color: #94a3b8;
@@ -504,7 +447,7 @@ body.nav-open {
   /* 相册切换标签收窄 */
   .gallery-tabs,
   .gallery-location-tabs {
-    gap: 7px;
+    gap: 8px;
   }
   .gallery-tabs button,
   .gallery-location-tabs button {
@@ -521,12 +464,10 @@ body.nav-open {
 }
 
 /* ============================================================
-   规则/FAQ 等独立页背景光效
+   规则/FAQ 等独立页背景：中性纯色
    ============================================================ */
 .rules-glow {
-  background:
-    radial-gradient(ellipse at 20% 0%, rgba(0, 230, 118, 0.12) 0%, transparent 45%),
-    radial-gradient(ellipse at 85% 100%, rgba(59, 130, 246, 0.1) 0%, transparent 45%);
+  background: none;
 }
 
 /* ============================================================
@@ -558,26 +499,25 @@ body.nav-open {
 
 /* 兼容保留：部分页面仍在使用的卡片类 */
 .mc-card {
-  background: linear-gradient(150deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.045));
+  background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid rgba(255, 255, 255, 0.12);
-  border-radius: 20px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.12);
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+  border-radius: 24px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.22);
+  transition: transform 0.2s ease, border-color 0.15s ease, box-shadow 0.2s ease;
 }
 .mc-card:hover {
-  border-color: rgba(52, 211, 153, 0.4);
+  border-color: rgba(255, 255, 255, 0.28);
   transform: translateY(-3px);
 }
 
-/* 玻璃卡：更接近鸿蒙卡片观的分层阴影与大圆角 */
+/* 玻璃卡：中性分层阴影与大圆角 */
 .glass-card {
-  border-radius: 20px;
+  border-radius: 24px;
   box-shadow:
-    0 2px 6px rgba(0, 0, 0, 0.14),
-    0 12px 36px rgba(0, 0, 0, 0.22),
-    inset 0 1px 0 rgba(255, 255, 255, 0.12);
+    0 2px 8px rgba(0, 0, 0, 0.14),
+    0 12px 32px rgba(0, 0, 0, 0.22);
 }
 
 /* 导航：更轻盈的毛玻璃 + 顶部渐变描边 */
@@ -586,33 +526,33 @@ body.nav-open {
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 .nav-links a {
-  border-radius: 10px;
-  transition: color 0.25s ease, background-color 0.25s ease;
+  border-radius: 8px;
+  transition: color 0.15s ease, background-color 0.15s ease;
 }
 .nav-links a:hover {
   background: rgba(255, 255, 255, 0.08);
 }
 @media (min-width: 768px) {
   .nav-links a {
-    padding: 6px 12px;
+    padding: 8px 12px;
   }
 }
 
-/* 键盘焦点环（鸿蒙蓝） */
+/* 键盘焦点环（中性色） */
 a:focus-visible,
 button:focus-visible,
 input:focus-visible,
 textarea:focus-visible,
 select:focus-visible,
 [role='button']:focus-visible {
-  outline: 2px solid #0a59f7;
+  outline: 2px solid #e2e8f0;
   outline-offset: 2px;
-  border-radius: 6px;
+  border-radius: 8px;
 }
 
 /* 文本选中色 */
 ::selection {
-  background: rgba(16, 185, 129, 0.35);
+  background: rgba(255, 255, 255, 0.24);
   color: #fff;
 }
 

@@ -110,7 +110,7 @@ export default function AdminReportsPage() {
                 </span>
               </div>
 
-              <div className="rounded-[10px] border border-slate-200 bg-slate-50 px-3.5 py-3">
+              <div className="rounded-[12px] border border-slate-200 bg-slate-50 px-4 py-3">
                 {r.target ? (
                   <>
                     <p className="text-xs text-slate-500">

@@ -34,9 +34,9 @@ type OrderFilter = "all" | "pending" | "paid" | "completed" | "cancelled";
 
 const DELIVERY_HINTS: Record<string, { text: string; className: string }> = {
   pending: { text: "自动发货处理中", className: "text-slate-400" },
-  sent: { text: "已自动发货", className: "text-emerald-600" },
-  failed: { text: "发货重试中，请联系管理员", className: "text-amber-600" },
-  exhausted: { text: "自动发货失败，请联系管理员", className: "text-red-500" },
+  sent: { text: "已自动发货", className: "text-slate-700" },
+  failed: { text: "发货重试中，请联系管理员", className: "text-slate-700" },
+  exhausted: { text: "自动发货失败，请联系管理员", className: "text-red-600" },
   skipped: { text: "等待管理员手动发货", className: "text-slate-400" },
 };
 
@@ -172,7 +172,7 @@ export default function OrdersPage() {
       <SuccessNote message={success} />
 
       {/* 商城商品 */}
-      <Card className="mt-4 mb-5">
+      <Card className="mt-4 mb-6">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h3 className="text-[1.05rem] font-bold text-slate-800">商城商品</h3>
           {ecoEnabled && (
@@ -180,7 +180,7 @@ export default function OrdersPage() {
               <span className="text-slate-500">
                 {mcName ? `游戏币余额（${mcName}）：` : "游戏币余额："}
               </span>
-              <span className="font-bold text-accent-emerald">
+              <span className="font-bold text-slate-900 tabular-nums">
                 {balanceLoading ? "查询中..." : balance !== null ? `${balance} ${ecoCurrency}` : "获取失败"}
               </span>
               <Btn size="sm" variant="ghost" onClick={refreshBalance} disabled={balanceLoading}>刷新</Btn>
@@ -193,8 +193,8 @@ export default function OrdersPage() {
               <button
                 type="button"
                 onClick={() => setPayMethod("economy")}
-                className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
-                  payMethod === "economy" ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+                className={`px-4 py-2 rounded-[8px] text-[0.84rem] font-medium border transition-colors cursor-pointer ${
+                  payMethod === "economy" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:text-slate-800"
                 }`}
               >
                 游戏币支付（{ecoCurrency}）
@@ -204,8 +204,8 @@ export default function OrdersPage() {
               <button
                 type="button"
                 onClick={() => setPayMethod("epay")}
-                className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
-                  payMethod === "epay" ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+                className={`px-4 py-2 rounded-[8px] text-[0.84rem] font-medium border transition-colors cursor-pointer ${
+                  payMethod === "epay" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:text-slate-800"
                 }`}
               >
                 在线支付
@@ -214,8 +214,8 @@ export default function OrdersPage() {
             <button
               type="button"
               onClick={() => setPayMethod("manual")}
-              className={`px-4 py-1.5 rounded-[8px] text-[0.84rem] font-medium border transition-all cursor-pointer ${
-                payMethod === "manual" ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald" : "border-slate-200 text-slate-500 hover:text-slate-700"
+              className={`px-4 py-2 rounded-[8px] text-[0.84rem] font-medium border transition-colors cursor-pointer ${
+                payMethod === "manual" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:text-slate-800"
               }`}
             >
               转账支付（联系管理员）
@@ -224,7 +224,7 @@ export default function OrdersPage() {
               <select
                 value={payType}
                 onChange={(e) => setPayType(e.target.value)}
-                className="px-3 py-1.5 rounded-[8px] border border-slate-200 bg-white text-[0.84rem] text-slate-700 focus:outline-none focus:border-accent-emerald"
+                className="px-3 py-2 rounded-[8px] border border-slate-200 bg-white text-[0.84rem] text-slate-700 focus:outline-none focus:border-slate-400"
               >
                 {payTypes.map((t) => (
                   <option key={t} value={t}>{PAY_TYPE_LABELS[t] || t}</option>
@@ -240,7 +240,7 @@ export default function OrdersPage() {
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             {products.map((p) => (
-              <div key={p.id} className="glass-card p-5 flex flex-col gap-2">
+              <div key={p.id} className="flex flex-col gap-2 p-4">
                 <div className="flex items-center justify-between">
                   <span className="text-slate-800 font-semibold">{p.name}</span>
                   <Badge color="gray">{p.category || "综合"}</Badge>
@@ -248,11 +248,11 @@ export default function OrdersPage() {
                 <p className="text-[0.82rem] text-slate-500 flex-1">{p.description || "暂无描述"}</p>
                 <div className="flex items-end justify-between gap-2 mt-2">
                   <div className="flex flex-col">
-                    <span className="text-accent-emerald font-bold text-[1.05rem]">{p.price} {p.currency}</span>
+                    <span className="text-slate-900 font-bold text-[1.05rem] tabular-nums">{p.price} {p.currency}</span>
                     {p.stock === 0 ? (
-                      <span className="text-[0.72rem] text-red-500">已售罄</span>
+                      <span className="text-[0.72rem] text-red-600">已售罄</span>
                     ) : p.stock > 0 ? (
-                      <span className="text-[0.72rem] text-slate-400">剩余 {p.stock} 件</span>
+                      <span className="text-[0.72rem] text-slate-400 tabular-nums">剩余 {p.stock} 件</span>
                     ) : null}
                   </div>
                   <Btn size="sm" disabled={busy || p.stock === 0} onClick={() => buy(p.id)}>{p.stock === 0 ? "售罄" : "购买"}</Btn>
@@ -274,7 +274,7 @@ export default function OrdersPage() {
       <Card>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
           <h3 className="text-[1.05rem] font-bold text-slate-800">订单列表</h3>
-          <div className="flex flex-wrap gap-1.5">
+          <div className="flex flex-wrap gap-2">
             {([
               { key: "all", label: "全部" },
               { key: "pending", label: "待支付" },
@@ -286,10 +286,10 @@ export default function OrdersPage() {
                 key={t.key}
                 type="button"
                 onClick={() => setOrderFilter(t.key)}
-                className={`px-3 py-1 rounded-[7px] text-[0.8rem] font-medium border transition-all cursor-pointer ${
+                className={`px-3 py-2 rounded-[8px] text-[0.8rem] font-medium border transition-colors cursor-pointer tabular-nums ${
                   orderFilter === t.key
-                    ? "bg-accent-emerald/10 border-accent-emerald text-accent-emerald"
-                    : "bg-white border-slate-200 text-slate-500 hover:text-slate-700"
+                    ? "bg-slate-900 border-slate-900 text-white"
+                    : "bg-white border-slate-200 text-slate-500 hover:text-slate-800"
                 }`}
               >
                 {t.label}
@@ -309,13 +309,13 @@ export default function OrdersPage() {
             <table className="w-full text-left text-[0.85rem]">
               <thead>
                 <tr className="text-slate-500 text-[0.78rem] border-b border-slate-200">
-                  <th className="py-2.5 pr-3 font-medium">订单号</th>
-                  <th className="py-2.5 pr-3 font-medium">商品</th>
-                  <th className="py-2.5 pr-3 font-medium">数量</th>
-                  <th className="py-2.5 pr-3 font-medium">金额</th>
-                  <th className="py-2.5 pr-3 font-medium">状态</th>
-                  <th className="py-2.5 pr-3 font-medium">下单时间</th>
-                  <th className="py-2.5 font-medium">操作</th>
+                  <th className="py-3 pr-3 font-medium">订单号</th>
+                  <th className="py-3 pr-3 font-medium">商品</th>
+                  <th className="py-3 pr-3 font-medium">数量</th>
+                  <th className="py-3 pr-3 font-medium">金额</th>
+                  <th className="py-3 pr-3 font-medium">状态</th>
+                  <th className="py-3 pr-3 font-medium">下单时间</th>
+                  <th className="py-3 font-medium">操作</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -324,7 +324,7 @@ export default function OrdersPage() {
                     <td className="py-3 pr-3 font-mono text-[0.78rem]">{o.order_no}</td>
                     <td className="py-3 pr-3">{o.product_name}</td>
                     <td className="py-3 pr-3">{o.qty}</td>
-                    <td className="py-3 pr-3 text-accent-emerald font-semibold">{o.total} {o.currency}</td>
+                    <td className="py-3 pr-3 text-slate-900 font-semibold tabular-nums">{o.total} {o.currency}</td>
                     <td className="py-3 pr-3">
                       <StatusBadge status={o.status} />
                       {o.status === "paid" && o.delivery_status && DELIVERY_HINTS[o.delivery_status] && (

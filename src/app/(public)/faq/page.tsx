@@ -45,10 +45,10 @@ export default function FaqPage() {
     <main className="faq-page relative bg-bg-dark min-h-screen overflow-hidden">
       <div className="h-nav" />
       <div className="absolute inset-0 pointer-events-none rules-glow" aria-hidden="true" />
-      <div className="relative z-[2] container-mc py-14">
+      <div className="relative z-[2] container-mc py-16">
         <ScrollFadeUp>
           <div className="section-header mb-12 text-center">
-            <h1 className="section-title text-[clamp(2rem,5vw,3rem)] font-extrabold text-white mb-4 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+            <h1 className="section-title text-[clamp(2rem,5vw,3rem)] font-extrabold text-white mb-4">
               常见问题
             </h1>
             <p className="text-[1.1rem] text-white/80 max-w-[620px] mx-auto">
@@ -65,14 +65,14 @@ export default function FaqPage() {
                 <div
                   className={`group relative bg-white/5 backdrop-blur-glass border rounded-2xl overflow-hidden transition-all duration-300 ${
                     isOpen
-                      ? "border-accent-emerald/40 bg-white/[0.08]"
+                      ? "border-white/30 bg-white/[0.08]"
                       : "border-white/10 hover:border-white/25 hover:bg-white/[0.07]"
                   }`}
                 >
                   <button
                     type="button"
                     onClick={() => setOpen(isOpen ? null : i)}
-                    className="w-full text-left px-6 py-5 flex items-center justify-between gap-4 cursor-pointer"
+                    className="w-full text-left px-6 py-4 flex items-center justify-between gap-4 cursor-pointer"
                     aria-expanded={isOpen}
                   >
                     <span className="text-[1.05rem] font-bold text-white leading-snug">
@@ -80,7 +80,7 @@ export default function FaqPage() {
                     </span>
                     <span
                       className={`flex-shrink-0 w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center transition-transform duration-300 ${
-                        isOpen ? "rotate-180 text-accent-emerald" : "text-white/70"
+                        isOpen ? "rotate-180 text-white" : "text-white/70"
                       }`}
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -105,10 +105,10 @@ export default function FaqPage() {
           })}
         </div>
 
-        <div className="mt-14 max-w-[860px] mx-auto">
+        <div className="mt-16 max-w-[860px] mx-auto">
           <ScrollFadeUp>
-            <div className="bg-accent-emerald/10 border border-accent-emerald/30 rounded-2xl p-6 text-center">
-              <p className="text-emerald-300 text-[0.95rem]">
+            <div className="bg-white/5 border border-white/15 rounded-2xl p-6 text-center">
+              <p className="text-white/80 text-[0.95rem]">
                 没有找到答案？前往「<a href="/contact" className="underline hover:text-white">联系我们</a>」提交留言，或登录后提交工单
               </p>
             </div>

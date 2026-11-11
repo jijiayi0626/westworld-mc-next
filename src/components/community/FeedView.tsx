@@ -416,12 +416,12 @@ export default function FeedView({
   const canManage = (authorId: number | null) => !!me && (me.id === authorId || me.role === "admin");
 
   const renderReply = (r: ForumReply, isChild: boolean) => (
-    <div className={`flex gap-2.5 ${isChild ? "pl-7" : ""}`}>
+    <div className={`flex gap-3 ${isChild ? "pl-6" : ""}`}>
       <Avatar src={r.author_avatar} name={r.author_name} size={isChild ? 26 : 30} />
-      <div className="min-w-0 flex-1 rounded-xl rounded-tl-sm border border-white/5 bg-white/[0.03] px-3 py-2">
+      <div className="min-w-0 flex-1 rounded-xl rounded-tl-lg border border-white/5 bg-white/[0.03] px-3 py-2">
         <div className="flex items-center gap-2">
           <button
-            className="text-[11px] font-semibold text-white/70 transition hover:text-emerald-300"
+            className="text-[11px] font-semibold text-white/70 transition hover:text-white/90"
             onClick={() => {
               if (r.author_id) onOpenUser?.(r.author_id);
             }}
@@ -435,7 +435,7 @@ export default function FeedView({
           <div className="ml-auto flex items-center gap-2">
             {!isChild && (
               <button
-                className="text-[10px] text-white/25 transition hover:text-emerald-300"
+                className="text-[10px] text-white/25 transition hover:text-white/90"
                 onClick={() => {
                   if (!me) return onNeedLogin();
                   setReplyTo({ id: r.id, name: r.author_name });
@@ -447,7 +447,7 @@ export default function FeedView({
             )}
             {me && !canManage(r.author_id) && (
               <button
-                className="text-[10px] text-white/25 transition hover:text-amber-300"
+                className="text-[10px] text-white/25 transition hover:text-white/80"
                 onClick={() => {
                   setActionError("");
                   setReportTarget({ type: "reply", id: r.id });
@@ -470,7 +470,7 @@ export default function FeedView({
           </div>
         </div>
         <p className="mt-1 whitespace-pre-wrap break-words text-xs leading-relaxed text-white/55">
-          {r.reply_to ? <span className="text-emerald-300/70">回复 @{r.reply_to}：</span> : null}
+          {r.reply_to ? <span className="text-white/70">回复 @{r.reply_to}：</span> : null}
           {r.content}
         </p>
         {r.image_url ? (
@@ -486,12 +486,12 @@ export default function FeedView({
   );
 
   return (
-    <div className="grid grid-cols-1 gap-5 xl:grid-cols-[minmax(0,1fr)_300px]">
+    <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_300px]">
       <div className="min-w-0">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
             <h2 className="text-xl font-extrabold tracking-tight text-white">社区动态</h2>
-            <p className="mt-0.5 text-xs text-white/40">所有注册玩家都可以发帖、评论与点赞</p>
+            <p className="mt-1 text-xs text-white/40">所有注册玩家都可以发帖、评论与点赞</p>
           </div>
           <button
             className={BTN_PRIMARY}
@@ -508,7 +508,7 @@ export default function FeedView({
           </button>
         </div>
 
-        <div className={`${CARD} mb-4 flex flex-wrap items-center gap-2 p-2.5`}>
+        <div className={`${CARD} mb-4 flex flex-wrap items-center gap-2 p-3`}>
           {BOARD_FILTERS.map((b) => (
             <button
               key={b.key}
@@ -516,9 +516,9 @@ export default function FeedView({
                 setBoard(b.key);
                 setPage(1);
               }}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition ${
+              className={`rounded-lg px-3 py-2 text-xs font-semibold transition ${
                 board === b.key
-                  ? "bg-emerald-500/20 text-emerald-300"
+                  ? "bg-white/10 text-white"
                   : "text-white/45 hover:bg-white/5 hover:text-white/75"
               }`}
             >
@@ -537,9 +537,9 @@ export default function FeedView({
               value={keywordInput}
               onChange={(e) => setKeywordInput(e.target.value)}
               placeholder="搜索帖子"
-              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-1.5 text-xs text-white outline-none placeholder:text-white/30 focus:border-emerald-400/40"
+              className="w-full rounded-lg border border-white/10 bg-white/[0.04] px-3 py-2 text-xs text-white outline-none placeholder:text-white/30 focus:border-white/30"
             />
-            <button type="submit" className="rounded-lg border border-white/10 bg-white/5 px-2.5 py-1.5 text-xs text-white/60 transition hover:bg-white/10">
+            <button type="submit" className="rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs text-white/60 transition hover:bg-white/10">
               搜索
             </button>
           </form>
@@ -573,24 +573,24 @@ export default function FeedView({
                 <button
                   key={post.id}
                   onClick={() => void openDetail(post.id)}
-                  className={`${CARD} group flex w-full gap-3 p-4 text-left transition hover:border-emerald-400/25 hover:bg-white/[0.06]`}
+                  className={`${CARD} group flex w-full gap-3 p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]`}
                 >
                   <Avatar src={post.author_avatar} name={post.author_name} size={42} />
                   <div className="min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
                       {post.pinned ? (
-                        <span className="rounded-md border border-amber-400/30 bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-bold text-amber-300">
+                        <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-bold text-white/70">
                           置顶
                         </span>
                       ) : null}
-                      <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${meta.cls}`}>{meta.name}</span>
+                      <span className={`rounded-lg border px-2 py-1 text-[10px] font-semibold ${meta.cls}`}>{meta.name}</span>
                       <span className="text-xs text-white/35">{post.author_name}</span>
                       {post.ip_region ? (
                         <span className="text-[10px] text-white/20">IP属地 {post.ip_region}</span>
                       ) : null}
                       <span className="text-xs text-white/25">{relTime(post.created_at)}</span>
                     </div>
-                    <h3 className="mt-1.5 truncate text-[15px] font-bold text-white group-hover:text-emerald-200">
+                    <h3 className="mt-2 truncate text-[15px] font-bold text-white group-hover:text-white/85">
                       {post.title || "无标题"}
                     </h3>
                     <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-white/45">{post.content}</p>
@@ -602,7 +602,7 @@ export default function FeedView({
                         loading="lazy"
                       />
                     ) : null}
-                    <div className="mt-2.5 flex items-center gap-4 text-[11px] text-white/30">
+                    <div className="mt-3 flex items-center gap-4 text-[11px] text-white/30 tabular-nums">
                       <span>{post.reply_count} 评论</span>
                       <span>{post.like_count} 点赞</span>
                     </div>
@@ -639,15 +639,15 @@ export default function FeedView({
       <aside className="flex flex-col gap-4">
         <div className={`${CARD} p-4`}>
           <div className="mb-2 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-emerald-400" />
+            <span className="h-2 w-2 rounded-full bg-white/40" />
             <h3 className="text-sm font-bold text-white">每日签到</h3>
           </div>
           {me ? (
             checkin ? (
               <>
                 <p className="text-[11px] leading-relaxed text-white/40">
-                  已连续签到 <span className="font-bold text-emerald-300">{checkin.streak}</span> 天 · 当前积分{" "}
-                  <span className="font-bold text-white/75">{checkin.points}</span>
+                  已连续签到 <span className="font-bold text-white/80 tabular-nums">{checkin.streak}</span> 天 · 当前积分{" "}
+                  <span className="font-bold text-white/75 tabular-nums">{checkin.points}</span>
                 </p>
                 <button
                   className={`${BTN_PRIMARY} mt-3 w-full justify-center py-2`}
@@ -669,10 +669,7 @@ export default function FeedView({
 
         <div className={`${CARD} p-4`}>
           <div className="mb-3 flex items-center gap-2">
-            <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-emerald-400 opacity-60" />
-              <span className="relative inline-flex h-2 w-2 rounded-full bg-emerald-400" />
-            </span>
+            <span className="h-2 w-2 rounded-full bg-white/40" />
             <h3 className="text-sm font-bold text-white">服务器状态</h3>
           </div>
           {servers === null ? (
@@ -686,24 +683,24 @@ export default function FeedView({
                 return (
                   <div key={s.id} className="rounded-xl border border-white/5 bg-white/[0.03] p-3">
                     <div className="flex items-center gap-2">
-                      <span className={`h-1.5 w-1.5 rounded-full ${online ? "bg-emerald-400" : "bg-white/25"}`} />
+                      <span className={`h-2 w-2 rounded-full ${online ? "bg-emerald-400" : "bg-white/25"}`} />
                       <span className="min-w-0 flex-1 truncate text-xs font-semibold text-white/75">{s.server_name}</span>
                       <span
-                        className={`rounded-md px-1.5 py-0.5 text-[10px] font-bold ${
-                          online ? "bg-emerald-400/15 text-emerald-300" : "bg-white/5 text-white/35"
+                        className={`rounded-lg px-2 py-1 text-[10px] font-bold ${
+                          online ? "bg-white/10 text-white/75" : "bg-white/5 text-white/35"
                         }`}
                       >
                         {online ? "在线" : "离线"}
                       </span>
                     </div>
-                    <div className="mt-2 flex items-center gap-3 text-[11px] text-white/40">
+                    <div className="mt-2 flex items-center gap-3 text-[11px] text-white/40 tabular-nums">
                       <span>
-                        玩家 <span className="font-bold text-emerald-300">{s.players_online}</span>
+                        玩家 <span className="font-bold text-white/75">{s.players_online}</span>
                         {s.max_players > 0 ? ` / ${s.max_players}` : ""}
                       </span>
                       {s.version ? <span className="truncate">{s.version}</span> : null}
                     </div>
-                    {s.motd ? <p className="mt-1.5 line-clamp-2 text-[10px] leading-relaxed text-white/25">{s.motd}</p> : null}
+                    {s.motd ? <p className="mt-2 line-clamp-2 text-[10px] leading-relaxed text-white/25">{s.motd}</p> : null}
                   </div>
                 );
               })}
@@ -713,7 +710,7 @@ export default function FeedView({
 
         <div className={`${CARD} p-4`}>
           <div className="mb-3 flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-amber-400" />
+            <span className="h-2 w-2 rounded-full bg-white/40" />
             <h3 className="text-sm font-bold text-white">官方公告</h3>
           </div>
           {announcements.length === 0 ? (
@@ -721,7 +718,7 @@ export default function FeedView({
           ) : (
             <div className="flex flex-col divide-y divide-white/5">
               {announcements.map((a) => (
-                <div key={a.id} className="py-2.5 first:pt-0 last:pb-0">
+                <div key={a.id} className="py-3 first:pt-0 last:pb-0">
                   <p className="line-clamp-1 text-xs font-semibold text-white/75">{a.title || "公告"}</p>
                   <p className="mt-1 line-clamp-2 text-[11px] leading-relaxed text-white/35">{a.content}</p>
                   <p className="mt-1 text-[10px] text-white/25">{fmtTime(a.created_at)}</p>
@@ -753,7 +750,7 @@ export default function FeedView({
                 <button
                   key={key}
                   onClick={() => setNewBoard(key)}
-                  className={`rounded-lg border px-2.5 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-lg border px-3 py-2 text-xs font-semibold transition ${
                     newBoard === key ? meta.cls : "border-white/10 bg-white/[0.03] text-white/40 hover:text-white/70"
                   }`}
                 >
@@ -794,10 +791,13 @@ export default function FeedView({
               <div className="relative">
                 <img src={newImage} alt="帖子配图预览" className="h-16 w-auto rounded-lg border border-white/10 object-cover" />
                 <button
-                  className="absolute -right-1.5 -top-1.5 rounded-full bg-rose-500 px-1.5 text-[10px] font-bold text-white"
+                  className="absolute -right-2 -top-2 inline-flex h-6 w-6 items-center justify-center rounded-lg border border-white/20 bg-[#0b1220] text-white/70 transition hover:bg-white/10 hover:text-white"
                   onClick={() => setNewImage("")}
+                  aria-label="移除图片"
                 >
-                  ×
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M18 6 6 18M6 6l12 12" />
+                  </svg>
                 </button>
               </div>
             )}
@@ -837,14 +837,14 @@ export default function FeedView({
                 <div>
                   <div className="flex items-center gap-2">
                     <button
-                      className="text-sm font-semibold text-white transition hover:text-emerald-300"
+                      className="text-sm font-semibold text-white transition hover:text-white/90"
                       onClick={() => {
                         if (detail.post.author_id) onOpenUser?.(detail.post.author_id);
                       }}
                     >
                       {detail.post.author_name}
                     </button>
-                    <span className={`rounded-md border px-1.5 py-0.5 text-[10px] font-semibold ${boardMeta(detail.post.board).cls}`}>
+                    <span className={`rounded-lg border px-2 py-1 text-[10px] font-semibold ${boardMeta(detail.post.board).cls}`}>
                       {boardMeta(detail.post.board).name}
                     </span>
                   </div>
@@ -856,7 +856,7 @@ export default function FeedView({
                 <div className="ml-auto flex items-center gap-2">
                   {me && !canManage(detail.post.author_id) && (
                     <button
-                      className={`${BTN_GHOST} py-1`}
+                      className={`${BTN_GHOST} py-2`}
                       onClick={() => {
                         setActionError("");
                         setReportTarget({ type: "post", id: detail.post.id });
@@ -891,23 +891,23 @@ export default function FeedView({
 
               <div className="mt-4 flex items-center gap-2">
                 <button
-                  className={`rounded-xl border px-3 py-1.5 text-xs font-semibold transition ${
+                  className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                     detail.liked
-                      ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                      ? "border-white/20 bg-white/10 text-white"
                       : "border-white/10 bg-white/[0.04] text-white/50 hover:text-white/80"
                   }`}
                   disabled={liking}
                   onClick={() => void toggleLike()}
                 >
-                  {detail.liked ? "已点赞" : "点赞"} · {detail.post.like_count}
+                  {detail.liked ? "已点赞" : "点赞"} · <span className="tabular-nums">{detail.post.like_count}</span>
                 </button>
-                <span className="text-xs text-white/30">{detail.post.reply_count} 条评论</span>
-                <button className={`${BTN_GHOST} ml-auto py-1`} onClick={() => void sharePost()}>
+                <span className="text-xs text-white/30 tabular-nums">{detail.post.reply_count} 条评论</span>
+                <button className={`${BTN_GHOST} ml-auto py-2`} onClick={() => void sharePost()}>
                   {copied ? "已复制链接" : "分享"}
                 </button>
               </div>
 
-              <div className="mt-5 border-t border-white/5 pt-4">
+              <div className="mt-6 border-t border-white/5 pt-4">
                 <h4 className="mb-3 text-xs font-bold tracking-wide text-white/50">全部评论</h4>
                 {detail.replies.length === 0 ? (
                   <p className="pb-2 text-xs text-white/30">还没有评论，来说两句吧。</p>
@@ -933,7 +933,7 @@ export default function FeedView({
             <div className="mt-4 border-t border-white/5 pt-4">
               {replyTo && (
                 <div className="mb-2 flex items-center gap-2 text-[11px] text-white/40">
-                  正在回复 <span className="font-semibold text-emerald-300">@{replyTo.name}</span>
+                  正在回复 <span className="font-semibold text-white/80">@{replyTo.name}</span>
                   <button className="text-white/30 transition hover:text-white/70" onClick={() => setReplyTo(null)}>
                     取消
                   </button>
@@ -959,7 +959,7 @@ export default function FeedView({
                   }}
                 />
                 <button
-                  className={`${BTN_GHOST} px-2.5`}
+                  className={`${BTN_GHOST} px-3`}
                   title="添加图片"
                   disabled={uploadingImage}
                   onClick={() => replyImageRef.current?.click()}
@@ -968,7 +968,7 @@ export default function FeedView({
                 </button>
                 <textarea
                   ref={replyBoxRef}
-                  className={`${INPUT} min-h-[44px] flex-1 resize-none`}
+                  className={`${INPUT} min-h-[48px] flex-1 resize-none`}
                   rows={1}
                   value={replyText}
                   onChange={(e) => setReplyText(e.target.value)}
@@ -1004,7 +1004,7 @@ export default function FeedView({
       <Modal open={!!reportTarget} title="举报内容" onClose={() => setReportTarget(null)} width="max-w-md">
         {reportDone ? (
           <div className="flex flex-col items-center gap-3 py-6 text-center">
-            <p className="text-sm font-semibold text-emerald-300">举报已提交</p>
+            <p className="text-sm font-semibold text-white/85">举报已提交</p>
             <p className="text-xs text-white/40">管理员会尽快核实处理，感谢你的反馈。</p>
             <button className={BTN_GHOST} onClick={() => setReportTarget(null)}>
               关闭
@@ -1020,9 +1020,9 @@ export default function FeedView({
                   <button
                     key={r}
                     onClick={() => setReportReason(r)}
-                    className={`rounded-lg border px-2.5 py-1.5 text-[11px] font-semibold transition ${
+                    className={`rounded-lg border px-3 py-2 text-[11px] font-semibold transition ${
                       reportReason === r
-                        ? "border-emerald-400/40 bg-emerald-400/15 text-emerald-300"
+                        ? "border-white/20 bg-white/10 text-white"
                         : "border-white/10 bg-white/[0.03] text-white/45 hover:text-white/75"
                     }`}
                   >

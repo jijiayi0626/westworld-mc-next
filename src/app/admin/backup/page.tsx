@@ -222,7 +222,7 @@ export default function AdminBackupPage() {
       <ErrorNote message={error} />
       <SuccessNote message={success} />
 
-      <Card className="mb-5">
+      <Card className="mb-6">
         <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">创建备份</h3>
         <p className="text-[0.8rem] text-slate-400 mb-4">
           「配置备份」仅包含站点内容、商品、服务器等可公开配置并自动抹除密钥；「完整备份」包含用户、订单、工单等全部数据，
@@ -239,7 +239,7 @@ export default function AdminBackupPage() {
           <Btn onClick={createBackup} disabled={!!busy}>{busy === "create" ? "备份中..." : "备份并保存到 R2"}</Btn>
         </div>
         {mode === "full" && (
-          <div className="mt-3 px-4 py-2.5 rounded-[10px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.82rem]">
+          <div className="mt-3 px-4 py-3 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.82rem]">
             完整备份包含敏感数据，请勿上传到公开渠道或提交进代码仓库。
           </div>
         )}
@@ -250,7 +250,7 @@ export default function AdminBackupPage() {
         )}
       </Card>
 
-      <Card className="mb-5">
+      <Card className="mb-6">
         <div className="flex items-center justify-between gap-3 mb-3">
           <h3 className="text-[1.05rem] font-bold text-slate-800">R2 中的备份</h3>
           <Btn size="sm" variant="ghost" onClick={() => void load()} disabled={!!busy}>刷新</Btn>
@@ -265,7 +265,7 @@ export default function AdminBackupPage() {
               <div key={item.key} className="py-3 flex flex-wrap items-center gap-3">
                 <div className="min-w-0 flex-1">
                   <div className="text-[0.88rem] text-slate-800 font-medium break-all">{item.filename}</div>
-                  <div className="text-[0.76rem] text-slate-400 mt-0.5">
+                  <div className="text-[0.76rem] text-slate-400 mt-1">
                     {fmtSize(item.size)} · {fmtTime(item.uploaded)}
                     {item.mode && <Badge color={item.mode === "full" ? "yellow" : "blue"}>{item.mode === "full" ? "完整" : "配置"}</Badge>}
                   </div>
@@ -321,7 +321,7 @@ export default function AdminBackupPage() {
           <Field label="确认口令" hint="输入大写 RESTORE 后才能执行">
             <Input value={confirmText} onChange={(e) => setConfirmText(e.target.value)} placeholder="RESTORE" className="w-[180px]" />
           </Field>
-          <label className="flex items-center gap-2 text-[0.85rem] text-red-600 pb-2.5">
+          <label className="flex items-center gap-2 text-[0.85rem] text-red-600 pb-3">
             <input type="checkbox" checked={wipe} onChange={(e) => setWipe(e.target.checked)} />
             先清空数据表
           </label>
@@ -331,7 +331,7 @@ export default function AdminBackupPage() {
         </div>
 
         {restoreResult && (
-          <div className="mt-4 rounded-[10px] border border-slate-200 bg-slate-50 p-4 text-[0.82rem] text-slate-600">
+          <div className="mt-4 rounded-[12px] border border-slate-200 bg-slate-50 p-4 text-[0.82rem] text-slate-600">
             <div className="font-semibold text-slate-700 mb-2">恢复结果</div>
             <div className="break-words">
               {Object.entries(restoreResult.restored).map(([k, v]) => `${k}: ${v} 行`).join(" · ") || "没有写入任何数据"}

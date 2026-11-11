@@ -150,7 +150,7 @@ export default function TicketsPage() {
       {success && <SuccessNote message={success} />}
 
       {showCreate && (
-        <Card className="mb-5">
+        <Card className="mb-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新建工单</h3>
           <form onSubmit={create} className="flex flex-col gap-4">
             <Field label="标题">
@@ -200,7 +200,12 @@ export default function TicketsPage() {
                 </Badge>
               </div>
             </div>
-            <Btn variant="ghost" onClick={closeDetail}>← 返回列表</Btn>
+            <Btn variant="ghost" onClick={closeDetail}>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="m15 18-6-6 6-6" />
+              </svg>
+              返回列表
+            </Btn>
           </div>
 
           <div className="flex flex-col gap-3 mt-4 max-h-[420px] overflow-y-auto pr-1">
@@ -208,14 +213,14 @@ export default function TicketsPage() {
             {detail.replies.map((r) => (
               <div
                 key={r.id}
-                className={`px-4 py-3 rounded-[10px] text-[0.9rem] leading-relaxed ${
+                className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed ${
                   r.is_staff
-                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700 ml-6"
+                    ? "bg-white border border-slate-300 text-slate-800 ml-6"
                     : "bg-slate-50 border border-slate-200 text-slate-600 mr-6"
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1.5 text-[0.75rem] text-slate-500">
-                  <span className={r.is_staff ? "text-emerald-400 font-semibold" : "text-slate-500 font-semibold"}>
+                <div className="flex items-center gap-2 mb-2 text-[0.75rem] text-slate-500">
+                  <span className={r.is_staff ? "text-slate-800 font-semibold" : "text-slate-500 font-semibold"}>
                     {r.is_staff ? "管理员" : "我"}
                   </span>
                   <span>{fmtTime(r.created_at)}</span>
@@ -252,9 +257,9 @@ export default function TicketsPage() {
               {list.map((t) => (
                 <button key={t.id} type="button" onClick={() => openDetail(t.id)} className="py-4 text-left cursor-pointer group">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
-                      <span className="font-mono text-slate-500 text-[0.82rem]">#{t.id}</span>
-                      <span className="text-slate-800 font-medium truncate group-hover:text-accent-emerald transition-colors">{t.subject}</span>
+                    <div className="flex items-center gap-3 min-w-0">
+                      <span className="font-mono text-slate-500 text-[0.82rem] tabular-nums">#{t.id}</span>
+                      <span className="text-slate-800 font-medium truncate group-hover:text-slate-950 transition-colors">{t.subject}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <StatusBadge status={t.status} />

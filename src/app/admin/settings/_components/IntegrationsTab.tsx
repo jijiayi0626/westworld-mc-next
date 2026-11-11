@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
-import { Btn, Card, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
-import { StatusDot, UPOP_FIELDS, type Integrations } from "./shared";
+import { Btn, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
+import { SettingsGroup, SettingsStack, SettingRow, StatusDot, UPOP_FIELDS, type Integrations } from "./shared";
 
 export default function IntegrationsTab() {
   const [integrations, setIntegrations] = useState<Integrations | null>(null);
@@ -115,163 +115,165 @@ export default function IntegrationsTab() {
       <ErrorNote message={error} />
       <SuccessNote message={success} />
 
-      <Card>
-        <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">三方接口预留</h3>
-        <p className="text-[0.82rem] text-slate-500 mb-4">微软 OAuth、UPOP 统一认证与 INU 星际通行证的绑定接口已预留完成，配置好凭据即可启用。</p>
+      <SettingsStack>
         {integrations === null ? (
           <Empty text="加载中..." />
         ) : (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-            {/* 微软 OAuth */}
-            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2.5">
-              <div className="font-semibold text-slate-800 flex items-center gap-2">
-                <StatusDot ok={integrations.microsoft.enabled} label="微软 OAuth" />
-              </div>
-              <div className="text-[0.82rem] text-slate-500">
-                当前状态：Client ID {integrations.microsoft.client_id || "未配置"}
-                {integrations.microsoft.client_id && integrations.microsoft.client_secret_set ? " · Secret 已配置" : ""}
-              </div>
-              <form onSubmit={saveMs} className="flex flex-col gap-3 mt-1">
-                <label className="flex items-center gap-2 text-[0.85rem] text-slate-700 cursor-pointer">
+          <>
+            <SettingsGroup
+              title="微软 OAuth"
+              desc={`当前状态：Client ID ${integrations.microsoft.client_id || "未配置"}${integrations.microsoft.client_id && integrations.microsoft.client_secret_set ? " · Secret 已配置" : ""}`}
+              aside={<StatusDot ok={integrations.microsoft.enabled} label={integrations.microsoft.enabled ? "已启用" : "未启用"} />}
+            >
+              <form onSubmit={saveMs} className="settings-form">
+                <SettingRow label="启用微软账号绑定">
                   <input
                     type="checkbox"
                     checked={msForm.enabled}
                     onChange={(e) => setMsForm((p) => ({ ...p, enabled: e.target.checked }))}
-                    className="w-4 h-4 accent-emerald-500"
+                    className="w-4 h-4 accent-slate-900"
                   />
-                  启用微软账号绑定
-                </label>
-                <div className="grid grid-cols-1 gap-2.5">
+                </SettingRow>
+                <Field label="Client ID">
                   <input
                     value={msForm.client_id}
                     onChange={(e) => setMsForm((p) => ({ ...p, client_id: e.target.value }))}
                     placeholder={integrations.microsoft.client_id ? `Client ID（已保存 ${integrations.microsoft.client_id}，留空保留）` : "Azure 应用 Client ID"}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
                   />
+                </Field>
+                <Field label="Client Secret">
                   <input
                     type="password"
                     value={msForm.client_secret}
                     onChange={(e) => setMsForm((p) => ({ ...p, client_secret: e.target.value }))}
                     placeholder={integrations.microsoft.client_secret_set ? "Client Secret（已保存，留空保留）" : "Azure 应用 Client Secret"}
                     autoComplete="new-password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
                   />
+                </Field>
+                <div className="settings-note">
+                  回调地址（填入 Azure 应用注册）
+                  <code className="block mt-1 font-mono text-[0.75rem] break-all text-slate-700">
+                    {integrations.microsoft.callback_url}
+                  </code>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer">
+                <div>
+                  <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[12px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer">
                     {msBusy ? "保存中..." : "保存微软配置"}
                   </button>
                 </div>
               </form>
-              <div className="text-[0.8rem] text-slate-500 mt-1">
-                回调地址（填入 Azure 应用注册）：
-                <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
-                  {integrations.microsoft.callback_url}
-                </code>
-              </div>
-            </div>
+            </SettingsGroup>
 
-            {/* UPOP */}
-            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2">
-              <div className="font-semibold text-slate-800 flex items-center gap-2">
-                <StatusDot ok={integrations.upop.enabled} label="UPOP 统一认证" />
-              </div>
-              <div className="text-[0.8rem] text-slate-500">
-                回调地址：
-                <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
+            <SettingsGroup
+              title="UPOP 统一认证"
+              desc="回调地址见下方；配置保存到站点设置中，即时生效、无需重新部署。全部填好后将「启用」设为 true。"
+              aside={<StatusDot ok={integrations.upop.enabled} label={integrations.upop.enabled ? "已启用" : "未启用"} />}
+            >
+              <div className="settings-note">
+                回调地址
+                <code className="block mt-1 font-mono text-[0.75rem] break-all text-slate-700">
                   {integrations.upop.callback_url}
                 </code>
               </div>
-              <p className="text-[0.78rem] text-slate-400">
-                下方配置保存到站点设置中，即时生效、无需重新部署。全部填好后将「启用」设为 true。
-              </p>
-            </div>
+              <form onSubmit={saveUpop} className="settings-form">
+                <SettingRow label="启用 UPOP 统一认证">
+                  <select
+                    value={upopForm.upop_enabled ?? "false"}
+                    onChange={(e) => setUpopForm((prev) => ({ ...prev, upop_enabled: e.target.value }))}
+                    className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                  >
+                    <option value="false">关闭</option>
+                    <option value="true">启用</option>
+                  </select>
+                </SettingRow>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {UPOP_FIELDS.map((f) => (
+                    <Field key={f.key} label={f.label} hint={f.hint}>
+                      <Input
+                        value={upopForm[f.key] ?? ""}
+                        onChange={(e) => setUpopForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
+                        placeholder={f.key}
+                      />
+                    </Field>
+                  ))}
+                </div>
+                <div>
+                  <Btn type="submit" disabled={upopBusy}>{upopBusy ? "保存中..." : "保存 UPOP 配置"}</Btn>
+                </div>
+              </form>
+            </SettingsGroup>
 
-            {/* INU OAuth */}
-            <div className="border border-slate-100 rounded-xl p-4 flex flex-col gap-2.5 lg:col-span-2">
-              <div className="font-semibold text-slate-800 flex items-center gap-2">
-                <StatusDot ok={integrations.inu.enabled} label="INU 星际通行证" />
-              </div>
-              <div className="text-[0.82rem] text-slate-500">
-                当前状态：Client ID {integrations.inu.client_id || "未配置"} · Secret{" "}
-                {integrations.inu.client_secret_set ? "已配置" : "未配置"} · 已绑定 {integrations.inu.bound_users} 人
-              </div>
-              <form onSubmit={saveInu} className="flex flex-col gap-3 mt-1">
-                <label className="flex items-center gap-2 text-[0.85rem] text-slate-700 cursor-pointer">
+            <SettingsGroup
+              title="INU 星际通行证"
+              desc={`当前状态：Client ID ${integrations.inu.client_id || "未配置"} · Secret ${integrations.inu.client_secret_set ? "已配置" : "未配置"} · 已绑定 ${integrations.inu.bound_users} 人`}
+              aside={<StatusDot ok={integrations.inu.enabled} label={integrations.inu.enabled ? "已启用" : "未启用"} />}
+            >
+              <form onSubmit={saveInu} className="settings-form">
+                <SettingRow label="启用 INU 账号登录" hint="登录页显示「使用 INU 账号登录」">
                   <input
                     type="checkbox"
                     checked={inuForm.enabled}
                     onChange={(e) => setInuForm((p) => ({ ...p, enabled: e.target.checked }))}
-                    className="w-4 h-4 accent-emerald-500"
+                    className="w-4 h-4 accent-slate-900"
                   />
-                  启用 INU 账号登录（登录页显示「使用 INU 账号登录」）
-                </label>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
-                  <input
-                    value={inuForm.client_id}
-                    onChange={(e) => setInuForm((p) => ({ ...p, client_id: e.target.value }))}
-                    placeholder={integrations.inu.client_id ? `Client ID（已保存 ${integrations.inu.client_id}，留空保留）` : "INU 应用 Client ID"}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
-                  />
-                  <input
-                    type="password"
-                    value={inuForm.client_secret}
-                    onChange={(e) => setInuForm((p) => ({ ...p, client_secret: e.target.value }))}
-                    placeholder={integrations.inu.client_secret_set ? "Client Secret（已保存，留空保留）" : "Client Secret（公开客户端可留空）"}
-                    autoComplete="new-password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
-                  />
-                  <input
-                    value={inuForm.scopes}
-                    onChange={(e) => setInuForm((p) => ({ ...p, scopes: e.target.value }))}
-                    placeholder="授权范围，默认 profile email"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
-                  />
-                  <input
-                    value={inuForm.redirect_uri}
-                    onChange={(e) => setInuForm((p) => ({ ...p, redirect_uri: e.target.value }))}
-                    placeholder="回调地址，例如 https://站点域名/api/inu/callback"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
-                  />
+                </SettingRow>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <Field label="Client ID">
+                    <input
+                      value={inuForm.client_id}
+                      onChange={(e) => setInuForm((p) => ({ ...p, client_id: e.target.value }))}
+                      placeholder={integrations.inu.client_id ? `Client ID（已保存 ${integrations.inu.client_id}，留空保留）` : "INU 应用 Client ID"}
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    />
+                  </Field>
+                  <Field label="Client Secret">
+                    <input
+                      type="password"
+                      value={inuForm.client_secret}
+                      onChange={(e) => setInuForm((p) => ({ ...p, client_secret: e.target.value }))}
+                      placeholder={integrations.inu.client_secret_set ? "Client Secret（已保存，留空保留）" : "Client Secret（公开客户端可留空）"}
+                      autoComplete="new-password"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    />
+                  </Field>
+                  <Field label="授权范围">
+                    <input
+                      value={inuForm.scopes}
+                      onChange={(e) => setInuForm((p) => ({ ...p, scopes: e.target.value }))}
+                      placeholder="授权范围，默认 profile email"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    />
+                  </Field>
+                  <Field label="回调地址">
+                    <input
+                      value={inuForm.redirect_uri}
+                      onChange={(e) => setInuForm((p) => ({ ...p, redirect_uri: e.target.value }))}
+                      placeholder="如 https://站点域名/api/inu/callback"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    />
+                  </Field>
                 </div>
-                <div className="flex items-center gap-3">
-                  <button type="submit" disabled={inuBusy} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer">
+                <div className="settings-note">
+                  回调地址（填入 INU 后台）
+                  <code className="block mt-1 font-mono text-[0.75rem] break-all text-slate-700">
+                    {integrations.inu.redirect_uri}
+                  </code>
+                </div>
+                <p className="settings-row__hint">
+                  保存到站点设置并即时生效，无需重新部署；Secret 仅保存在服务端，不会回传到浏览器，环境变量仍可作为回退。
+                </p>
+                <div>
+                  <button type="submit" disabled={inuBusy} className="px-4 py-2 rounded-[12px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer">
                     {inuBusy ? "保存中..." : "保存 INU 配置"}
                   </button>
                 </div>
               </form>
-              <div className="text-[0.8rem] text-slate-500 mt-1">
-                回调地址（填入 INU 后台）：
-                <code className="block mt-1 font-mono text-[0.75rem] bg-slate-50 border border-slate-100 rounded px-2 py-1 break-all text-slate-700">
-                  {integrations.inu.redirect_uri}
-                </code>
-              </div>
-              <p className="text-[0.78rem] text-slate-400">
-                保存到站点设置并即时生效，无需重新部署；Secret 仅保存在服务端，不会回传到浏览器，环境变量仍可作为回退。
-              </p>
-            </div>
-          </div>
+            </SettingsGroup>
+          </>
         )}
-
-        {/* UPOP 快速配置 */}
-        <form onSubmit={saveUpop} className="mt-5 pt-4 border-t border-slate-100">
-          <h4 className="font-semibold text-slate-800 mb-3 text-[0.95rem]">UPOP 快速配置</h4>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {UPOP_FIELDS.map((f) => (
-              <Field key={f.key} label={f.label} hint={f.hint}>
-                <Input
-                  value={upopForm[f.key] ?? ""}
-                  onChange={(e) => setUpopForm((prev) => ({ ...prev, [f.key]: e.target.value }))}
-                  placeholder={f.key}
-                />
-              </Field>
-            ))}
-          </div>
-          <div className="mt-4">
-            <Btn type="submit" disabled={upopBusy}>{upopBusy ? "保存中..." : "保存 UPOP 配置"}</Btn>
-          </div>
-        </form>
-      </Card>
+      </SettingsStack>
     </>
   );
 }

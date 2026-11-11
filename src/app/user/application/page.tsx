@@ -68,7 +68,7 @@ export default function ApplicationPage() {
       <PageHeader title="入服申请" desc="申请白名单，通过审核后即可进入服务器" />
 
       {!hasPending && (
-        <Card className="mb-5">
+        <Card className="mb-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">新申请</h3>
           <form onSubmit={submit} className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -116,12 +116,12 @@ export default function ApplicationPage() {
                   <span className="text-[0.78rem] text-slate-500">{fmtTime(a.created_at)}</span>
                 </div>
                 {a.status === "rejected" && a.review_note && (
-                  <div className="mt-2 px-3 py-2 text-[0.82rem] text-red-300 bg-red-500/10 border border-red-500/20 rounded-[8px]">
+                  <div className="mt-2 px-3 py-2 text-[0.82rem] text-red-600 bg-red-50 border border-red-200 rounded-[8px]">
                     拒绝原因：{a.review_note}
                   </div>
                 )}
                 {a.status === "approved" && (
-                  <div className="mt-2 px-3 py-2 text-[0.82rem] text-emerald-300 bg-emerald-500/10 border border-emerald-500/20 rounded-[8px]">
+                  <div className="mt-2 px-3 py-2 text-[0.82rem] text-slate-700 bg-slate-50 border border-slate-200 rounded-[8px]">
                     已通过审核（{a.reviewer || "管理员"} · {fmtTime(a.reviewed_at)}）。现在可以加入服务器了：sdcmc.chipzz.top:23400
                   </div>
                 )}

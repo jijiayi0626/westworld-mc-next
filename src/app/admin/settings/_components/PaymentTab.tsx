@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
-import { Badge, Btn, Card, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
-import type { PayConfigView } from "./shared";
+import { Badge, Btn, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
+import { SettingsGroup, SettingsStack, SettingRow, type PayConfigView } from "./shared";
 
 export default function PaymentTab() {
   const [payCfg, setPayCfg] = useState<PayConfigView | null>(null);
@@ -88,31 +88,30 @@ export default function PaymentTab() {
       <ErrorNote message={error} />
       <SuccessNote message={success} />
 
-      <Card>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-[1.05rem] font-bold text-slate-800">易支付（Epay）</h3>
-          {payCfg && (
-            <Badge color={payCfg.configured ? "green" : payCfg.enabled ? "yellow" : "gray"}>
-              {payCfg.configured ? "已配置可用" : payCfg.enabled ? "已启用（配置不完整）" : "未启用"}
-            </Badge>
-          )}
-        </div>
-        <p className="text-[0.82rem] text-slate-500 mb-4">
-          兼容主流易支付服务商的通用协议。用户在商城下单后可直接跳转支付宝 / 微信 / QQ 钱包收银台，支付成功由服务端异步通知自动更新订单状态。
-        </p>
+      <SettingsStack>
+        <SettingsGroup
+          title="易支付（Epay）"
+          desc="兼容主流易支付服务商的通用协议。用户在商城下单后可直接跳转支付宝 / 微信 / QQ 钱包收银台，支付成功由服务端异步通知自动更新订单状态。"
+          aside={
+            payCfg ? (
+              <Badge color="gray">
+                {payCfg.configured ? "已配置可用" : payCfg.enabled ? "已启用（配置不完整）" : "未启用"}
+              </Badge>
+            ) : undefined
+          }
+        >
         {payCfg === null ? (
           <Empty text="加载中..." />
         ) : (
-          <form onSubmit={savePay} className="flex flex-col gap-4">
-            <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+          <form onSubmit={savePay} className="settings-form">
+            <SettingRow label="启用在线支付" hint="关闭后商城仅保留手动下单">
               <input
                 type="checkbox"
                 checked={payForm.enabled}
                 onChange={(e) => setPayForm((p) => ({ ...p, enabled: e.target.checked }))}
-                className="w-4 h-4 accent-emerald-600"
+                className="w-4 h-4 accent-slate-900"
               />
-              <span className="text-[0.9rem] font-medium text-slate-700">启用在线支付</span>
-            </label>
+            </SettingRow>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Field label="接口地址" hint="易支付站点根地址，如 https://pay.example.com（不要带 submit.php）">
@@ -161,7 +160,7 @@ export default function PaymentTab() {
                           types: e.target.checked ? [...p.types, t.key] : p.types.filter((x) => x !== t.key),
                         }))
                       }
-                      className="w-4 h-4 accent-emerald-600"
+                      className="w-4 h-4 accent-slate-900"
                     />
                     {t.label}
                   </label>
@@ -169,8 +168,8 @@ export default function PaymentTab() {
               </div>
             </Field>
 
-            <div className="bg-slate-50 border border-slate-200 rounded-[10px] p-3.5 text-[0.8rem] text-slate-600 leading-relaxed">
-              <div className="font-semibold text-slate-700 mb-1.5">回调地址（无需手动填写，已自动生成）</div>
+            <div className="settings-note">
+              <div className="font-semibold text-slate-700 mb-1">回调地址（无需手动填写，已自动生成）</div>
               <div className="font-mono text-[0.75rem] break-all text-slate-700">{payCfg.notify_url}</div>
               <div className="font-mono text-[0.75rem] break-all text-slate-700 mt-1">{payCfg.return_url}</div>
               <p className="mt-2 text-slate-500">
@@ -184,11 +183,12 @@ export default function PaymentTab() {
                 测试接口连通性
               </Btn>
             </div>
-            {payTest.err && <div className="px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem] break-all">{payTest.err}</div>}
-            {payTest.ok && <div className="px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{payTest.ok}</div>}
+            {payTest.err && <div className="settings-error break-all">{payTest.err}</div>}
+            {payTest.ok && <div className="settings-error">{payTest.ok}</div>}
           </form>
         )}
-      </Card>
+        </SettingsGroup>
+      </SettingsStack>
     </>
   );
 }

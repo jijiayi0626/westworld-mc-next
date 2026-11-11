@@ -233,17 +233,17 @@ export default function AdminAiPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">AI 管理</h1>
+        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-6">AI 管理</h1>
 
         {/* 统计卡（图20） */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: "使用用户数", value: list?.length ?? 0, tone: "green" },
             { label: "总调用次数", value: total, tone: "blue" },
             { label: "AI 功能", value: cfg?.enabled ? "开启" : "关闭", tone: "slate" },
             { label: "近 7 天", value: "-", tone: "amber" },
           ].map((c) => (
-            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[16px] p-4`}>
               <div className="text-[0.82rem] font-medium">{c.label}</div>
               <div className="text-[1.8rem] font-extrabold mt-1">{c.value}</div>
             </div>
@@ -251,7 +251,7 @@ export default function AdminAiPage() {
         </div>
 
         {/* AI 配置表单（后台直接设置） */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-6 p-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">AI 配置</h3>
           {cfg === null ? (
             <p className="text-slate-400 text-sm">加载配置中...</p>
@@ -270,23 +270,23 @@ export default function AdminAiPage() {
                 </button>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className="text-slate-600 text-[0.85rem] font-medium">API 端点 Base URL</label>
-                  <input value={cfg.base_url} onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="https://api.openai.com/v1" />
+                  <input value={cfg.base_url} onChange={(e) => setCfg({ ...cfg, base_url: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="https://api.openai.com/v1" />
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className="text-slate-600 text-[0.85rem] font-medium">默认模型</label>
-                  <input value={cfg.model} onChange={(e) => setCfg({ ...cfg, model: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="gpt-4o-mini" />
+                  <input value={cfg.model} onChange={(e) => setCfg({ ...cfg, model: e.target.value })} className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="gpt-4o-mini" />
                 </div>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className="text-slate-600 text-[0.85rem] font-medium">API 密钥 {cfg.api_key ? <span className="text-emerald-600 text-[0.78rem]">（{cfg.api_key}，留空不改）</span> : <span className="text-red-500 text-[0.78rem]">（未配置）</span>}</label>
-                  <input type="password" value={newKey} onChange={(e) => { setNewKey(e.target.value); setClearKey(false); }} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="粘贴对应供应商的 API Key" autoComplete="new-password" />
+                  <input type="password" value={newKey} onChange={(e) => { setNewKey(e.target.value); setClearKey(false); }} className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" placeholder="粘贴对应供应商的 API Key" autoComplete="new-password" />
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className="text-slate-600 text-[0.85rem] font-medium">每日限额（未启用演示模式）</label>
-                  <input type="number" min={1} max={1000} value={cfg.daily_limit} onChange={(e) => setCfg({ ...cfg, daily_limit: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" />
+                  <input type="number" min={1} max={1000} value={cfg.daily_limit} onChange={(e) => setCfg({ ...cfg, daily_limit: Number(e.target.value) })} className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]" />
                 </div>
               </div>
               {clearKey && <p className="text-red-500 text-[0.8rem]">保存后将清除已配置的 API 密钥</p>}
@@ -294,7 +294,7 @@ export default function AdminAiPage() {
                 <button type="button" onClick={() => { setClearKey(true); setNewKey(""); }} className="text-left text-[0.8rem] text-red-500 hover:text-red-600 cursor-pointer bg-transparent border-none">清除已保存的密钥</button>
               )}
               <div className="flex items-center gap-3">
-                <button type="button" onClick={saveConfig} disabled={busy} className="px-5 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50">{busy ? "保存中..." : "保存 AI 设置"}</button>
+                <button type="button" onClick={saveConfig} disabled={busy} className="px-6 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50">{busy ? "保存中..." : "保存 AI 设置"}</button>
                 {success && <span className="text-emerald-600 text-[0.85rem]">{success}</span>}
               </div>
             </div>
@@ -303,8 +303,8 @@ export default function AdminAiPage() {
 
         {/* 总开关未开启警告 */}
         {cfg && !cfg.enabled && (
-          <div className="mb-5 px-4 py-3 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.88rem] flex items-start gap-2.5">
-            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-0.5 flex-shrink-0" aria-hidden="true">
+          <div className="mb-6 px-4 py-3 rounded-[12px] bg-amber-50 border border-amber-200 text-amber-700 text-[0.88rem] flex items-start gap-3">
+            <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="mt-1 flex-shrink-0" aria-hidden="true">
               <path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
               <path d="M12 9v4" />
               <path d="M12 17h.01" />
@@ -316,11 +316,11 @@ export default function AdminAiPage() {
         )}
 
         {/* 接口模板：多供应商一键切换 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-6 p-6">
           <div className="flex items-center justify-between gap-3 mb-4">
             <div>
               <h3 className="text-[1.05rem] font-bold text-slate-800">接口模板</h3>
-              <p className="text-[0.8rem] text-slate-400 mt-0.5">
+              <p className="text-[0.8rem] text-slate-400 mt-1">
                 可添加多个 AI 供应商模板；调用失败会自动按顺序切换备用接口，也可一键体检并自动启用可用模板。
               </p>
               {healthMsg && <p className="mt-1 text-[0.78rem] text-emerald-600">{healthMsg}</p>}
@@ -330,14 +330,14 @@ export default function AdminAiPage() {
                 type="button"
                 disabled={healthBusy || !(providers ?? []).length}
                 onClick={() => void runHealth()}
-                className="px-4 py-2 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.85rem] font-medium hover:bg-slate-100 disabled:opacity-50 whitespace-nowrap cursor-pointer"
+                className="px-4 py-2 rounded-[12px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.85rem] font-medium hover:bg-slate-100 disabled:opacity-50 whitespace-nowrap cursor-pointer"
               >
                 {healthBusy ? "体检中..." : "一键体检"}
               </button>
               <button
               type="button"
               onClick={() => setEditing({ ...emptyProvider(), id: crypto.randomUUID() })}
-              className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors whitespace-nowrap cursor-pointer"
+              className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors whitespace-nowrap cursor-pointer"
             >
               + 新增模板
             </button>
@@ -347,24 +347,24 @@ export default function AdminAiPage() {
           {editing && (
             <div className="border border-emerald-200 bg-emerald-50/50 rounded-[12px] p-4 mb-4 flex flex-col gap-3">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className="text-slate-600 text-[0.82rem] font-medium">模板名称</label>
-                  <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="如：OpenAI 主力" />
+                  <input value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="如：OpenAI 主力" />
                 </div>
-                <div className="flex flex-col gap-1.5 md:col-span-2">
+                <div className="flex flex-col gap-2 md:col-span-2">
                   <label className="text-slate-600 text-[0.82rem] font-medium">API 端点 Base URL</label>
-                  <input value={editing.base_url} onChange={(e) => setEditing({ ...editing, base_url: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="https://api.openai.com/v1" />
+                  <input value={editing.base_url} onChange={(e) => setEditing({ ...editing, base_url: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="https://api.openai.com/v1" />
                 </div>
-                <div className="flex flex-col gap-1.5">
+                <div className="flex flex-col gap-2">
                   <label className="text-slate-600 text-[0.82rem] font-medium">模型</label>
-                  <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="gpt-4o-mini" />
+                  <input value={editing.model} onChange={(e) => setEditing({ ...editing, model: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="gpt-4o-mini" />
                 </div>
-                <div className="flex flex-col gap-1.5 md:col-span-2">
+                <div className="flex flex-col gap-2 md:col-span-2">
                   <label className="text-slate-600 text-[0.82rem] font-medium">API 密钥 {editing.api_key && <span className="text-emerald-600 text-[0.78rem]">（已保存，留空不改）</span>}</label>
-                  <input type="password" value={editing.api_key} onChange={(e) => setEditing({ ...editing, api_key: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="sk-..." autoComplete="new-password" />
+                  <input type="password" value={editing.api_key} onChange={(e) => setEditing({ ...editing, api_key: e.target.value })} className="w-full bg-white border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] focus:outline-none focus:border-[color:var(--green,#10b981)]" placeholder="sk-..." autoComplete="new-password" />
                 </div>
               </div>
-              <div className="flex items-center gap-2.5">
+              <div className="flex items-center gap-3">
                 <button
                   type="button"
                   disabled={provBusy === "save" || !editing.name.trim()}
@@ -373,11 +373,11 @@ export default function AdminAiPage() {
                     const exists = list.some((p) => p.id === editing.id);
                     void saveProviders(exists ? list.map((p) => (p.id === editing.id ? editing : p)) : [...list, editing]);
                   }}
-                  className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {provBusy === "save" ? "保存中..." : "保存模板"}
                 </button>
-                <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-[10px] bg-white border border-slate-200 text-slate-600 text-[0.85rem] hover:bg-slate-50 cursor-pointer">取消</button>
+                <button type="button" onClick={() => setEditing(null)} className="px-4 py-2 rounded-[12px] bg-white border border-slate-200 text-slate-600 text-[0.85rem] hover:bg-slate-50 cursor-pointer">取消</button>
               </div>
             </div>
           )}
@@ -393,29 +393,29 @@ export default function AdminAiPage() {
                 const tr = testResult[p.id];
                 return (
                   <div key={p.id} className={`border rounded-[12px] p-4 ${isActive ? "border-[color:var(--green,#10b981)] bg-[color:var(--green-light,#f0fdf4)]" : "border-slate-200 bg-white"}`}>
-                    <div className="flex flex-wrap items-center gap-2.5">
+                    <div className="flex flex-wrap items-center gap-3">
                       <span className="font-semibold text-slate-800 text-[0.95rem]">{p.name}</span>
-                      {isActive && <span className="px-2 py-0.5 rounded-full bg-[color:var(--green,#10b981)] text-white text-[0.7rem] font-medium">使用中</span>}
+                      {isActive && <span className="px-2 py-1 rounded-full bg-[color:var(--green,#10b981)] text-white text-[0.7rem] font-medium">使用中</span>}
                       <span className="text-[0.78rem] text-slate-400 font-mono truncate max-w-[320px]">{p.base_url} · {p.model}</span>
                       <div className="ml-auto flex items-center gap-2">
                         {!isActive && (
-                          <button type="button" disabled={provBusy === p.id} onClick={() => void activateProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.8rem] font-medium hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer">一键启用</button>
+                          <button type="button" disabled={provBusy === p.id} onClick={() => void activateProvider(p.id)} className="px-3 py-2 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.8rem] font-medium hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer">一键启用</button>
                         )}
-                        <button type="button" disabled={provBusy === p.id} onClick={() => void testProvider(p.id)} className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer">{provBusy === p.id ? "测试中..." : "测试连通"}</button>
-                        <button type="button" onClick={() => setEditing({ ...p, api_key: p.api_key })} className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 cursor-pointer">编辑</button>
+                        <button type="button" disabled={provBusy === p.id} onClick={() => void testProvider(p.id)} className="px-3 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer">{provBusy === p.id ? "测试中..." : "测试连通"}</button>
+                        <button type="button" onClick={() => setEditing({ ...p, api_key: p.api_key })} className="px-3 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 cursor-pointer">编辑</button>
                         <button
                           type="button"
                           onClick={() => {
                             if (confirm(`确定删除模板「${p.name}」？`)) void saveProviders((providers ?? []).filter((x) => x.id !== p.id));
                           }}
-                          className="px-3 py-1.5 rounded-[8px] bg-red-50 border border-red-200 text-red-600 text-[0.8rem] hover:bg-red-100 cursor-pointer"
+                          className="px-3 py-2 rounded-[8px] bg-red-50 border border-red-200 text-red-600 text-[0.8rem] hover:bg-red-100 cursor-pointer"
                         >
                           删除
                         </button>
                       </div>
                     </div>
                     {tr && (
-                      <p className={`mt-2.5 text-[0.8rem] ${tr.ok ? "text-emerald-600" : "text-red-500"}`}>{tr.ok ? "✓ " : "✗ "}{tr.message}</p>
+                      <p className={`mt-3 text-[0.8rem] ${tr.ok ? "text-emerald-600" : "text-red-500"}`}>{tr.message}</p>
                     )}
                   </div>
                 );
@@ -425,11 +425,11 @@ export default function AdminAiPage() {
         </div>
 
         {/* 多场景：每个场景独立提示词与参数 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5 p-5">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-6 p-6">
           <div className="flex items-center justify-between gap-3 mb-4 flex-wrap">
             <div>
               <h3 className="text-[1.05rem] font-bold text-slate-800">多场景配置</h3>
-              <p className="text-[0.8rem] text-slate-400 mt-0.5">
+              <p className="text-[0.8rem] text-slate-400 mt-1">
                 同一套 AI 接口可分别用于玩家对话、工单摘要、入服预审与回复草稿，按场景独立控制提示词、温度和长度。
               </p>
             </div>
@@ -438,7 +438,7 @@ export default function AdminAiPage() {
                 type="button"
                 disabled={scenarioBusy === "save"}
                 onClick={() => setScenarios(scenarioDefaults)}
-                className="px-4 py-2 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.85rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 rounded-[12px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.85rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
               >
                 恢复默认提示词
               </button>
@@ -446,7 +446,7 @@ export default function AdminAiPage() {
                 type="button"
                 disabled={scenarioBusy === "save" || !scenarios}
                 onClick={() => void saveScenarios()}
-                className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer"
+                className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer"
               >
                 {scenarioBusy === "save" ? "保存中..." : "保存场景配置"}
               </button>
@@ -466,7 +466,7 @@ export default function AdminAiPage() {
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-semibold text-slate-800 text-[0.95rem]">{s.name}</span>
                           <span className="text-[0.7rem] font-mono text-slate-400">{s.id}</span>
-                          {!s.enabled && <span className="px-2 py-0.5 rounded-full bg-slate-200 text-slate-500 text-[0.68rem]">已停用</span>}
+                          {!s.enabled && <span className="px-2 py-1 rounded-full bg-slate-200 text-slate-500 text-[0.68rem]">已停用</span>}
                         </div>
                         <p className="text-[0.78rem] text-slate-500 mt-1 leading-relaxed">{s.description}</p>
                       </div>
@@ -482,13 +482,13 @@ export default function AdminAiPage() {
                       </button>
                     </div>
 
-                    <label className="block text-slate-600 text-[0.8rem] font-medium mt-3 mb-1.5">系统提示词</label>
+                    <label className="block text-slate-600 text-[0.8rem] font-medium mt-3 mb-2">系统提示词</label>
                     <textarea
                       value={s.system_prompt}
                       onChange={(e) => patchScenario(s.id, { system_prompt: e.target.value })}
                       rows={5}
                       maxLength={4000}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-slate-700 text-[0.84rem] leading-relaxed focus:outline-none focus:border-[#3b82f6] resize-y"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-slate-700 text-[0.84rem] leading-relaxed focus:outline-none focus:border-[#3b82f6] resize-y"
                     />
 
                     <div className="grid grid-cols-2 gap-3 mt-3">
@@ -501,7 +501,7 @@ export default function AdminAiPage() {
                           step={0.1}
                           value={s.temperature}
                           onChange={(e) => patchScenario(s.id, { temperature: Number(e.target.value) })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-[8px] px-2.5 py-1.5 text-[0.85rem] focus:outline-none focus:border-[#3b82f6]"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-[8px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[#3b82f6]"
                         />
                       </label>
                       <label className="flex flex-col gap-1">
@@ -513,7 +513,7 @@ export default function AdminAiPage() {
                           step={64}
                           value={s.max_tokens}
                           onChange={(e) => patchScenario(s.id, { max_tokens: Number(e.target.value) })}
-                          className="w-full bg-slate-50 border border-slate-200 rounded-[8px] px-2.5 py-1.5 text-[0.85rem] focus:outline-none focus:border-[#3b82f6]"
+                          className="w-full bg-slate-50 border border-slate-200 rounded-[8px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[#3b82f6]"
                         />
                       </label>
                     </div>
@@ -523,16 +523,16 @@ export default function AdminAiPage() {
                         type="button"
                         disabled={scenarioBusy === s.id}
                         onClick={() => void testScenario(s.id)}
-                        className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+                        className="px-3 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
                       >
                         {scenarioBusy === s.id ? "测试中..." : "用示例测试"}
                       </button>
                       <span className="text-[0.75rem] text-slate-400">强制测试，不受总开关/场景开关影响</span>
                     </div>
                     {tr && (
-                      <div className={`mt-2.5 px-3 py-2 rounded-[8px] text-[0.8rem] whitespace-pre-wrap ${tr.ok ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
-                        <div>{tr.ok ? "✓ " : "✗ "}{tr.message}</div>
-                        {tr.text && <div className="mt-1.5 font-mono text-[0.76rem] leading-relaxed max-h-32 overflow-y-auto">{tr.text}</div>}
+                      <div className={`mt-3 px-3 py-2 rounded-[8px] text-[0.8rem] whitespace-pre-wrap ${tr.ok ? "bg-emerald-50 text-emerald-700 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                        <div>{tr.message}</div>
+                        {tr.text && <div className="mt-2 font-mono text-[0.76rem] leading-relaxed max-h-32 overflow-y-auto">{tr.text}</div>}
                       </div>
                     )}
                   </div>
@@ -545,13 +545,13 @@ export default function AdminAiPage() {
         </div>
 
         {/* AI 配置说明（图20 折叠面板） */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-5">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-6">
           <details className="group">
-            <summary className="cursor-pointer flex items-center justify-between gap-3 px-5 py-4 font-semibold text-slate-800 list-none [&::-webkit-details-marker]:hidden">
+            <summary className="cursor-pointer flex items-center justify-between gap-3 px-6 py-4 font-semibold text-slate-800 list-none [&::-webkit-details-marker]:hidden">
               AI 配置说明
               <span className="text-[0.82rem] text-slate-400 font-normal">启用开关 / API 密钥 / 模型（当前 AI_ENABLED=false）</span>
             </summary>
-            <div className="px-5 pb-4 text-[0.85rem] text-slate-500 leading-relaxed border-t border-slate-100 pt-3">
+            <div className="px-6 pb-4 text-[0.85rem] text-slate-500 leading-relaxed border-t border-slate-100 pt-3">
               <p>· 在 <code className="font-mono bg-slate-100 px-1 rounded">wrangler.jsonc</code> 的 vars 中将 <code className="font-mono bg-slate-100 px-1 rounded">AI_ENABLED</code> 设为 <code className="font-mono bg-slate-100 px-1 rounded">"true"</code> 并部署。</p>
               <p>· 通过 <code className="font-mono bg-slate-100 px-1 rounded">wrangler secret put AI_API_KEY</code> 配置 API 密钥，vars 中设置 <code className="font-mono bg-slate-100 px-1 rounded">AI_BASE_URL</code> 与 <code className="font-mono bg-slate-100 px-1 rounded">AI_MODEL</code>（默认 gpt-4o-mini）。</p>
               <p>· 启用后玩家可在用户中心使用 AI 助手，本页将显示用量统计。</p>

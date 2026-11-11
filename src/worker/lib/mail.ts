@@ -69,22 +69,22 @@ export async function sendMail(cfg: MailConfig, opts: MailOptions): Promise<void
   else await sendViaSmtp(cfg, opts);
 }
 
-/** 品牌邮件模板（绿白风格，深浅邮箱客户端均兼容的内联样式） */
+/** 品牌邮件模板（中性色，深浅邮箱客户端均兼容的内联样式） */
 export function renderEmail(title: string, bodyHtml: string, siteName = "Westworld西域之光"): string {
   // 标题可能来自用户输入（留言主题、工单标题），必须转义后再插入 HTML
   const safeTitle = escapeHtml(title);
   return `<!doctype html><html><body style="margin:0;padding:0;background:#f1f5f9;font-family:-apple-system,'Segoe UI','Noto Sans SC',sans-serif;">
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 12px;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:32px 16px;">
 <tr><td align="center">
-<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:14px;overflow:hidden;border:1px solid #e2e8f0;">
-<tr><td style="background:linear-gradient(135deg,#059669,#10b981);padding:22px 28px;">
+<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #e2e8f0;">
+<tr><td style="background:#1e293b;padding:24px 32px;">
   <span style="color:#ffffff;font-size:17px;font-weight:700;">${siteName}</span>
 </td></tr>
-<tr><td style="padding:28px;">
-  <h2 style="margin:0 0 14px;color:#0f172a;font-size:18px;">${safeTitle}</h2>
+<tr><td style="padding:32px;">
+  <h2 style="margin:0 0 16px;color:#0f172a;font-size:18px;">${safeTitle}</h2>
   <div style="color:#475569;font-size:14px;line-height:1.75;">${bodyHtml}</div>
 </td></tr>
-<tr><td style="padding:16px 28px;border-top:1px solid #f1f5f9;color:#94a3b8;font-size:12px;">
+<tr><td style="padding:16px 32px;border-top:1px solid #f1f5f9;color:#94a3b8;font-size:12px;">
   本邮件由服务器系统自动发送，请勿直接回复。
 </td></tr>
 </table>

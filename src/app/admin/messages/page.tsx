@@ -218,7 +218,7 @@ export default function AdminMessagesPage() {
                 key={t.key}
                 type="button"
                 onClick={() => setStatusTab(t.key)}
-                className={`px-3.5 py-1.5 rounded-full text-[0.82rem] font-medium border transition-colors cursor-pointer ${
+                className={`px-4 py-2 rounded-full text-[0.82rem] font-medium border transition-colors cursor-pointer ${
                   statusTab === t.key
                     ? "bg-[color:var(--green,#10b981)] border-[color:var(--green,#10b981)] text-white"
                     : "bg-white border-slate-200 text-slate-600 hover:border-slate-300"
@@ -230,7 +230,7 @@ export default function AdminMessagesPage() {
           })}
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
           {list === null ? (
             <Empty text="加载中..." />
           ) : filtered.length === 0 ? (
@@ -238,7 +238,7 @@ export default function AdminMessagesPage() {
           ) : (
             <div className="flex flex-col divide-y divide-slate-100">
               {filtered.map((m) => (
-                <div key={m.id} className="py-4 px-5">
+                <div key={m.id} className="py-4 px-6">
                   <button type="button" onClick={() => toggle(m.id)} className="w-full text-left cursor-pointer">
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
@@ -254,7 +254,7 @@ export default function AdminMessagesPage() {
                   </button>
                   {openId === m.id && (
                     <div className="mt-3">
-                      <div className="px-4 py-3 rounded-[10px] bg-slate-50 border border-slate-200 text-[0.9rem] text-slate-600 whitespace-pre-wrap leading-relaxed">
+                      <div className="px-4 py-3 rounded-[12px] bg-slate-50 border border-slate-200 text-[0.9rem] text-slate-600 whitespace-pre-wrap leading-relaxed">
                         {m.message}
                       </div>
                       <div className="mt-2 text-[0.78rem] text-slate-500 flex items-center gap-3">
@@ -262,7 +262,7 @@ export default function AdminMessagesPage() {
                         {m.ip && <span className="font-mono">{m.ip}</span>}
                       </div>
                       {m.reply && (
-                        <div className="mt-2 px-4 py-2.5 rounded-[8px] bg-emerald-50 border border-emerald-200 text-[0.85rem] text-emerald-700">
+                        <div className="mt-2 px-4 py-3 rounded-[8px] bg-emerald-50 border border-emerald-200 text-[0.85rem] text-emerald-700">
                           已回复：{m.reply}
                         </div>
                       )}
@@ -286,11 +286,11 @@ export default function AdminMessagesPage() {
         </div>
 
         {/* 行为日志（折叠，默认收起） */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] mb-4">
           <button
             type="button"
             onClick={() => setLogsOpen((v) => !v)}
-            className="w-full flex items-center justify-between gap-3 px-5 py-4 cursor-pointer"
+            className="w-full flex items-center justify-between gap-3 px-6 py-4 cursor-pointer"
             aria-expanded={logsOpen}
           >
             <span className="flex items-center gap-2 font-semibold text-slate-800">
@@ -301,16 +301,16 @@ export default function AdminMessagesPage() {
           </button>
 
           {logsOpen && (
-            <div className="px-5 pb-5 border-t border-slate-100 pt-4">
+            <div className="px-6 pb-6 border-t border-slate-100 pt-4">
               {/* 筛选器 */}
-              <div className="flex flex-wrap items-center gap-2.5 mb-4">
+              <div className="flex flex-wrap items-center gap-3 mb-4">
                 <select
                   value={logType}
                   onChange={(e) => {
                     setLogType(e.target.value);
                     setLogPage(1);
                   }}
-                  className="bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem] text-slate-700 cursor-pointer"
+                  className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] text-slate-700 cursor-pointer"
                 >
                   <option value="">全部类型</option>
                   {(logs?.types ?? []).map((t) => (
@@ -324,7 +324,7 @@ export default function AdminMessagesPage() {
                     setLogPage(1);
                   }}
                   placeholder="按用户 ID 筛选"
-                  className="w-40 bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.85rem]"
+                  className="w-40 bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem]"
                 />
                 <Btn size="sm" variant="ghost" onClick={() => void loadLogs(logType, logUser, logPage)} disabled={logsBusy}>
                   {logsBusy ? "刷新中..." : "刷新"}
@@ -354,20 +354,20 @@ export default function AdminMessagesPage() {
                     <tbody className="divide-y divide-slate-50">
                       {logs.logs.map((l) => (
                         <tr key={l.id} className="text-slate-600">
-                          <td className="py-2.5 pr-4 font-mono text-[0.8rem]">{l.id}</td>
-                          <td className="py-2.5 pr-4 whitespace-nowrap">
+                          <td className="py-3 pr-4 font-mono text-[0.8rem]">{l.id}</td>
+                          <td className="py-3 pr-4 whitespace-nowrap">
                             {l.username ? (
                               <span className="text-slate-800">{l.username}</span>
                             ) : (
                               <span className="text-slate-400">#{l.user_id}</span>
                             )}
                           </td>
-                          <td className="py-2.5 pr-4">
-                            <span className="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[0.72rem] font-mono">{l.action}</span>
+                          <td className="py-3 pr-4">
+                            <span className="px-2 py-1 rounded-full bg-slate-100 text-slate-600 text-[0.72rem] font-mono">{l.action}</span>
                           </td>
-                          <td className="py-2.5 pr-4 text-slate-500 max-w-[280px] truncate" title={l.detail}>{l.detail || "-"}</td>
-                          <td className="py-2.5 pr-4 font-mono text-[0.78rem] text-slate-400">{l.ip || "-"}</td>
-                          <td className="py-2.5 whitespace-nowrap text-slate-500">{fmtTime(l.created_at)}</td>
+                          <td className="py-3 pr-4 text-slate-500 max-w-[280px] truncate" title={l.detail}>{l.detail || "-"}</td>
+                          <td className="py-3 pr-4 font-mono text-[0.78rem] text-slate-400">{l.ip || "-"}</td>
+                          <td className="py-3 whitespace-nowrap text-slate-500">{fmtTime(l.created_at)}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -394,14 +394,14 @@ export default function AdminMessagesPage() {
         </div>
 
         {/* 消息通知设置 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <div className="flex items-center justify-between gap-3 px-5 py-4">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <div className="flex items-center justify-between gap-3 px-6 py-4">
             <span className="font-semibold text-slate-800">消息通知设置</span>
             <span className={`text-[0.78rem] ${notify?.mail_ready ? "text-emerald-600" : "text-slate-400"}`}>
               {notify?.mail_ready ? "SMTP 已配置，邮件通知可用" : "SMTP 未配置，仅站内通知"}
             </span>
           </div>
-          <div className="px-5 pb-5 border-t border-slate-100 pt-4">
+          <div className="px-6 pb-6 border-t border-slate-100 pt-4">
             {notify === null ? (
               <Empty text="加载中..." />
             ) : (
@@ -411,7 +411,7 @@ export default function AdminMessagesPage() {
                     type="checkbox"
                     checked={notify.enabled}
                     onChange={(e) => setNotify({ ...notify, enabled: e.target.checked })}
-                    className="mt-0.5 h-4 w-4 accent-emerald-500"
+                    className="mt-1 h-4 w-4 accent-emerald-500"
                   />
                   <span>
                     <span className="block text-[0.88rem] font-medium text-slate-800">启用站内通知</span>
@@ -425,12 +425,12 @@ export default function AdminMessagesPage() {
                   <p className="text-[0.88rem] font-medium text-slate-800 mb-2">管理员邮件提醒事件</p>
                   <div className="grid gap-2 sm:grid-cols-2">
                     {MAIL_EVENT_LABELS.map((ev) => (
-                      <label key={ev.key} className="flex items-start gap-2.5 rounded-[10px] border border-slate-200 bg-slate-50/60 px-3 py-2 cursor-pointer">
+                      <label key={ev.key} className="flex items-start gap-3 rounded-[12px] border border-slate-200 bg-slate-50/60 px-3 py-2 cursor-pointer">
                         <input
                           type="checkbox"
                           checked={notify.events[ev.key] !== false}
                           onChange={(e) => setNotify({ ...notify, events: { ...notify.events, [ev.key]: e.target.checked } })}
-                          className="mt-0.5 h-4 w-4 accent-emerald-500"
+                          className="mt-1 h-4 w-4 accent-emerald-500"
                         />
                         <span>
                           <span className="block text-[0.84rem] text-slate-800">{ev.label}</span>
@@ -442,7 +442,7 @@ export default function AdminMessagesPage() {
                 </div>
 
                 <div>
-                  <p className="text-[0.88rem] font-medium text-slate-800 mb-1.5">接收提醒的邮箱</p>
+                  <p className="text-[0.88rem] font-medium text-slate-800 mb-2">接收提醒的邮箱</p>
                   <TextArea
                     value={notify.recipients.join("\n")}
                     onChange={(e) =>
@@ -464,7 +464,7 @@ export default function AdminMessagesPage() {
                 </div>
 
                 <div className="border-t border-slate-100 pt-4">
-                  <p className="text-[0.88rem] font-medium text-slate-800 mb-1.5">历史消息清理</p>
+                  <p className="text-[0.88rem] font-medium text-slate-800 mb-2">历史消息清理</p>
                   <p className="text-[0.78rem] text-slate-500 mb-2">
                     删除超过指定天数的“已回复留言”和“已读站内通知”，避免两套 D1 持续增长。
                   </p>
@@ -472,7 +472,7 @@ export default function AdminMessagesPage() {
                     <input
                       value={cleanDays}
                       onChange={(e) => setCleanDays(e.target.value.replace(/[^\d]/g, ""))}
-                      className="w-20 rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2 text-[0.85rem]"
+                      className="w-20 rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-2 text-[0.85rem]"
                       placeholder="30"
                     />
                     <span className="text-[0.82rem] text-slate-500">天前</span>

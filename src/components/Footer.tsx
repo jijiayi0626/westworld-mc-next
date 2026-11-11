@@ -12,7 +12,7 @@ export default function Footer() {
         <div className="footer-brand flex-1 min-w-[300px]">
           <Link href="/" className="footer-logo flex items-center gap-2.5 text-2xl font-bold text-white mb-5">
             <svg
-              className="footer-logo-svg text-accent-emerald flex-shrink-0"
+              className="footer-logo-svg text-slate-300 flex-shrink-0"
               width="24"
               height="24"
               viewBox="0 0 24 24"
@@ -35,14 +35,14 @@ export default function Footer() {
 
         <div className="footer-links flex flex-wrap gap-12">
           <div className="footer-column">
-            <h4 className="text-white text-[1.1rem] mb-5 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-7 after:h-0.5 after:bg-accent-emerald">
+            <h4 className="text-white text-[1.1rem] mb-5 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-7 after:h-0.5 after:bg-slate-400">
               快速导航
            </h4>
             <ul>
               <li className="mb-3">
                 <Link
                   href="/"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   首页
                </Link>
@@ -50,7 +50,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/specs"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   服务器配置
                </Link>
@@ -58,7 +58,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/help"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   如何加入
                </Link>
@@ -66,7 +66,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/features"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   游戏特色
                </Link>
@@ -74,7 +74,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/rules"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   服务器规则
                </Link>
@@ -82,7 +82,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/faq"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   常见问题
                </Link>
@@ -91,14 +91,14 @@ export default function Footer() {
          </div>
 
           <div className="footer-column">
-            <h4 className="text-white text-[1.1rem] mb-5 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-7 after:h-0.5 after:bg-accent-emerald">
+            <h4 className="text-white text-[1.1rem] mb-5 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-7 after:h-0.5 after:bg-slate-400">
               社区互动
            </h4>
             <ul>
               <li className="mb-3">
                 <Link
                   href="/gallery"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   游戏截图
                </Link>
@@ -106,7 +106,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/team"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   管理团队
                </Link>
@@ -114,7 +114,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/contact"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   联系我们
                </Link>
@@ -122,7 +122,7 @@ export default function Footer() {
               <li className="mb-3">
                 <Link
                   href="/community"
-                  className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                  className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                 >
                   加入社区
                </Link>
@@ -131,7 +131,7 @@ export default function Footer() {
          </div>
 
           <div className="footer-column">
-            <h4 className="text-white text-[1.1rem] mb-5 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-7 after:h-0.5 after:bg-accent-emerald">
+            <h4 className="text-white text-[1.1rem] mb-5 relative pb-2.5 after:content-[''] after:absolute after:bottom-0 after:left-0 after:w-7 after:h-0.5 after:bg-slate-400">
               友情链接
            </h4>
             <ul>
@@ -141,7 +141,7 @@ export default function Footer() {
                     href={link.url}
                     target={link.url.startsWith("http") ? "_blank" : undefined}
                     rel={link.url.startsWith("http") ? "noopener noreferrer" : undefined}
-                    className="text-slate-400 transition-all duration-300 hover:text-accent-emerald hover:pl-1.5"
+                    className="text-slate-400 transition-all duration-300 hover:text-white hover:pl-1.5"
                   >
                     {link.name}
                  </a>

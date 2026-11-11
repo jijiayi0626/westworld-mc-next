@@ -2,8 +2,8 @@
 
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { api } from "@/lib/api";
-import { Badge, Btn, Card, Empty, ErrorNote, Field, Input, SuccessNote, TextArea } from "@/components/ui";
-import type { MailConfigView } from "./shared";
+import { Badge, Btn, Empty, ErrorNote, Field, Input, SuccessNote, TextArea } from "@/components/ui";
+import { SettingsGroup, SettingsStack, SettingRow, type MailConfigView } from "./shared";
 
 export default function MailTab() {
   const [mailCfg, setMailCfg] = useState<MailConfigView | null>(null);
@@ -110,39 +110,37 @@ export default function MailTab() {
       <ErrorNote message={error} />
       <SuccessNote message={success} />
 
-      <Card>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-[1.05rem] font-bold text-slate-800">邮件服务</h3>
-          {mailCfg && (
-            <Badge color={mailCfg.provider !== "none" ? "green" : "gray"}>
-              {mailCfg.provider === "none" ? "未启用" : mailCfg.provider === "resend" ? "Resend API" : "SMTP"}
-            </Badge>
-          )}
-        </div>
-        <p className="text-[0.82rem] text-slate-500 mb-4">
-          用于找回密码验证码与后台批量通知的邮件投递。支持 Resend API（推荐，无需开端口）或自有 SMTP 邮箱（587 STARTTLS / 465 SSL）。
-        </p>
+      <SettingsStack>
+        <SettingsGroup
+          title="邮件服务"
+          desc="用于找回密码验证码与后台批量通知的邮件投递。支持 Resend API（推荐，无需开端口）或自有 SMTP 邮箱（587 STARTTLS / 465 SSL）。"
+          aside={
+            mailCfg ? (
+              <Badge color="gray">
+                {mailCfg.provider === "none" ? "未启用" : mailCfg.provider === "resend" ? "Resend API" : "SMTP"}
+              </Badge>
+            ) : undefined
+          }
+        >
         {mailCfg === null ? (
           <Empty text="加载中..." />
         ) : (
           <>
-            <form onSubmit={saveMail} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Field label="投递方式">
-                  <select
-                    value={mailForm.provider}
-                    onChange={(e) => setMailForm((p) => ({ ...p, provider: e.target.value }))}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.88rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
-                  >
-                    <option value="none">关闭（不发送邮件）</option>
-                    <option value="resend">Resend API</option>
-                    <option value="smtp">SMTP 邮箱</option>
-                  </select>
-                </Field>
-                <Field label="发件人地址" hint="如 noreply@yourdomain.com，需与邮箱服务商已验证域名一致">
-                  <Input value={mailForm.from} onChange={(e) => setMailForm((p) => ({ ...p, from: e.target.value }))} placeholder="noreply@yourdomain.com" />
-                </Field>
-              </div>
+            <form onSubmit={saveMail} className="settings-form">
+              <SettingRow label="投递方式" wide>
+                <select
+                  value={mailForm.provider}
+                  onChange={(e) => setMailForm((p) => ({ ...p, provider: e.target.value }))}
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.88rem] focus:outline-none focus:border-slate-400"
+                >
+                  <option value="none">关闭（不发送邮件）</option>
+                  <option value="resend">Resend API</option>
+                  <option value="smtp">SMTP 邮箱</option>
+                </select>
+              </SettingRow>
+              <Field label="发件人地址" hint="如 noreply@yourdomain.com，需与邮箱服务商已验证域名一致">
+                <Input value={mailForm.from} onChange={(e) => setMailForm((p) => ({ ...p, from: e.target.value }))} placeholder="noreply@yourdomain.com" />
+              </Field>
 
               {mailForm.provider === "resend" && (
                 <Field
@@ -178,16 +176,15 @@ export default function MailTab() {
                       <Input type="password" value={mailForm.smtp_pass} onChange={(e) => setMailForm((p) => ({ ...p, smtp_pass: e.target.value }))} placeholder={mailCfg.smtp_pass_set ? "••••••（留空保留）" : "授权码"} autoComplete="new-password" />
                     </Field>
                   </div>
-                  <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
-                    <input type="checkbox" checked={mailForm.smtp_ssl} onChange={(e) => setMailForm((p) => ({ ...p, smtp_ssl: e.target.checked }))} className="w-4 h-4 accent-emerald-500" />
-                    使用 SSL 直连（465 端口勾选）
-                  </label>
+                  <SettingRow label="使用 SSL 直连" hint="465 端口勾选；587 端口保持关闭">
+                    <input type="checkbox" checked={mailForm.smtp_ssl} onChange={(e) => setMailForm((p) => ({ ...p, smtp_ssl: e.target.checked }))} className="w-4 h-4 accent-slate-900" />
+                  </SettingRow>
                 </>
               )}
 
-              <div className="border-t border-slate-100 pt-4 flex flex-col gap-4">
+              <div className="settings-subgroup">
                 <div>
-                  <h4 className="font-semibold text-slate-800 text-[0.95rem]">事件通知</h4>
+                  <h4 className="settings-subgroup__title">事件通知</h4>
                   <p className="text-[0.78rem] text-slate-500 mt-1">开启后，对应事件发生时会自动发送邮件提醒；未填写收件人时默认发送给所有管理员账号邮箱。</p>
                 </div>
                 <Field label="通知收件人" hint="每行一个邮箱，也可用逗号分隔，最多 10 个">
@@ -210,7 +207,7 @@ export default function MailTab() {
                         type="checkbox"
                         checked={mailEvents[ev.key] !== false}
                         onChange={(e) => setMailEvents((p) => ({ ...p, [ev.key]: e.target.checked }))}
-                        className="w-4 h-4 accent-emerald-500"
+                        className="w-4 h-4 accent-slate-900"
                       />
                       {ev.label}
                     </label>
@@ -222,33 +219,32 @@ export default function MailTab() {
                 <Btn type="submit" disabled={mailBusy}>{mailBusy ? "保存中..." : "保存邮件配置"}</Btn>
               </div>
             </form>
+          </>
+        )}
+        </SettingsGroup>
 
-            {/* 测试发送 */}
-            <div className="mt-5 pt-4 border-t border-slate-100">
-              <h4 className="font-semibold text-slate-800 mb-3 text-[0.95rem]">发送测试邮件</h4>
+        <SettingsGroup title="发送测试邮件" desc="保存配置后可发送一封测试邮件，确认投递是否正常。">
               <div className="flex flex-wrap gap-2">
                 <input
                   type="email"
                   value={testTo}
                   onChange={(e) => setTestTo(e.target.value)}
                   placeholder="你的收件邮箱"
-                  className="flex-1 min-w-[220px] max-w-[320px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[color:var(--green,#10b981)]"
+                  className="flex-1 min-w-[220px] max-w-[320px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-slate-400"
                 />
                 <button
                   type="button"
                   onClick={() => void sendTest()}
                   disabled={mailBusy}
-                  className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-[12px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {mailBusy ? "发送中..." : "发送测试"}
                 </button>
               </div>
-              {testMsg.err && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem] break-all">{testMsg.err}</div>}
-              {testMsg.ok && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{testMsg.ok}</div>}
-            </div>
-          </>
-        )}
-      </Card>
+              {testMsg.err && <div className="settings-error break-all">{testMsg.err}</div>}
+              {testMsg.ok && <div className="settings-error">{testMsg.ok}</div>}
+        </SettingsGroup>
+      </SettingsStack>
     </>
   );
 }

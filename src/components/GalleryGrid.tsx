@@ -18,14 +18,14 @@ export default function GalleryGrid() {
   return (
     <section
       id="gallery"
-      className="gallery-grid-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
+      className="gallery-grid-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-24"
       style={{ backgroundImage: `url('${gallery.bg_image}')` }}
     >
       <div className="absolute inset-0 z-[1] bg-bg-dark/55 backdrop-blur-[2px]" />
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
-            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3">
               {gallery.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
@@ -40,7 +40,7 @@ export default function GalleryGrid() {
             return (
               <figure
                 key={i}
-                className="group break-inside-avoid mb-4 rounded-2xl overflow-hidden bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1.5 hover:shadow-[0_18px_40px_rgba(0,0,0,0.5)] hover:border-accent-emerald/40 cursor-zoom-in"
+                className="group break-inside-avoid mb-4 rounded-2xl overflow-hidden bg-white/5 border border-white/10 transition-all duration-300 hover:-translate-y-1 hover:shadow-[0_16px_32px_rgba(0,0,0,0.4)] hover:border-white/30 cursor-zoom-in"
                 onClick={() => setLightbox(img)}
               >
                 <div className="overflow-hidden relative">
@@ -52,12 +52,12 @@ export default function GalleryGrid() {
                     decoding="async"
                     className="w-full h-auto block transition-transform duration-500 ease-out group-hover:scale-[1.06]"
                   />
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                  <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
                 </div>
                 <figcaption className="px-3.5 py-3 text-[0.85rem] text-white/70 leading-relaxed">
                   {img.desc}
                   {loc && (
-                    <span className="inline-block ml-2 px-2 py-0.5 rounded-full bg-accent-emerald/20 text-accent-emerald text-[0.75rem] font-semibold align-middle">
+                    <span className="inline-block ml-2 px-2 py-1 rounded-lg bg-white/10 text-white text-[0.75rem] font-semibold align-middle">
                       {loc}
                     </span>
                   )}
@@ -102,7 +102,7 @@ export default function GalleryGrid() {
                 <figcaption className="text-center text-white/80 text-[0.9rem]">
                   {lightbox.desc}
                   {galleryLocations[lightbox.src] && (
-                    <span className="inline-block ml-2 px-2 py-0.5 rounded-full bg-accent-emerald/20 text-accent-emerald text-[0.75rem] font-semibold align-middle">
+                    <span className="inline-block ml-2 px-2 py-1 rounded-lg bg-white/10 text-white text-[0.75rem] font-semibold align-middle">
                       {galleryLocations[lightbox.src]}
                     </span>
                   )}

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState, type FormEvent } from "react";
 import { UserShell } from "@/components/Shell";
 import { api } from "@/lib/api";
 import { inuErrorText } from "@/lib/inu";
-import { Btn, Card, Empty, ErrorNote, Field, Input, SuccessNote } from "@/components/ui";
+import { Btn, Card, Empty, ErrorNote, Field, Input, PageHeader, SuccessNote } from "@/components/ui";
 
 interface Binding {
   id: number;
@@ -217,14 +217,13 @@ export default function UserSecurityPage() {
 
   return (
     <UserShell>
-      <div className="px-4 py-6">
-        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">安全中心</h1>
+      <PageHeader title="安全中心" desc="修改密码、绑定与解绑第三方账号" />
 
-        <ErrorNote message={error} />
+      <ErrorNote message={error} />
         {success && <div className="mb-4"><SuccessNote message={success} /></div>}
 
         {/* 修改密码 */}
-        <Card className="mb-5">
+        <Card className="mb-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">修改密码</h3>
           <form onSubmit={changePassword} className="flex flex-col gap-4 max-w-md">
             <Field label="当前密码">
@@ -269,7 +268,7 @@ export default function UserSecurityPage() {
         </Card>
 
         {/* INU 星际通行证登录 */}
-        <Card className="mt-5">
+        <Card className="mt-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">INU 账号绑定</h3>
           <p className="text-[0.85rem] text-slate-500 mb-4 leading-relaxed">
             绑定 INU 无限宇宙 · 星际通行证后，可在登录页使用 INU 账号一键登录；INU 身份以通行证编号（sub）为准。
@@ -304,7 +303,7 @@ export default function UserSecurityPage() {
         </Card>
 
         {/* UPOP 统一认证绑定（预留接口） */}
-        <Card className="mt-5">
+        <Card className="mt-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">UPOP 统一认证绑定</h3>
           <p className="text-[0.85rem] text-slate-500 mb-4 leading-relaxed">
             UPOP 统一认证绑定接口已预留。启用后可通过 UPOP 账号快速关联站内身份（需管理员在后台「网站设置 → 三方接口预留」中完成配置）。
@@ -328,7 +327,6 @@ export default function UserSecurityPage() {
             </div>
           )}
         </Card>
-      </div>
     </UserShell>
   );
 }

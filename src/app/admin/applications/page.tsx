@@ -192,14 +192,14 @@ function RconWizard() {
   };
 
   const inputBase =
-    "w-full bg-white border border-slate-200 rounded-[10px] px-4 py-2.5 text-slate-800 text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-white";
-  const labelBase = "text-slate-500 text-[0.82rem] font-medium mb-1.5 block";
+    "w-full bg-white border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-accent-emerald focus:bg-white";
+  const labelBase = "text-slate-500 text-[0.82rem] font-medium mb-2 block";
 
   return (
-    <Card className="mb-5">
+    <Card className="mb-6">
       <details className="group" open>
         <summary className="cursor-pointer flex items-center justify-between gap-3 font-extrabold text-slate-800 list-none [&::-webkit-details-marker]:hidden">
-          <span className="flex items-center gap-2.5">
+          <span className="flex items-center gap-3">
             <span className="w-2 h-2 rounded-full bg-accent-emerald inline-block" />
             白名单自动同步向导（RCON）
           </span>
@@ -209,9 +209,9 @@ function RconWizard() {
 
         <div className="mt-4 flex flex-col gap-4">
           {/* 橙色：服务器设置说明 */}
-          <div className="rounded-[14px] px-4 py-3 bg-[#fff7ed] border border-[#fed7aa]">
+          <div className="rounded-[16px] px-4 py-3 bg-[#fff7ed] border border-[#fed7aa]">
             <strong className="block text-[#c2410c] mb-2">服务器只要这样设置</strong>
-            <div className="bg-[#fff] border border-[#ffedd5] rounded-[10px] px-4 py-3 font-mono text-[0.84rem] leading-[1.8] text-[#7c2d12]">
+            <div className="bg-[#fff] border border-[#ffedd5] rounded-[12px] px-4 py-3 font-mono text-[0.84rem] leading-[1.8] text-[#7c2d12]">
               enable-rcon=true<br />
               rcon.port=25575<br />
               rcon.password=自己设置一个密码
@@ -222,7 +222,7 @@ function RconWizard() {
           </div>
 
           {/* 绿色：自动执行开关 + 连接信息 */}
-          <div className="rounded-[14px] px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0]">
+          <div className="rounded-[16px] px-4 py-3 bg-[#f0fdf4] border border-[#bbf7d0]">
             <label className="flex items-center justify-between gap-3 cursor-pointer mb-3">
               <strong className="text-[#15803d] text-[0.95rem]">审核后自动执行命令</strong>
               <button
@@ -300,7 +300,7 @@ function RconWizard() {
                 </div>
                 {clearPwd && <small className="text-red-400 mt-1 block text-[0.75rem]">保存后将清除已保存的 RCON 密码</small>}
               </div>
-              <div className="flex items-end pb-0.5">
+              <div className="flex items-end pb-1">
                 <Btn variant="ghost" onClick={test} disabled={testing} className="whitespace-nowrap">
                   {testing ? "测试中..." : "测试连接"}
                 </Btn>
@@ -309,14 +309,13 @@ function RconWizard() {
 
             {testResult && (
               <div
-                className={`mt-3 px-4 py-3 rounded-[10px] border text-[0.85rem] ${
+                className={`mt-3 px-4 py-3 rounded-[12px] border text-[0.85rem] ${
                   testResult.ok
                     ? "text-emerald-700 bg-emerald-50 border-emerald-200"
                     : "text-red-700 bg-red-50 border-red-200"
                 }`}
                 role="status"
               >
-                {testResult.ok ? "✓ " : "✕ "}
                 {testResult.message}
               </div>
             )}
@@ -326,8 +325,8 @@ function RconWizard() {
           </div>
 
           {/* 灰色：命令模板 */}
-          <div className="rounded-[14px] px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]">
-            <div className="flex items-center justify-between gap-3 mb-2.5">
+          <div className="rounded-[16px] px-4 py-3 bg-[#f8fafc] border border-[#e2e8f0]">
+            <div className="flex items-center justify-between gap-3 mb-3">
               <strong className="text-[#334155] text-[0.95rem]">自定义命令模板</strong>
               <span className="text-[#94a3b8] text-[0.8rem]">不同白名单插件改这里即可</span>
             </div>
@@ -367,14 +366,14 @@ function RconWizard() {
               </div>
             </div>
 
-            <div className="mt-2.5 text-[#64748b] text-[0.8rem]">点击下方占位符插入到光标位置：</div>
+            <div className="mt-3 text-[#64748b] text-[0.8rem]">点击下方占位符插入到光标位置：</div>
             <div className="flex flex-wrap gap-2 mt-2">
               {PLACEHOLDERS.map((p) => (
                 <button
                   key={p.key}
                   type="button"
                   onClick={() => insertPlaceholder(`{${p.key}}`)}
-                  className="px-2.5 py-1 rounded-md text-[0.78rem] font-mono bg-white border border-slate-200 text-slate-600 cursor-pointer hover:border-emerald-400 hover:text-emerald-600 transition-colors"
+                  className="px-3 py-1 rounded-lg text-[0.78rem] font-mono bg-white border border-slate-200 text-slate-600 cursor-pointer hover:border-emerald-400 hover:text-emerald-600 transition-colors"
                   title={p.label}
                 >
                   {"{"}{p.key}{"}"}
@@ -383,8 +382,8 @@ function RconWizard() {
               ))}
             </div>
 
-            <div className="mt-3 bg-[#0f172a] rounded-[10px] px-4 py-3 font-mono text-[0.84rem] text-slate-200 leading-[1.8]">
-              <div className="text-slate-500 text-[0.76rem] mb-1.5">实时预览（用示例数据替换占位符）</div>
+            <div className="mt-3 bg-[#0f172a] rounded-[12px] px-4 py-3 font-mono text-[0.84rem] text-slate-200 leading-[1.8]">
+              <div className="text-slate-500 text-[0.76rem] mb-2">实时预览（用示例数据替换占位符）</div>
               <div>
                 通过时：<span className="text-emerald-400">{renderPreview(cfg.approve_template)}</span>
               </div>
@@ -399,7 +398,7 @@ function RconWizard() {
           </div>
 
           <ErrorNote message={error} />
-          {success && <div className="px-4 py-3 rounded-[10px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[0.88rem]">{success}</div>}
+          {success && <div className="px-4 py-3 rounded-[12px] bg-emerald-500/10 border border-emerald-500/30 text-emerald-300 text-[0.88rem]">{success}</div>}
 
           <div className="flex justify-end">
             <Btn onClick={save} disabled={saving}>{saving ? "保存中..." : "保存配置"}</Btn>
@@ -472,26 +471,26 @@ export default function AdminApplicationsPage() {
     <AdminShell>
       <PageHeader title="入服审核" desc="审核玩家白名单申请，可配置 RCON 自动同步" />
 
-      <div className="flex gap-2 mb-5 p-1 bg-slate-50 rounded-[10px] w-fit">
+      <div className="flex gap-2 mb-6 p-1 bg-slate-50 rounded-[12px] w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`px-5 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
+            className={`px-6 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
               tab === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-500 hover:text-slate-800"
             }`}
           >
             {t.label}
             {typeof t.count === "number" && (
-              <span className={`ml-1.5 text-[0.75rem] ${tab === t.key ? "text-white/75" : "text-slate-400"}`}>{t.count}</span>
+              <span className={`ml-2 text-[0.75rem] ${tab === t.key ? "text-white/75" : "text-slate-400"}`}>{t.count}</span>
             )}
           </button>
         ))}
       </div>
 
       {/* 申请统计卡（图12） */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-5">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 mb-6">
         {[
           { label: "全部", value: stats?.total ?? 0, tone: "slate" },
           { label: "待审核", value: stats?.pending ?? 0, tone: "amber" },
@@ -502,7 +501,7 @@ export default function AdminApplicationsPage() {
         ].map((c) => (
           <div key={c.label} className={`stat-card sc-${c.tone} rounded-[12px] p-3 text-center`}>
             <div className="text-[1.4rem] font-extrabold">{c.value}</div>
-            <div className="text-[0.78rem] font-medium mt-0.5">{c.label}</div>
+            <div className="text-[0.78rem] font-medium mt-1">{c.label}</div>
           </div>
         ))}
       </div>
@@ -512,7 +511,7 @@ export default function AdminApplicationsPage() {
 
       {(tab === "pending" || tab === "all") && (
         <Card className="mb-4">
-          <label className="flex flex-col gap-1.5 text-left">
+          <label className="flex flex-col gap-2 text-left">
             <span className="text-slate-500 text-[0.85rem] font-medium ml-1">审核备注（选填，随操作一并提交）</span>
             <TextArea value={note} onChange={(e) => setNote(e.target.value)} placeholder="如通过原因 / 拒绝理由..." maxLength={1000} />
           </label>
@@ -541,16 +540,16 @@ export default function AdminApplicationsPage() {
                 </div>
               </div>
               {a.channel && <div className="mt-2 text-[0.8rem] text-slate-500">来源：{a.channel}</div>}
-              <div className="mt-3 px-4 py-3 rounded-[10px] bg-slate-50 border border-slate-200 text-[0.9rem] text-slate-600 whitespace-pre-wrap leading-relaxed">
+              <div className="mt-3 px-4 py-3 rounded-[12px] bg-slate-50 border border-slate-200 text-[0.9rem] text-slate-600 whitespace-pre-wrap leading-relaxed">
                 {a.intro}
               </div>
               {a.sync_log && (
-                <div className="mt-2 px-4 py-2.5 rounded-[8px] text-[0.82rem] font-mono text-slate-500 bg-slate-500/10 border border-slate-200">
+                <div className="mt-2 px-4 py-3 rounded-[8px] text-[0.82rem] font-mono text-slate-500 bg-slate-500/10 border border-slate-200">
                   同步：{a.sync_log}
                 </div>
               )}
               {a.review_note && (
-                <div className={`mt-3 px-4 py-2.5 rounded-[8px] text-[0.85rem] ${a.status === "approved" ? "text-emerald-300 bg-emerald-500/10 border border-emerald-500/20" : "text-red-300 bg-red-500/10 border border-red-500/20"}`}>
+                <div className={`mt-3 px-4 py-3 rounded-[8px] text-[0.85rem] ${a.status === "approved" ? "text-emerald-300 bg-emerald-500/10 border border-emerald-500/20" : "text-red-300 bg-red-500/10 border border-red-500/20"}`}>
                   备注：{a.review_note}
                 </div>
               )}
@@ -566,8 +565,8 @@ export default function AdminApplicationsPage() {
                     </Btn>
                   </div>
                   {aiResults[a.id] && (
-                    <div className="mt-3 px-4 py-3 rounded-[10px] bg-sky-50 border border-sky-200">
-                      <div className="flex items-center justify-between gap-2 mb-1.5 flex-wrap">
+                    <div className="mt-3 px-4 py-3 rounded-[12px] bg-sky-50 border border-sky-200">
+                      <div className="flex items-center justify-between gap-2 mb-2 flex-wrap">
                         <span className="text-[0.8rem] font-semibold text-sky-700">AI 预审建议</span>
                         <button
                           type="button"

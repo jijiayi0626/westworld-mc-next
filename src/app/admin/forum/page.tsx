@@ -170,13 +170,13 @@ export default function AdminForumPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-5 flex-wrap gap-3">
+        <div className="flex items-center justify-between mb-6 flex-wrap gap-3">
           <h1 className="text-[1.35rem] font-bold text-slate-900">公告与论坛</h1>
           <Btn variant="ghost" onClick={editing ? cancelEdit : startNew}>{editing ? "取消编辑" : "发布公告"}</Btn>
         </div>
 
         {/* 标签切换 */}
-        <div className="flex gap-1 mb-5 bg-slate-100 rounded-[12px] p-1 w-fit">
+        <div className="flex gap-1 mb-6 bg-slate-100 rounded-[12px] p-1 w-fit">
           {([
             { value: "home" as Tag, label: `官网公告${homeList ? `（${homeList.length}）` : ""}` },
             { value: "forum" as Tag, label: `论坛公告${forumList ? `（${forumList.length}）` : ""}` },
@@ -185,7 +185,7 @@ export default function AdminForumPage() {
               key={t.value}
               type="button"
               onClick={() => { setTag(t.value); if (editing && editingTag !== t.value) cancelEdit(); }}
-              className={`px-4 py-2 rounded-[9px] text-[0.88rem] font-medium transition-colors cursor-pointer ${
+              className={`px-4 py-2 rounded-[8px] text-[0.88rem] font-medium transition-colors cursor-pointer ${
                 tag === t.value ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-800"
               }`}
             >
@@ -201,7 +201,7 @@ export default function AdminForumPage() {
           <>
             <p className="text-[0.85rem] text-slate-500 mb-4">官网首页「官方公告」区展示的内容；状态设为「发布」后对外可见。</p>
             {editing && editingTag === "home" && (
-              <Card className="mb-5">
+              <Card className="mb-6">
                 <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑官网公告 #${editingId}` : "新建官网公告"}</h3>
                 <form onSubmit={save} className="flex flex-col gap-4">
                   <div className="grid grid-cols-1 md:grid-cols-[1fr_180px] gap-4">
@@ -267,7 +267,7 @@ export default function AdminForumPage() {
           <>
             <p className="text-[0.85rem] text-slate-500 mb-4">官网「论坛」页（无需登录即可查看）与用户中心论坛页展示的内容；置顶的公告排在最前。</p>
             {editing && editingTag === "forum" && (
-              <Card className="mb-5">
+              <Card className="mb-6">
                 <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑论坛公告 #${editingId}` : "发布论坛公告"}</h3>
                 <form onSubmit={save} className="flex flex-col gap-4">
                   <Field label="标题">
@@ -309,14 +309,14 @@ export default function AdminForumPage() {
                       <div className="min-w-0 flex-1">
                         <div className="flex items-center gap-2">
                           {a.pinned === 1 && (
-                            <span className="px-1.5 py-0.5 rounded-full bg-red-50 border border-red-200 text-red-600 text-[0.66rem] font-semibold flex-shrink-0">置顶</span>
+                            <span className="px-2 py-1 rounded-full bg-red-50 border border-red-200 text-red-600 text-[0.66rem] font-semibold flex-shrink-0">置顶</span>
                           )}
                           <span className="text-[0.92rem] font-semibold text-slate-800 truncate">{a.title}</span>
                         </div>
                         <div className="mt-1 text-[0.82rem] text-slate-500 line-clamp-2 whitespace-pre-wrap">{a.content}</div>
                         <div className="mt-1 text-[0.72rem] text-slate-400">{a.author_name} · {fmtTime(a.created_at)}{a.updated_at !== a.created_at ? `（编辑于 ${fmtTime(a.updated_at)}）` : ""}</div>
                       </div>
-                      <div className="flex flex-col sm:flex-row gap-1.5 flex-shrink-0">
+                      <div className="flex flex-col sm:flex-row gap-2 flex-shrink-0">
                         <Btn size="sm" variant="ghost" onClick={() => startEditForum(a)}>编辑</Btn>
                         <Btn size="sm" variant="ghost" onClick={() => removeForum(a)}>
                           <span className="text-red-600">删除</span>

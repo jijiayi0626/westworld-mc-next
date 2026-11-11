@@ -48,13 +48,13 @@ export default function AnnouncementsSection() {
   return (
     <section className="home-announcements relative z-[900]">
       <div className="container-mc">
-        <div className="home-announcements-header flex items-center justify-between mb-5">
+        <div className="home-announcements-header flex items-center justify-between mb-4">
           <h2 className="text-[1.4rem] font-bold text-white inline-flex items-center gap-2.5">
             <svg viewBox="0 0 24 24" width="22" height="22" aria-hidden="true">
               <path
                 fill="currentColor"
                 d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5a6 6 0 0 0-5-5.91V4a1 1 0 1 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"
-                className="text-accent-emerald"
+                className="text-white"
               />
             </svg>
             官方公告
@@ -62,7 +62,7 @@ export default function AnnouncementsSection() {
           <button
             type="button"
             onClick={() => router.push("/forum")}
-            className="inline-flex items-center gap-1 text-[0.88rem] text-white/60 hover:text-accent-emerald transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[0.88rem] text-white/60 hover:text-white transition-colors cursor-pointer"
           >
             进入社区
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
@@ -71,7 +71,7 @@ export default function AnnouncementsSection() {
             </svg>
           </button>
         </div>
-        <div className="home-announcements-list grid gap-3.5">
+        <div className="home-announcements-list grid gap-3">
           {list.map((a) => (
             <button
               key={a.id}

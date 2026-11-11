@@ -75,10 +75,10 @@ export default function RulesPage() {
       {/* 顶部留白（固定导航占位）+ 标题区 */}
       <div className="h-nav" />
       <div className="absolute inset-0 pointer-events-none rules-glow" aria-hidden="true" />
-      <div className="relative z-[2] container-mc py-14">
+      <div className="relative z-[2] container-mc py-16">
         <ScrollFadeUp>
           <div className="section-header mb-12 text-center">
-            <h1 className="section-title text-[clamp(2rem,5vw,3rem)] font-extrabold text-white mb-4 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+            <h1 className="section-title text-[clamp(2rem,5vw,3rem)] font-extrabold text-white mb-4">
               服务器规则
             </h1>
             <p className="text-[1.1rem] text-white/80 max-w-[620px] mx-auto">
@@ -87,17 +87,17 @@ export default function RulesPage() {
           </div>
         </ScrollFadeUp>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-5 max-w-[1000px] mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-[1000px] mx-auto">
           {rules.map((rule, i) => (
             <ScrollFadeUp key={rule.title} delay={((i % 2) * 100) as 0 | 100}>
-              <div className="group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:-translate-y-1.5 hover:bg-white/[0.08] hover:border-accent-emerald/40 hover:shadow-[0_20px_45px_rgba(0,0,0,0.4)]">
-                <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-accent-emerald/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+              <div className="group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:border-white/30 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
+                <div className="absolute top-0 left-0 right-0 h-[3px] bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-accent-emerald/10 border border-accent-emerald/25 flex items-center justify-center text-accent-emerald flex-shrink-0 transition-colors group-hover:bg-accent-emerald/15">
+                  <div className="w-12 h-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center text-white/80 flex-shrink-0 transition-colors group-hover:bg-white/15">
                     <RuleIcon name={rule.icon} />
                   </div>
                   <div>
-                    <h2 className="text-[1.15rem] font-bold text-white mb-1.5">{rule.title}</h2>
+                    <h2 className="text-[1.15rem] font-bold text-white mb-2">{rule.title}</h2>
                     <p className="text-[0.92rem] text-white/70 leading-relaxed">{rule.desc}</p>
                   </div>
                 </div>
@@ -106,7 +106,7 @@ export default function RulesPage() {
           ))}
         </div>
 
-        <div className="mt-14 max-w-[1000px] mx-auto">
+        <div className="mt-16 max-w-[1000px] mx-auto">
           <ScrollFadeUp>
             <div className="bg-[rgba(239,68,68,0.08)] border border-red-500/30 rounded-2xl p-6 text-center">
               <p className="text-red-300 text-[0.95rem] flex items-center justify-center gap-2">

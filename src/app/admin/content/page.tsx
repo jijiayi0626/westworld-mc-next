@@ -93,15 +93,15 @@ export default function AdminContentPage() {
         }
       />
 
-      <div className="flex flex-wrap gap-2 mb-5">
+      <div className="flex flex-wrap gap-2 mb-6">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`px-4 py-1.5 rounded-full text-[0.88rem] font-semibold cursor-pointer border transition-all duration-300 ${
+            className={`px-4 py-2 rounded-full text-[0.88rem] font-semibold cursor-pointer border transition-all duration-300 ${
               tab === t.key
-                ? "bg-accent-emerald text-white border-accent-emerald shadow-[0_4px_15px_rgba(16,185,129,0.35)]"
+                ? "bg-accent-emerald text-white border-accent-emerald shadow-sm"
                 : "bg-slate-50 text-slate-800/70 border-slate-200 hover:bg-white/15 hover:text-slate-800"
             }`}
           >

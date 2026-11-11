@@ -38,8 +38,8 @@ function highlightMentions(content: string, names: Set<string>, mentionedMe: boo
       return (
         <span
           key={i}
-          className={`rounded px-0.5 font-semibold ${
-            mentionedMe ? "bg-emerald-400/30 text-emerald-100" : "bg-emerald-400/15 text-emerald-300"
+          className={`rounded-lg px-1 font-semibold ${
+            mentionedMe ? "bg-white/20 text-white" : "bg-white/10 text-white/80"
           }`}
         >
           {part}
@@ -66,7 +66,7 @@ function MenuItem({
       type="button"
       disabled={disabled}
       onClick={onClick}
-      className={`block w-full px-3.5 py-2 text-left text-[12px] transition hover:bg-white/[0.07] disabled:opacity-40 ${
+      className={`block w-full px-4 py-2 text-left text-[12px] transition hover:bg-white/[0.07] disabled:opacity-40 ${
         danger ? "text-rose-300" : "text-white/75"
       }`}
     >
@@ -500,11 +500,11 @@ export default function RoomChat({
   return (
     <div className={`${CARD} flex h-[calc(100vh-190px)] min-h-[520px] flex-col overflow-hidden`}>
       {/* 头部 */}
-      <div className="flex items-center gap-3 border-b border-white/10 px-3 py-2.5 sm:px-4">
+      <div className="flex items-center gap-3 border-b border-white/10 px-3 py-3 sm:px-4">
         {onBack && (
           <button
             onClick={onBack}
-            className="rounded-lg p-1.5 text-white/45 transition hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-2 text-white/45 transition hover:bg-white/10 hover:text-white"
             aria-label="返回"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
@@ -514,10 +514,10 @@ export default function RoomChat({
         )}
         <Avatar src={room?.display_avatar} name={title} size={38} />
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-2">
             <h2 className="truncate text-sm font-bold text-white">{title}</h2>
             {kind === "community" && (
-              <span className="rounded-md border border-emerald-400/30 bg-emerald-400/10 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+              <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/80">
                 社区
               </span>
             )}
@@ -526,7 +526,7 @@ export default function RoomChat({
           <p className="truncate text-[11px] text-white/35">{subtitle}</p>
         </div>
 
-        <div className="relative flex items-center gap-1.5">
+        <div className="relative flex items-center gap-2">
           <input
             ref={avatarRef}
             type="file"
@@ -539,7 +539,7 @@ export default function RoomChat({
             }}
           />
           <button
-            className={`${BTN_GHOST} !px-2.5 !py-1.5 !text-xs`}
+            className={`${BTN_GHOST} !px-3 !py-2 !text-xs`}
             onClick={() => setMenuOpen((v) => !v)}
             aria-label="更多操作"
             aria-expanded={menuOpen}
@@ -553,7 +553,7 @@ export default function RoomChat({
           {menuOpen && (
             <>
               <div className="fixed inset-0 z-30" onClick={() => setMenuOpen(false)} />
-              <div className="absolute right-0 top-full z-40 mt-1.5 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#101a2b] py-1 shadow-2xl">
+              <div className="absolute right-0 top-full z-40 mt-2 w-44 overflow-hidden rounded-xl border border-white/10 bg-[#101a2b] py-1 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_16px_32px_rgba(0,0,0,0.4)]">
                 {kind !== "dm" && (
                   <MenuItem label="查看群成员" onClick={() => { setMenuOpen(false); setPanelOpen(true); }} />
                 )}
@@ -584,7 +584,7 @@ export default function RoomChat({
 
       {/* 公告 */}
       {room?.notice ? (
-        <div className="border-b border-white/5 bg-emerald-400/[0.06] px-4 py-2 text-[11px] leading-relaxed text-emerald-200/80">
+        <div className="border-b border-white/5 bg-white/[0.04] px-4 py-2 text-[11px] leading-relaxed text-white/70">
           {room.notice}
         </div>
       ) : null}
@@ -604,12 +604,12 @@ export default function RoomChat({
             </p>
           </div>
         ) : (
-          <div className="flex flex-col gap-3.5">
+          <div className="flex flex-col gap-4">
             {messages.map((m) => {
               if (m.recalled) {
                 return (
                   <div key={m.id} className="flex justify-center">
-                    <span className="rounded-full bg-white/[0.04] px-3 py-1 text-[10px] text-white/30">
+                    <span className="rounded-lg bg-white/[0.04] px-3 py-1 text-[10px] text-white/30 tabular-nums">
                       {m.user_id === me.id ? "你" : m.username} 撤回了一条消息
                     </span>
                   </div>
@@ -617,32 +617,32 @@ export default function RoomChat({
               }
               const mine = m.user_id === me.id;
               return (
-                <div key={m.id} data-mid={m.id} className={`group flex gap-2.5 ${mine ? "flex-row-reverse" : ""}`}>
+                <div key={m.id} data-mid={m.id} className={`group flex gap-3 ${mine ? "flex-row-reverse" : ""}`}>
                   <Avatar src={m.avatar_url} name={m.username} size={32} />
                   <div className={`flex min-w-0 max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
-                    <div className={`mb-1 flex items-center gap-1.5 ${mine ? "flex-row-reverse" : ""}`}>
+                    <div className={`mb-1 flex items-center gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                       <span className="text-[11px] font-semibold text-white/55">{m.username}</span>
                       {m.role === "admin" ? (
-                        <span className="rounded border border-emerald-400/25 px-1 text-[9px] text-emerald-300/80">管理</span>
+                        <span className="rounded-lg border border-white/20 px-1 text-[9px] text-white/70">管理</span>
                       ) : null}
                       <span className="text-[10px] text-white/25">{fmtTime(m.created_at)}</span>
                     </div>
                     <div
-                      className={`relative rounded-2xl px-3.5 py-2 text-sm leading-relaxed ${
+                      className={`relative rounded-2xl px-4 py-2 text-sm leading-relaxed ${
                         mine
-                          ? "rounded-tr-sm bg-emerald-500/15 text-emerald-50"
-                          : "rounded-tl-sm border border-white/5 bg-white/[0.06] text-white/75"
+                          ? "rounded-tr-lg bg-white/10 text-white"
+                          : "rounded-tl-lg border border-white/5 bg-white/[0.06] text-white/75"
                       }`}
                     >
                       {m.reply_to_id ? (
                         <div
-                          className="mb-1.5 rounded-lg border-l-2 border-emerald-400/50 bg-black/20 px-2 py-1 text-[11px] leading-snug text-white/45"
+                          className="mb-2 rounded-lg border-l border-white/40 bg-black/20 px-2 py-1 text-[11px] leading-snug text-white/45"
                           onClick={() => {
                             const el = listRef.current?.querySelector(`[data-mid="${m.reply_to_id}"]`);
                             el?.scrollIntoView({ behavior: "smooth", block: "center" });
                           }}
                         >
-                          <span className="font-semibold text-emerald-300/80">{m.reply_to_name}</span>
+                          <span className="font-semibold text-white/70">{m.reply_to_name}</span>
                           <span className="ml-1 line-clamp-2 break-words">{m.reply_to_text || "[消息]"}</span>
                         </div>
                       ) : null}
@@ -660,13 +660,13 @@ export default function RoomChat({
                         </p>
                       )}
                     </div>
-                    <div className={`mt-0.5 flex items-center gap-2 opacity-0 transition group-hover:opacity-100 ${mine ? "flex-row-reverse" : ""}`}>
+                    <div className={`mt-1 flex items-center gap-2 opacity-0 transition group-hover:opacity-100 ${mine ? "flex-row-reverse" : ""}`}>
                       <button
                         onClick={() => {
                           setReplyTarget(m);
                           setMentionIds((prev) => (prev.includes(m.user_id) ? prev : [...prev, m.user_id]).slice(0, 10));
                         }}
-                        className="text-[10px] text-white/20 transition hover:text-emerald-300"
+                        className="text-[10px] text-white/20 transition hover:text-white/90"
                       >
                         引用
                       </button>
@@ -689,24 +689,26 @@ export default function RoomChat({
       </div>
 
       {/* 输入区 */}
-      <div className="border-t border-white/10 p-2.5 sm:p-3">
+      <div className="border-t border-white/10 p-3">
         {replyTarget && (
-          <div className="mb-2 flex items-start gap-2 rounded-lg border-l-2 border-emerald-400/60 bg-white/[0.04] px-2.5 py-1.5">
+          <div className="mb-2 flex items-start gap-2 rounded-lg border-l border-white/40 bg-white/[0.04] px-3 py-2">
             <div className="min-w-0 flex-1 text-[11px] leading-snug text-white/45">
-              正在回复 <span className="font-semibold text-emerald-300/80">{replyTarget.username}</span>
-              <p className="mt-0.5 line-clamp-1 break-words">{replyTarget.content || "[图片]"}</p>
+              正在回复 <span className="font-semibold text-white/70">{replyTarget.username}</span>
+              <p className="mt-1 line-clamp-1 break-words">{replyTarget.content || "[图片]"}</p>
             </div>
             <button
-              className="text-[11px] text-white/35 transition hover:text-white"
+              className="rounded-lg p-2 text-white/40 transition hover:bg-white/10 hover:text-white"
               onClick={() => setReplyTarget(null)}
               aria-label="取消引用"
             >
-              ✕
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M18 6 6 18M6 6l12 12" />
+              </svg>
             </button>
           </div>
         )}
         {mentionOpen && (
-          <div className="mb-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-[#101a2b] p-1.5">
+          <div className="mb-2 max-h-40 overflow-y-auto rounded-xl border border-white/10 bg-[#101a2b] p-2">
             <p className="px-2 py-1 text-[10px] text-white/30">选择要 @ 的成员</p>
             {members.filter((m) => m.user_id !== me.id).length === 0 ? (
               <p className="px-2 py-2 text-[11px] text-white/30">暂无可提及的成员</p>
@@ -716,7 +718,7 @@ export default function RoomChat({
                 .map((m) => (
                   <button
                     key={m.user_id}
-                    className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[12px] text-white/70 transition hover:bg-white/[0.07]"
+                    className="flex w-full items-center gap-2 rounded-lg px-2 py-2 text-left text-[12px] text-white/70 transition hover:bg-white/[0.07]"
                     onClick={() => {
                       const name = m.alias || m.username;
                       setText((prev) => `${prev}${prev && !prev.endsWith(" ") ? " " : ""}@${name} `);
@@ -735,7 +737,7 @@ export default function RoomChat({
           {EMOJIS.map((e) => (
             <button
               key={e}
-              className="rounded-md px-1 py-0.5 text-base transition hover:bg-white/10"
+              className="rounded-lg px-1 py-1 text-base transition hover:bg-white/10"
               onClick={() => setText((prev) => (prev + e).slice(0, 400))}
             >
               {e}
@@ -755,13 +757,13 @@ export default function RoomChat({
             }}
           />
           <button
-            className="mb-0.5 rounded-xl border border-white/10 bg-white/[0.04] p-2 text-white/45 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
+            className="mb-1 rounded-xl border border-white/10 bg-white/[0.04] p-2 text-white/45 transition hover:bg-white/10 hover:text-white disabled:opacity-40"
             disabled={uploading}
             onClick={() => fileRef.current?.click()}
             aria-label="发送图片"
           >
             {uploading ? (
-              <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-emerald-400" />
+              <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
             ) : (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
                 <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -771,9 +773,9 @@ export default function RoomChat({
             )}
           </button>
           <button
-            className={`mb-0.5 rounded-xl border p-2 transition disabled:opacity-40 ${
+            className={`mb-1 rounded-xl border p-2 transition disabled:opacity-40 ${
               mentionOpen
-                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
+                ? "border-white/20 bg-white/10 text-white/80"
                 : "border-white/10 bg-white/[0.04] text-white/45 hover:bg-white/10 hover:text-white"
             }`}
             onClick={() => setMentionOpen((v) => !v)}
@@ -809,7 +811,7 @@ export default function RoomChat({
       >
         <div className="flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-[11px] text-white/40">
+            <p className="mb-2 text-[11px] text-white/40">
               {kind === "dm" ? "只对你显示的对方备注名。" : "群昵称：群里其他成员看到的昵称。"}
             </p>
             <input
@@ -822,7 +824,7 @@ export default function RoomChat({
           </div>
           {kind !== "dm" && (
             <div>
-              <p className="mb-1.5 text-[11px] text-white/40">
+              <p className="mb-2 text-[11px] text-white/40">
                 群备注：只对你显示的群名称，类似 QQ 群备注，不影响其他成员。
               </p>
               <input
@@ -849,7 +851,7 @@ export default function RoomChat({
       <Modal open={settingsOpen} title="群设置" onClose={() => setSettingsOpen(false)}>
         <div className="flex flex-col gap-3">
           <div>
-            <p className="mb-1.5 text-[11px] text-white/40">群名称</p>
+            <p className="mb-2 text-[11px] text-white/40">群名称</p>
             <input
               className={INPUT}
               value={nameDraft}
@@ -859,7 +861,7 @@ export default function RoomChat({
             />
           </div>
           <div>
-            <p className="mb-1.5 text-[11px] text-white/40">群公告（所有成员可见）</p>
+            <p className="mb-2 text-[11px] text-white/40">群公告（所有成员可见）</p>
             <textarea
               className={`${INPUT} min-h-[100px] resize-none`}
               value={noticeDraft}
@@ -869,7 +871,7 @@ export default function RoomChat({
             />
           </div>
           <div>
-            <p className="mb-1.5 text-[11px] text-white/40">QQ 群号（自动使用群头像）</p>
+            <p className="mb-2 text-[11px] text-white/40">QQ 群号（自动使用群头像）</p>
             <div className="flex gap-2">
               <input
                 className={INPUT}
@@ -935,14 +937,14 @@ export default function RoomChat({
                   const friendStatus = u.friend_status || (u.is_contact ? "accepted" : "none");
                   const canInvite = friendStatus === "accepted";
                   return (
-                    <div key={u.id} className="flex items-center gap-2 rounded-lg px-1.5 py-1 hover:bg-white/5">
+                    <div key={u.id} className="flex items-center gap-2 rounded-lg px-2 py-1 hover:bg-white/5">
                       <Avatar src={u.avatar} name={u.username} size={26} />
-                      <div className="flex min-w-0 flex-1 items-center gap-1.5">
+                      <div className="flex min-w-0 flex-1 items-center gap-2">
                         <span className="truncate text-xs text-white/70">{u.username}</span>
                         <PresenceDot presence={u.presence} size={6} />
                       </div>
                       <button
-                        className="rounded-md bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
+                        className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/80 disabled:opacity-40"
                         disabled={memberBusy === u.id || !canInvite}
                         title={canInvite ? undefined : "只能邀请已成为好友的玩家"}
                         onClick={() => void addMember(u.id)}
@@ -968,10 +970,10 @@ export default function RoomChat({
             const canRemove =
               kind === "group" && privileged && !isOwner && m.user_id !== me.id;
             return (
-              <div key={m.user_id} className="flex items-center gap-2.5 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
+              <div key={m.user_id} className="flex items-center gap-3 rounded-xl px-2 py-2 transition hover:bg-white/[0.04]">
                 <Avatar src={m.avatar} name={m.alias || m.username} size={32} />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-1.5">
+                  <div className="flex items-center gap-2">
                     <span className="truncate text-xs font-semibold text-white/75">{m.alias || m.username}</span>
                     <PresenceDot presence={m.presence} size={6} />
                     <RoleBadge role={m.role} />
@@ -985,7 +987,7 @@ export default function RoomChat({
                 </div>
                 {canChangeRole && (
                   <button
-                    className="rounded-md border border-white/10 px-2 py-1 text-[10px] text-white/45 transition hover:bg-white/10 hover:text-white"
+                    className="rounded-lg border border-white/10 px-2 py-1 text-[10px] text-white/45 transition hover:bg-white/10 hover:text-white"
                     disabled={memberBusy === m.user_id}
                     onClick={() => void setRole(m.user_id, m.role === "admin" ? "member" : "admin")}
                   >
@@ -994,7 +996,7 @@ export default function RoomChat({
                 )}
                 {canRemove && (
                   <button
-                    className="rounded-md px-2 py-1 text-[10px] text-white/25 transition hover:bg-rose-500/10 hover:text-rose-300"
+                    className="rounded-lg px-2 py-1 text-[10px] text-white/25 transition hover:bg-rose-500/10 hover:text-rose-300"
                     disabled={memberBusy === m.user_id}
                     onClick={() => void removeMember(m.user_id)}
                   >

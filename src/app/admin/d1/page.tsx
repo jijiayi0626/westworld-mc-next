@@ -133,11 +133,11 @@ export default function AdminD1Page() {
     const topTables = [...local.tables].sort((a, b) => b.rows - a.rows).slice(0, 8);
 
     return (
-      <Card key={local.name} className="mb-5">
+      <Card key={local.name} className="mb-6">
         <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
           <div>
             <h3 className="text-[1.05rem] font-bold text-slate-800">{local.name}</h3>
-            <p className="text-[0.78rem] text-slate-400 mt-0.5">{freeNote}</p>
+            <p className="text-[0.78rem] text-slate-400 mt-1">{freeNote}</p>
           </div>
           <div className="text-right">
             <div className="text-[1.5rem] font-bold text-slate-800">{fmtBytes(size)}</div>
@@ -152,7 +152,7 @@ export default function AdminD1Page() {
               style={{ width: `${Math.max(pct(size, FREE_STORAGE), size ? 0.5 : 0)}%` }}
             />
           </div>
-          <div className="mt-1.5 flex justify-between text-[0.72rem] text-slate-400">
+          <div className="mt-2 flex justify-between text-[0.72rem] text-slate-400">
             <span>存储占用 {pct(size, FREE_STORAGE).toFixed(3)}%</span>
             <span>{local.table_count} 张表 · {fmtNum(local.rows)} 行</span>
           </div>
@@ -166,9 +166,9 @@ export default function AdminD1Page() {
               { label: "24h 写查询", value: fmtNum(analytics.writeQueries) },
               { label: "24h 写行数", value: `${fmtNum(analytics.rowsWritten)} / ${fmtNum(FREE_ROWS_WRITTEN)}` },
             ].map((m) => (
-              <div key={m.label} className="rounded-[10px] border border-slate-200 bg-slate-50 px-3 py-2.5">
+              <div key={m.label} className="rounded-[12px] border border-slate-200 bg-slate-50 px-3 py-3">
                 <div className="text-[0.72rem] text-slate-400">{m.label}</div>
-                <div className="mt-0.5 text-[0.9rem] font-semibold text-slate-700">{m.value}</div>
+                <div className="mt-1 text-[0.9rem] font-semibold text-slate-700">{m.value}</div>
               </div>
             ))}
           </div>
@@ -181,9 +181,9 @@ export default function AdminD1Page() {
           {topTables.length === 0 ? (
             <Empty text="暂无表" />
           ) : (
-            <div className="grid gap-1.5 sm:grid-cols-2">
+            <div className="grid gap-2 sm:grid-cols-2">
               {topTables.map((t) => (
-                <div key={t.name} className="flex items-center justify-between rounded-[8px] bg-slate-50 px-3 py-1.5 text-[0.8rem]">
+                <div key={t.name} className="flex items-center justify-between rounded-[8px] bg-slate-50 px-3 py-2 text-[0.8rem]">
                   <span className="truncate font-mono text-slate-500">{t.name}</span>
                   <span className="ml-3 flex-shrink-0 font-semibold text-slate-700">{t.rows < 0 ? "—" : fmtNum(t.rows)}</span>
                 </div>
@@ -208,7 +208,7 @@ export default function AdminD1Page() {
         {data?.remote_error && <ErrorNote message={`Cloudflare 接口：${data.remote_error}`} />}
         {data?.analytics_error && <ErrorNote message={`用量分析：${data.analytics_error}`} />}
 
-        <Card className="mb-5">
+        <Card className="mb-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-1">Cloudflare 实时数据（可选）</h3>
           <p className="text-[0.8rem] text-slate-400 mb-4">
             填写账户 ID 与只读 API Token 后，可显示数据库大小和 24 小时读写量。Token 需要

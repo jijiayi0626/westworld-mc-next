@@ -68,7 +68,7 @@ export default function AdminBackendStylePage() {
     return (
       <AdminShell>
         <div className="px-6 py-6">
-          <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">后台样式</h1>
+          <h1 className="text-[1.35rem] font-bold text-slate-900 mb-6">后台样式</h1>
           <Card>加载中...</Card>
         </div>
       </AdminShell>
@@ -81,8 +81,8 @@ export default function AdminBackendStylePage() {
         <h1 className="text-[1.35rem] font-bold text-slate-900 mb-2">后台样式</h1>
         <p className="text-slate-500 text-[0.9rem] mb-6">自定义后台与用户中心的界面外观（主题、主色、侧栏折叠）。</p>
 
-        <Card className="mb-5">
-          <div className="flex flex-col gap-5">
+        <Card className="mb-6">
+          <div className="flex flex-col gap-6">
             <Field label="主题模式" hint="跟随系统：随设备亮暗自动切换。">
               <Select
                 value={style.theme}
@@ -101,7 +101,7 @@ export default function AdminBackendStylePage() {
                     key={a.value}
                     type="button"
                     onClick={() => setStyle({ ...style, accent: a.value })}
-                    className={`h-10 px-4 rounded-[10px] text-white text-[0.85rem] font-semibold transition-all ${
+                    className={`h-10 px-4 rounded-[12px] text-white text-[0.85rem] font-semibold transition-all ${
                       style.accent === a.value ? "ring-2 ring-offset-2 ring-slate-400 scale-[1.04]" : "opacity-90 hover:opacity-100"
                     }`}
                     style={{ background: a.value }}
@@ -109,7 +109,7 @@ export default function AdminBackendStylePage() {
                     {a.name}
                   </button>
                 ))}
-                <label className="flex items-center gap-2 px-2 rounded-[10px] border border-slate-200 bg-white cursor-pointer">
+                <label className="flex items-center gap-2 px-2 rounded-[12px] border border-slate-200 bg-white cursor-pointer">
                   <span className="text-slate-500 text-[0.85rem]">自定义</span>
                   <input
                     type="color"

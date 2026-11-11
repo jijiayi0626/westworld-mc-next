@@ -104,7 +104,7 @@ export default function UserPointsPage() {
         method: "POST",
         body: JSON.stringify({ amount: value }),
       });
-      setSuccess(`兑换成功：${res.cost} 积分 → ${res.amount} ${res.currency_name}`);
+      setSuccess(`兑换成功：消耗 ${res.cost} 积分，获得 ${res.amount} ${res.currency_name}`);
       setAmount("");
       await load();
     } catch (e) {
@@ -124,11 +124,11 @@ export default function UserPointsPage() {
       {data === null ? (
         <Spinner text="加载积分…" />
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           <div className="flex flex-col gap-4">
             <Card className="text-center">
               <div className="text-[0.82rem] text-slate-500">当前积分</div>
-              <div className="mt-1 text-[2.6rem] font-extrabold text-emerald-600 leading-none">{data.points}</div>
+              <div className="mt-1 text-[2.6rem] font-extrabold text-slate-900 leading-none tabular-nums">{data.points}</div>
               <div className="mt-3 flex items-center justify-center gap-2">
                 {data.checkin.checked_in ? (
                   <Badge color="green">今日已签到</Badge>
@@ -145,7 +145,7 @@ export default function UserPointsPage() {
 
             <Card>
               <h3 className="text-[0.95rem] font-bold text-slate-800 mb-3">积分获取方式</h3>
-              <ul className="flex flex-col gap-2.5 text-[0.82rem]">
+              <ul className="flex flex-col gap-3 text-[0.82rem]">
                 <Rule label="每日签到" value={`${data.config.signin_base} 分起`} hint={`连续签到每天 +${data.config.signin_streak_bonus}，最多 +${data.config.signin_streak_max * data.config.signin_streak_bonus}`} />
                 <Rule label="发布帖子" value={`+${data.config.post_points}`} hint={data.config.post_daily_limit ? `每日最多 ${data.config.post_daily_limit} 分` : "不限次数"} />
                 <Rule label="发表评论" value={`+${data.config.comment_points}`} hint={data.config.comment_daily_limit ? `每日最多 ${data.config.comment_daily_limit} 分` : "不限次数"} />
@@ -173,7 +173,7 @@ export default function UserPointsPage() {
                       inputMode="numeric"
                     />
                   </Field>
-                  <p className="mt-1.5 text-[0.78rem] text-slate-400">预计获得 {preview} {data.exchange.currency_name}</p>
+                  <p className="mt-1 text-[0.78rem] text-slate-400 tabular-nums">预计获得 {preview} {data.exchange.currency_name}</p>
                   <Btn
                     className="mt-3 w-full"
                     onClick={() => void exchange()}
@@ -193,7 +193,7 @@ export default function UserPointsPage() {
               <SuccessNote message={success} />
             </div>
             {data.history.length === 0 ? (
-              <p className="py-10 text-center text-[0.85rem] text-slate-400">还没有积分记录，去签到或发帖试试吧。</p>
+              <p className="py-8 text-center text-[0.85rem] text-slate-400">还没有积分记录，去签到或发帖试试吧。</p>
             ) : (
               <ul className="divide-y divide-slate-100">
                 {data.history.map((log, i) => (
@@ -204,7 +204,7 @@ export default function UserPointsPage() {
                         {log.detail || "—"} · {fmtTime(log.created_at)}
                       </p>
                     </div>
-                    <span className={`text-[0.95rem] font-bold ${log.amount >= 0 ? "text-emerald-600" : "text-rose-500"}`}>
+                    <span className={`text-[0.95rem] font-bold tabular-nums ${log.amount >= 0 ? "text-slate-900" : "text-red-600"}`}>
                       {log.amount >= 0 ? "+" : ""}{log.amount}
                     </span>
                   </li>
@@ -225,7 +225,7 @@ function Rule({ label, value, hint }: { label: string; value: string; hint: stri
         <p className="font-medium text-slate-700">{label}</p>
         <p className="text-[0.75rem] text-slate-400">{hint}</p>
       </div>
-      <span className="shrink-0 font-bold text-emerald-600">{value}</span>
+      <span className="shrink-0 font-bold text-slate-900 tabular-nums">{value}</span>
     </li>
   );
 }

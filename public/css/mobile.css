@@ -17,8 +17,8 @@
   .admin-shell .px-6,
   .user-container .px-6,
   .user-container .px-4 {
-    padding-left: 14px;
-    padding-right: 14px;
+    padding-left: 16px;
+    padding-right: 16px;
   }
   .grid-cols-2 {
     grid-template-columns: 1fr 1fr;

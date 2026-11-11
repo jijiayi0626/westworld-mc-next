@@ -91,13 +91,13 @@ export default function TeamCarousel() {
   return (
     <section
       id="team"
-      className="team-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
+      className="team-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-24"
       style={{ backgroundImage: `url('${team.bg_image}')` }}
     >
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
-          <div className="section-header mb-10 text-center">
-            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+          <div className="section-header mb-12 text-center">
+            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3">
               {team.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
@@ -108,7 +108,7 @@ export default function TeamCarousel() {
 
         <div
           ref={containerRef}
-          className={`team-carousel-container max-w-full mt-12 relative py-5 overflow-hidden [mask-image:linear-gradient(to_right,transparent,black_8%,black_92%,transparent)] select-none ${
+          className={`team-carousel-container max-w-full mt-12 relative py-4 overflow-hidden select-none ${
             dragging ? "cursor-grabbing" : "cursor-grab"
           }`}
           style={{ touchAction: "pan-y" }}
@@ -125,10 +125,9 @@ export default function TeamCarousel() {
             {items.map((member, i) => (
               <div
                 key={i}
-                className="team-card flex-[0_0_280px] w-[280px] min-w-0 bg-white/[0.06] backdrop-blur-glass border border-white/10 rounded-[22px] px-[30px] py-10 text-center transition-all duration-300 flex flex-col items-center relative overflow-hidden hover:-translate-y-2.5 hover:bg-white/[0.1] hover:border-white/25 hover:shadow-[0_20px_45px_rgba(0,0,0,0.4)] group"
+                className="team-card flex-[0_0_280px] w-[280px] min-w-0 bg-white/[0.06] backdrop-blur-glass border border-white/10 rounded-3xl px-8 py-8 text-center transition-all duration-300 flex flex-col items-center relative overflow-hidden hover:-translate-y-2 hover:bg-white/[0.1] hover:border-white/25 hover:shadow-[0_16px_40px_rgba(0,0,0,0.36)] group"
               >
-                <div className="absolute -top-12 left-1/2 -translate-x-1/2 w-[180px] h-[180px] rounded-full bg-emerald-500/10 blur-2xl pointer-events-none" />
-                <div className="relative z-[1] team-avatar w-[104px] h-[104px] rounded-full mb-5 overflow-hidden border-[3px] border-accent-emerald/40 shadow-[0_0_20px_rgba(16,185,129,0.2)] transition-all duration-300 group-hover:border-accent-emerald group-hover:scale-105 group-hover:shadow-[0_0_28px_rgba(16,185,129,0.4)]">
+                <div className="relative z-[1] team-avatar w-[104px] h-[104px] rounded-full mb-6 overflow-hidden border border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:border-white/50 group-hover:scale-105">
                   <img
                     src={member.avatar}
                     alt={`${member.name}头像`}
@@ -137,8 +136,8 @@ export default function TeamCarousel() {
                     className="w-full h-full object-cover"
                   />
                 </div>
-                <h3 className="relative z-[1] team-name text-[1.5rem] text-white mb-1.5">{member.name}</h3>
-                <p className="relative z-[1] team-role text-[0.9rem] text-accent-emerald tracking-wider mb-4 font-semibold">
+                <h3 className="relative z-[1] team-name text-[1.5rem] text-white mb-2">{member.name}</h3>
+                <p className="relative z-[1] team-role text-[0.9rem] text-slate-300 tracking-wider mb-4 font-semibold">
                   {member.role}
                 </p>
                 <p className="relative z-[1] team-desc text-[0.95rem] text-white/70 leading-relaxed">
@@ -146,7 +145,7 @@ export default function TeamCarousel() {
                 </p>
                 <a
                   href={member.contact_href}
-                  className="relative z-[1] team-contact-btn inline-block mt-5 px-6 py-2.5 bg-white text-bg-dark font-bold no-underline rounded-full transition-all duration-300 opacity-0 translate-y-5 animate-fade-in-up-btn shadow-[0_4px_6px_rgba(0,0,0,0.1)] hover:-translate-y-1 hover:scale-105 hover:shadow-[0_10px_20px_rgba(255,255,255,0.3)] hover:bg-primary-hover"
+                  className="relative z-[1] team-contact-btn inline-block mt-6 px-6 py-2 bg-white text-bg-dark font-bold no-underline rounded-lg transition-all duration-300 opacity-0 translate-y-2 animate-fade-in-up-btn shadow-[0_4px_8px_rgba(0,0,0,0.16)] hover:-translate-y-1 hover:scale-105 hover:shadow-[0_8px_20px_rgba(0,0,0,0.28)] hover:bg-primary-hover"
                 >
                   联系我
                 </a>

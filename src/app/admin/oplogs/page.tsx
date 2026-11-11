@@ -54,33 +54,33 @@ export default function AdminOpLogsPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-5">行为日志</h1>
+        <h1 className="text-[1.35rem] font-bold text-slate-900 mb-6">行为日志</h1>
 
         {/* 检索区（图9） */}
-        <div className="bg-white border border-slate-200 rounded-[14px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="bg-white border border-slate-200 rounded-[16px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="flex flex-wrap items-center gap-3">
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索用户名 / 邮箱 / 游戏ID / IP / 详情..."
-              className="flex-1 min-w-[220px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.9rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+              className="flex-1 min-w-[220px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.9rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
             />
             <select
               value={actionFilter}
               onChange={(e) => setActionFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
             >
               <option value="">全部行为</option>
               {Object.entries(actionLabel).map(([k, v]) => (
                 <option key={k} value={k}>{v.label}</option>
               ))}
             </select>
-            <button type="button" className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
+            <button type="button" className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
           </div>
         </div>
 
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
-          {error && <p className="text-red-500 text-sm px-5 pt-4">{error}</p>}
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+          {error && <p className="text-red-500 text-sm px-6 pt-4">{error}</p>}
           {list === null ? (
             <Empty text="加载中..." />
           ) : filtered.length === 0 ? (

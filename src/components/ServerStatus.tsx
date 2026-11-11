@@ -64,15 +64,15 @@ export default function ServerStatus({
   if (variant === "hero") {
     return (
       <div
-        className={`server-status inline-flex items-center gap-2.5 bg-glass-bg backdrop-blur-glass border border-glass-border px-4 py-2 rounded-full mb-5 text-[0.9rem] text-white ${className}`}
+        className={`server-status inline-flex items-center gap-2 bg-glass-bg backdrop-blur-glass border border-glass-border px-4 py-2 rounded-2xl mb-6 text-[0.9rem] text-white ${className}`}
       >
         <span
           className={`status-dot w-2.5 h-2.5 rounded-full ${
             failed || !server
               ? "bg-slate-400"
               : online
-                ? "bg-accent-green shadow-[0_0_10px_var(--accent-green)] animate-pulse-glow"
-                : "bg-red-500"
+                ? "bg-white"
+                : "bg-slate-500"
           }`}
         />
         <span className="status-text">
@@ -100,29 +100,29 @@ export default function ServerStatus({
   if (variant === "panel") {
     return (
       <div
-        className={`rounded-[16px] border border-slate-200 p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${className}`}
+        className={`rounded-2xl border border-slate-200 p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] ${className}`}
       >
         <div className="flex items-center justify-between mb-3">
           <h4 className="text-[1.05rem] font-bold text-slate-800">服务器状态</h4>
           <span
-            className={`inline-flex items-center gap-1.5 text-[0.78rem] font-semibold px-2.5 py-1 rounded-full ${
+            className={`inline-flex items-center gap-2 text-[0.78rem] font-semibold px-2 py-1 rounded-lg ${
               failed
                 ? "bg-slate-100 text-slate-500"
                 : online
-                  ? "bg-emerald-50 text-emerald-600"
-                  : "bg-red-50 text-red-600"
+                  ? "bg-slate-900 text-white"
+                  : "bg-slate-100 text-slate-600"
             }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                failed ? "bg-slate-400" : online ? "bg-emerald-500" : "bg-red-500"
+                failed ? "bg-slate-400" : online ? "bg-white" : "bg-slate-400"
               }`}
             />
             {failed ? "状态未知" : online ? "在线" : "离线"}
           </span>
         </div>
         {server ? (
-          <dl className="flex flex-col gap-2.5 text-[0.9rem]">
+          <dl className="flex flex-col gap-2 text-[0.9rem]">
             <div className="flex items-center justify-between">
               <dt className="text-slate-500">服务器</dt>
               <dd className="text-slate-700 font-semibold">{server.server_name}</dd>
@@ -156,7 +156,7 @@ export default function ServerStatus({
 
   return (
     <span
-      className={`server-status-badge inline-flex items-center gap-1.5 text-[0.78rem] font-semibold text-white/90 bg-white/5 border border-white/10 rounded-full px-2.5 py-1 ${className}`}
+      className={`server-status-badge inline-flex items-center gap-2 text-[0.78rem] font-semibold text-white/90 bg-white/5 border border-white/10 rounded-lg px-2 py-1 ${className}`}
       title={server ? `${server.server_name} ${server.host}:${server.port}` : "服务器状态"}
     >
       <span
@@ -164,8 +164,8 @@ export default function ServerStatus({
           failed
             ? "bg-slate-400"
             : online
-              ? "bg-accent-green shadow-[0_0_6px_var(--accent-green)] animate-pulse-glow"
-              : "bg-red-500"
+              ? "bg-white"
+              : "bg-slate-500"
         }`}
       />
       {failed ? "状态未知" : !server ? "获取中..." : online ? `${server?.players_online ?? 0} 人在线` : "离线"}

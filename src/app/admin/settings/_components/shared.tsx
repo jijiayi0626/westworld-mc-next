@@ -91,10 +91,67 @@ export const SETTINGS_TABS: { key: string; href: string; label: string }[] = [
 
 export function StatusDot({ ok: good, label }: { ok: boolean; label: string }) {
   return (
-    <span className="inline-flex items-center gap-1.5 text-[0.85rem]">
-      <span className={`w-2 h-2 rounded-full ${good ? "bg-emerald-500" : "bg-slate-300"}`} />
+    <span className="inline-flex items-center gap-2 text-[0.85rem]">
+      <span className={`w-2 h-2 rounded-full ${good ? "bg-slate-900" : "bg-slate-300"}`} />
       <span className={good ? "text-slate-800" : "text-slate-400"}>{label}</span>
     </span>
+  );
+}
+
+/** 设置页分组堆叠容器 */
+export function SettingsStack({ children }: { children: ReactNode }) {
+  return <div className="settings-stack">{children}</div>;
+}
+
+/** 分组：标题在上，内容逐行展开，不使用外层卡片 */
+export function SettingsGroup({
+  title,
+  desc,
+  aside,
+  actions,
+  children,
+}: {
+  title: string;
+  desc?: string;
+  aside?: ReactNode;
+  actions?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <section className="settings-group">
+      <div className="settings-group__head">
+        <div className="min-w-0">
+          <h2 className="settings-group__title">{title}</h2>
+          {desc && <p className="settings-group__desc">{desc}</p>}
+        </div>
+        {aside && <div className="shrink-0">{aside}</div>}
+      </div>
+      <div className="settings-group__body">{children}</div>
+      {actions && <div className="settings-group__actions">{actions}</div>}
+    </section>
+  );
+}
+
+/** 单项设置：名称在左、控件在右、一项一行 */
+export function SettingRow({
+  label,
+  hint,
+  wide,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  wide?: boolean;
+  children: ReactNode;
+}) {
+  return (
+    <div className="settings-row">
+      <div className="settings-row__label">
+        <div className="settings-row__name">{label}</div>
+        {hint && <div className="settings-row__hint">{hint}</div>}
+      </div>
+      <div className={`settings-row__control${wide ? " settings-row__control--wide" : ""}`}>{children}</div>
+    </div>
   );
 }
 

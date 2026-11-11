@@ -2,7 +2,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { api } from "@/lib/api";
-import { Badge, Btn, Card, Empty, ErrorNote, Field, Input, Select, SuccessNote } from "@/components/ui";
+import { Badge, Btn, Empty, ErrorNote, Field, Input, Select, SuccessNote } from "@/components/ui";
+import { SettingsGroup, SettingsStack, SettingRow } from "./shared";
 
 interface ChatConfig {
   enabled: boolean;
@@ -116,111 +117,101 @@ export default function ForumTab() {
       <ErrorNote message={error} />
       <SuccessNote message={success} />
 
-      <Card>
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-[1.05rem] font-bold text-slate-800">社区与聊天室</h3>
-          {chatCfg && <Badge color={chatCfg.enabled ? "green" : "gray"}>{chatCfg.enabled ? "已启用" : "已关闭"}</Badge>}
-        </div>
-        <p className="text-[0.82rem] text-slate-500 mb-4">
-          控制社区群、群聊与私信的整体开关、发送限制，以及普通玩家能否自行创建群聊，保存后即时生效。
-        </p>
-        {chatCfg === null ? (
-          <Empty text="加载中..." />
-        ) : (
-          <form
-            onSubmit={(e) => {
-              e.preventDefault();
-              void saveChat();
-            }}
-            className="flex flex-col gap-4"
-          >
-            <div className="flex items-center gap-4 flex-wrap">
-              <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
+      <SettingsStack>
+        <SettingsGroup
+          title="社区与聊天室"
+          desc="控制社区群、群聊与私信的整体开关、发送限制，以及普通玩家能否自行创建群聊，保存后即时生效。"
+          aside={chatCfg ? <Badge color={chatCfg.enabled ? "green" : "gray"}>{chatCfg.enabled ? "已启用" : "已关闭"}</Badge> : undefined}
+        >
+          {chatCfg === null ? (
+            <Empty text="加载中..." />
+          ) : (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                void saveChat();
+              }}
+              className="settings-form"
+            >
+              <SettingRow label="启用社区消息" hint="关闭后用户只能浏览动态">
                 <input
                   type="checkbox"
                   checked={chatForm.enabled}
                   onChange={(e) => setChatForm((p) => ({ ...p, enabled: e.target.checked }))}
-                  className="w-4 h-4 accent-emerald-500"
+                  className="w-4 h-4 accent-slate-900"
                 />
-                启用社区消息（关闭后用户只能浏览动态）
-              </label>
-              <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
+              </SettingRow>
+              <SettingRow label="显示公告">
                 <input
                   type="checkbox"
                   checked={chatForm.show_announcements}
                   onChange={(e) => setChatForm((p) => ({ ...p, show_announcements: e.target.checked }))}
-                  className="w-4 h-4 accent-emerald-500"
+                  className="w-4 h-4 accent-slate-900"
                 />
-                显示公告
-              </label>
-              <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
+              </SettingRow>
+              <SettingRow label="显示社区消息">
                 <input
                   type="checkbox"
                   checked={chatForm.show_chat}
                   onChange={(e) => setChatForm((p) => ({ ...p, show_chat: e.target.checked }))}
-                  className="w-4 h-4 accent-emerald-500"
+                  className="w-4 h-4 accent-slate-900"
                 />
-                显示社区消息
-              </label>
-            </div>
+              </SettingRow>
 
-            <Field label="社区群公告" hint="显示在社区群消息区顶部，留空不显示，最长 200 字">
-              <Input
-                value={chatForm.welcome}
-                onChange={(e) => setChatForm((p) => ({ ...p, welcome: e.target.value }))}
-                maxLength={200}
-                placeholder="如：欢迎来到西域社区，文明发言，禁止刷屏与广告。"
-              />
-            </Field>
-
-            <Field label="谁可以创建群聊" hint="选择「仅管理员」后，普通玩家只能加入已有群聊">
-              <Select
-                value={chatForm.group_create}
-                onChange={(e) =>
-                  setChatForm((p) => ({ ...p, group_create: e.target.value === "admin" ? "admin" : "all" }))
-                }
-              >
-                <option value="all">所有注册玩家</option>
-                <option value="admin">仅管理员</option>
-              </Select>
-            </Field>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Field label="单条消息字数上限" hint="20 - 1000 字">
+              <Field label="社区群公告" hint="显示在社区群消息区顶部，留空不显示，最长 200 字">
                 <Input
-                  type="number"
-                  min={20}
-                  max={1000}
-                  value={chatForm.max_text}
-                  onChange={(e) => setChatForm((p) => ({ ...p, max_text: Number(e.target.value) || 400 }))}
+                  value={chatForm.welcome}
+                  onChange={(e) => setChatForm((p) => ({ ...p, welcome: e.target.value }))}
+                  maxLength={200}
+                  placeholder="如：欢迎来到西域社区，文明发言，禁止刷屏与广告。"
                 />
               </Field>
-              <Field label="单张图片大小上限（MB）" hint="1 - 8 MB">
-                <Input
-                  type="number"
-                  min={1}
-                  max={8}
-                  value={chatForm.max_image_mb}
-                  onChange={(e) => setChatForm((p) => ({ ...p, max_image_mb: Number(e.target.value) || 4 }))}
-                />
+
+              <Field label="谁可以创建群聊" hint="选择「仅管理员」后，普通玩家只能加入已有群聊">
+                <Select
+                  value={chatForm.group_create}
+                  onChange={(e) =>
+                    setChatForm((p) => ({ ...p, group_create: e.target.value === "admin" ? "admin" : "all" }))
+                  }
+                >
+                  <option value="all">所有注册玩家</option>
+                  <option value="admin">仅管理员</option>
+                </Select>
               </Field>
-            </div>
 
-            <div>
-              <Btn type="submit" disabled={chatBusy}>{chatBusy ? "保存中..." : "保存设置"}</Btn>
-            </div>
-          </form>
-        )}
-      </Card>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <Field label="单条消息字数上限" hint="20 - 1000 字">
+                  <Input
+                    type="number"
+                    min={20}
+                    max={1000}
+                    value={chatForm.max_text}
+                    onChange={(e) => setChatForm((p) => ({ ...p, max_text: Number(e.target.value) || 400 }))}
+                  />
+                </Field>
+                <Field label="单张图片大小上限（MB）" hint="1 - 8 MB">
+                  <Input
+                    type="number"
+                    min={1}
+                    max={8}
+                    value={chatForm.max_image_mb}
+                    onChange={(e) => setChatForm((p) => ({ ...p, max_image_mb: Number(e.target.value) || 4 }))}
+                  />
+                </Field>
+              </div>
 
-      <Card className="mt-5">
-        <div className="flex items-center justify-between mb-1">
-          <h3 className="text-[1.05rem] font-bold text-slate-800">群聊管理</h3>
-          <Badge color="blue">{rooms ? `${rooms.filter((r) => r.kind === "group").length} 个群聊` : "…"}</Badge>
-        </div>
-        <p className="text-[0.82rem] text-slate-500 mb-4">
-          查看全部会话（包含社区群与私信），可删除违规群聊；社区群固定保留，不可删除。
-        </p>
+              <div>
+                <Btn type="submit" disabled={chatBusy}>{chatBusy ? "保存中..." : "保存设置"}</Btn>
+              </div>
+            </form>
+          )}
+        </SettingsGroup>
+
+        <SettingsGroup
+          title="群聊管理"
+          desc="查看全部会话（包含社区群与私信），可删除违规群聊；社区群固定保留，不可删除。"
+          aside={<Badge color="gray">{rooms ? `${rooms.filter((r) => r.kind === "group").length} 个群聊` : "…"}</Badge>}
+        >
         {rooms === null ? (
           <Empty text="加载中..." />
         ) : rooms.length === 0 ? (
@@ -242,7 +233,7 @@ export default function ForumTab() {
               <tbody>
                 {rooms.map((room) => (
                   <tr key={room.id} className="border-b border-slate-100 last:border-0">
-                    <td className="py-2.5 pr-3">
+                    <td className="py-3 pr-3">
                       <div className="flex items-center gap-2">
                         <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-[0.7rem] font-bold text-slate-500">
                           {(room.name || KIND_LABEL[room.kind] || "会").slice(0, 1)}
@@ -252,16 +243,16 @@ export default function ForumTab() {
                         </span>
                       </div>
                     </td>
-                    <td className="py-2.5 pr-3">
+                    <td className="py-3 pr-3">
                       <Badge color={room.kind === "community" ? "green" : room.kind === "dm" ? "gray" : "blue"}>
                         {KIND_LABEL[room.kind] || room.kind}
                       </Badge>
                     </td>
-                    <td className="py-2.5 pr-3 text-slate-500">{room.member_count}</td>
-                    <td className="py-2.5 pr-3 text-slate-500">{room.message_count}</td>
-                    <td className="py-2.5 pr-3 text-slate-500">{room.owner_name || "—"}</td>
-                    <td className="py-2.5 pr-3 text-slate-400">{room.created_at}</td>
-                    <td className="py-2.5 text-right">
+                    <td className="py-3 pr-3 text-slate-500">{room.member_count}</td>
+                    <td className="py-3 pr-3 text-slate-500">{room.message_count}</td>
+                    <td className="py-3 pr-3 text-slate-500">{room.owner_name || "—"}</td>
+                    <td className="py-3 pr-3 text-slate-400">{room.created_at}</td>
+                    <td className="py-3 text-right">
                       {room.kind === "community" ? (
                         <span className="text-[0.78rem] text-slate-300">固定保留</span>
                       ) : (
@@ -281,7 +272,8 @@ export default function ForumTab() {
             </table>
           </div>
         )}
-      </Card>
+        </SettingsGroup>
+      </SettingsStack>
     </>
   );
 }

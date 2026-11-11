@@ -31,7 +31,7 @@ export function AttachmentList({ items }: { items: TicketAttachment[] }) {
           href={a.url}
           target="_blank"
           rel="noreferrer"
-          className="group block border border-slate-200 rounded-[8px] overflow-hidden bg-white hover:border-emerald-300 transition-colors"
+          className="group block border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-slate-400 transition-colors"
           title={a.name}
         >
           {isImage(a) ? (
@@ -103,7 +103,7 @@ export function AttachmentUploader({
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center gap-2">
-        <label className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-[8px] border border-slate-200 bg-white text-[0.82rem] font-medium text-slate-600 hover:bg-slate-50 transition-colors ${uploading || disabled || value.length >= max ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
+        <label className={`inline-flex items-center gap-2 px-3 py-2 rounded-[8px] border border-slate-200 bg-white text-[0.82rem] font-medium text-slate-600 hover:bg-slate-50 transition-colors ${uploading || disabled || value.length >= max ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}>
           <input
             ref={inputRef}
             type="file"

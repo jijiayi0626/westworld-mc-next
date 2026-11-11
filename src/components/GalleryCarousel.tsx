@@ -74,13 +74,13 @@ export default function GalleryCarousel() {
   return (
     <section
       id="gallery"
-      className="gallery-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
+      className="gallery-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-24"
       style={{ backgroundImage: `url('${gallery.bg_image}')` }}
     >
       <div className="container-mc relative z-[2]">
         <ScrollFadeUp>
           <div className="section-header mb-10 text-center">
-            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3">
               {gallery.title}
             </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
@@ -96,9 +96,9 @@ export default function GalleryCarousel() {
                 key={tab}
                 type="button"
                 onClick={() => switchLevel(tab)}
-                className={`px-5 py-2 rounded-full text-[0.9rem] font-semibold cursor-pointer border transition-all duration-300 ${
+                className={`px-5 py-2 rounded-2xl text-[0.9rem] font-semibold cursor-pointer border transition-all duration-300 ${
                   level === tab
-                    ? "bg-accent-emerald text-white border-accent-emerald shadow-[0_4px_15px_rgba(16,185,129,0.35)]"
+                    ? "bg-white text-bg-dark border-white shadow-[0_4px_12px_rgba(0,0,0,0.28)]"
                     : "bg-white/5 text-white/70 border-white/15 hover:bg-white/15 hover:text-white"
                 }`}
               >
@@ -111,7 +111,7 @@ export default function GalleryCarousel() {
               <button
                 type="button"
                 onClick={() => switchLocation(null)}
-                className={`px-4 py-1.5 rounded-full text-[0.85rem] font-medium cursor-pointer border transition-all duration-300 ${
+                className={`px-4 py-2 rounded-xl text-[0.85rem] font-medium cursor-pointer border transition-all duration-300 ${
                   location === null
                     ? "bg-white/90 text-bg-dark border-white"
                     : "bg-white/5 text-white/70 border-white/15 hover:bg-white/15 hover:text-white"
@@ -124,7 +124,7 @@ export default function GalleryCarousel() {
                   key={loc}
                   type="button"
                   onClick={() => switchLocation(loc)}
-                  className={`px-4 py-1.5 rounded-full text-[0.85rem] font-medium cursor-pointer border transition-all duration-300 ${
+                  className={`px-4 py-2 rounded-xl text-[0.85rem] font-medium cursor-pointer border transition-all duration-300 ${
                     location === loc
                       ? "bg-white/90 text-bg-dark border-white"
                       : "bg-white/5 text-white/70 border-white/15 hover:bg-white/15 hover:text-white"
@@ -143,7 +143,7 @@ export default function GalleryCarousel() {
               暂无该分类下的截图
             </div>
           ) : (
-          <div className="gallery-carousel-wrapper w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative border border-white/10">
+          <div className="gallery-carousel-wrapper w-full aspect-video rounded-2xl overflow-hidden bg-black shadow-[0_16px_40px_rgba(0,0,0,0.4)] relative border border-white/10">
             <img
               src={current.src}
               alt={current.desc || "游戏截图"}
@@ -156,14 +156,14 @@ export default function GalleryCarousel() {
           )}
 
           <div className="gallery-controls flex justify-between items-center mt-5 px-2.5">
-            <div className="gallery-text-content text-white/90 text-[1rem] max-w-[70%] leading-relaxed text-shadow-[0_2px_4px_rgba(0,0,0,0.5)]">
+            <div className="gallery-text-content text-white/90 text-[1rem] max-w-[70%] leading-relaxed">
               <p>{current ? current.desc : ""}{filtered.length > 0 ? `（${safeIndex + 1}/${filtered.length}）` : ""}</p>
             </div>
             <div className="gallery-nav-buttons flex gap-4">
               <button
                 type="button"
                 onClick={() => go(-1)}
-                className="nav-btn w-12 h-12 rounded-full bg-white/10 border border-white/20 text-white cursor-pointer flex items-center justify-center transition-all duration-300 backdrop-blur-sm hover:bg-white hover:text-bg-dark hover:scale-110 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95"
+                className="nav-btn w-12 h-12 rounded-full bg-white/10 border border-white/20 text-white cursor-pointer flex items-center justify-center transition-all duration-300 backdrop-blur-sm hover:bg-white hover:text-bg-dark hover:scale-110 hover:shadow-[0_8px_16px_rgba(0,0,0,0.28)] active:scale-95"
                 aria-label="上一张"
               >
                 <svg viewBox="0 0 24 24" width="24" height="24">
@@ -173,7 +173,7 @@ export default function GalleryCarousel() {
               <button
                 type="button"
                 onClick={() => go(1)}
-                className="nav-btn w-12 h-12 rounded-full bg-white/10 border border-white/20 text-white cursor-pointer flex items-center justify-center transition-all duration-300 backdrop-blur-sm hover:bg-white hover:text-bg-dark hover:scale-110 hover:shadow-[0_0_15px_rgba(255,255,255,0.3)] active:scale-95"
+                className="nav-btn w-12 h-12 rounded-full bg-white/10 border border-white/20 text-white cursor-pointer flex items-center justify-center transition-all duration-300 backdrop-blur-sm hover:bg-white hover:text-bg-dark hover:scale-110 hover:shadow-[0_8px_16px_rgba(0,0,0,0.28)] active:scale-95"
                 aria-label="下一张"
               >
                 <svg viewBox="0 0 24 24" width="24" height="24">

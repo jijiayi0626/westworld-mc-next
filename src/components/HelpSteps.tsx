@@ -71,13 +71,13 @@ export default function HelpSteps() {
   return (
     <section
       id="help-docs"
-      className="help-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-[100px]"
+      className="help-section relative bg-bg-dark bg-fixed bg-cover bg-center overflow-hidden py-24"
       style={{ backgroundImage: `url('${help.bg_image}')` }}
     >
       <div className="container-mc relative z-[2] text-center">
         <ScrollFadeUp>
-          <div className="section-header mb-10 text-center">
-            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3 text-shadow-[0_4px_10px_rgba(0,0,0,0.3)]">
+          <div className="section-header mb-12 text-center">
+            <h2 className="section-title text-[clamp(1.8rem,4vw,2.5rem)] font-extrabold text-white mb-3">
               {help.title}
       </h2>
             <p className="section-subtitle text-[1.1rem] text-white/80 max-w-[600px] mx-auto">
@@ -86,16 +86,16 @@ export default function HelpSteps() {
     </div>
     </ScrollFadeUp>
 
-        <div className="steps-container flex justify-center items-start gap-5 mt-12 flex-wrap">
+        <div className="steps-container flex justify-center items-start gap-4 mt-12 flex-wrap">
           {help.steps.map((step, i) => (
             <div key={i} className="contents">
               <ScrollFadeUp delay={((i * 2 + 1) * 100) as 100 | 300 | 500}>
-                <div className="step-card group bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-[30px] text-center flex-1 min-w-[280px] max-w-[350px] transition-all duration-300 relative overflow-hidden hover:-translate-y-2.5 hover:bg-white/[0.08] hover:border-accent-emerald/40 hover:shadow-[0_20px_45px_rgba(0,0,0,0.35)]">
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-accent-emerald/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="step-card group bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-8 text-center flex-1 min-w-[280px] max-w-[350px] transition-all duration-300 relative overflow-hidden hover:-translate-y-2 hover:bg-white/[0.08] hover:border-white/30 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="step-number absolute -top-2.5 -right-2.5 text-[5rem] font-black text-white/[0.05] leading-none z-0 pointer-events-none">
                     {step.number}
         </div>
-                  <div className="step-icon w-[70px] h-[70px] bg-white/10 rounded-full flex items-center justify-center mx-auto mb-5 text-accent-green relative z-[1] border border-white/10 transition-all duration-300 hover:bg-accent-green hover:text-bg-dark hover:scale-110 hover:rotate-[10deg] hover:shadow-[0_0_20px_rgba(0,230,118,0.4)]">
+                  <div className="step-icon w-[70px] h-[70px] bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 text-white/70 relative z-[1] border border-white/10 transition-all duration-300 hover:bg-white hover:text-bg-dark hover:scale-110 hover:rotate-[10deg] hover:shadow-[0_8px_16px_rgba(0,0,0,0.24)]">
                     {i === 0 && (
                       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -125,14 +125,14 @@ export default function HelpSteps() {
                   {step.cta && (
                     <a
                       href={i === 0 ? "#launchers" : step.cta_href || "#"}
-                      className="btn-step inline-block px-6 py-2.5 bg-white text-bg-dark rounded-lg font-bold text-[0.9rem] transition-all duration-300 border-none cursor-pointer no-underline relative z-[1] hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-[0_5px_15px_rgba(255,255,255,0.2)]"
+                      className="btn-step inline-block px-6 py-2 bg-white text-bg-dark rounded-lg font-bold text-[0.9rem] transition-all duration-300 border-none cursor-pointer no-underline relative z-[1] hover:bg-primary-hover hover:-translate-y-0.5 hover:shadow-[0_8px_16px_rgba(0,0,0,0.24)]"
                     >
                       {step.cta}
           </a>
                   )}
                   {i === 1 && (
-                    <div className="server-address-box bg-black/30 border border-white/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2.5 relative z-[1]">
-                      <span className="font-mono text-accent-green font-bold tracking-wider">
+                    <div className="server-address-box bg-black/30 border border-white/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2 relative z-[1]">
+                      <span className="font-mono text-white font-bold tracking-wider">
                         {site.server_ip}
             </span>
                       <button
@@ -149,7 +149,7 @@ export default function HelpSteps() {
             </div>
                   )}
                   {i === 2 && (
-                    <span className="highlight-text block font-bold text-accent-gold mt-[15px] text-[1.1rem] relative z-[1]">
+                    <span className="highlight-text block font-bold text-white mt-[15px] text-[1.1rem] relative z-[1]">
                       祝您游戏愉快
             </span>
                   )}
@@ -171,13 +171,13 @@ export default function HelpSteps() {
         {/* 服务器 MOTD 在线查询 */}
         <div className="relative z-[2] mt-14 max-w-[640px] mx-auto text-left">
           <ScrollFadeUp>
-            <h3 className="text-[clamp(1.3rem,3vw,1.6rem)] font-bold text-white mb-2 text-center text-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+            <h3 className="text-[clamp(1.3rem,3vw,1.6rem)] font-bold text-white mb-2 text-center">
               服务器状态在线查询
             </h3>
-            <p className="text-[0.95rem] text-white/70 mb-5 text-center">
+            <p className="text-[0.95rem] text-white/70 mb-6 text-center">
               输入任意服务器地址即可查询 MOTD、版本与在线人数（由 MineBBS MOTD API 提供）
             </p>
-            <div className="[&_input]:bg-white/10 [&_input]:border [&_input]:border-white/15 [&_input]:rounded-[10px] [&_input]:px-3.5 [&_input]:py-2.5 [&_input]:text-white [&_input]:placeholder:text-white/40 [&_input]:text-[0.9rem] [&_input]:focus:outline-none [&_input]:focus:border-accent-emerald/60 [&_button]:bg-accent-emerald [&_button]:text-white [&_button]:border-0 [&_button]:rounded-[10px] [&_button]:px-5 [&_button]:py-2.5 [&_button]:font-semibold [&_button]:cursor-pointer [&_button]:hover:bg-[#00c464] [&_button]:transition-colors [&_button]:disabled:opacity-50">
+            <div className="[&_input]:bg-white/10 [&_input]:border [&_input]:border-white/15 [&_input]:rounded-[8px] [&_input]:px-4 [&_input]:py-2 [&_input]:text-white [&_input]:placeholder:text-white/40 [&_input]:text-[0.9rem] [&_input]:focus:outline-none [&_input]:focus:border-white/50 [&_button]:bg-white [&_button]:text-bg-dark [&_button]:border-0 [&_button]:rounded-[8px] [&_button]:px-5 [&_button]:py-2 [&_button]:font-semibold [&_button]:cursor-pointer [&_button]:hover:bg-white/90 [&_button]:transition-colors [&_button]:disabled:opacity-50">
               <MotdQuery defaultHost={site.server_ip} />
             </div>
           </ScrollFadeUp>
@@ -185,14 +185,14 @@ export default function HelpSteps() {
 
         <div id="launchers" className="launcher-section relative z-[2] mt-20">
           <ScrollFadeUp>
-            <h3 className="text-[clamp(1.4rem,3vw,1.8rem)] font-bold text-white mb-2 text-shadow-[0_2px_8px_rgba(0,0,0,0.3)]">
+            <h3 className="text-[clamp(1.4rem,3vw,1.8rem)] font-bold text-white mb-2">
               选择一个你喜欢的启动器
             </h3>
-            <p className="text-[1rem] text-white/75 mb-6 text-shadow-[0_2px_8px_rgba(0,0,0,0.45)]">
+            <p className="text-[1rem] text-white/75 mb-6">
               官方渠道与备用网盘均可下载，任选其一
             </p>
-            <div className="mb-10">
-              <div className="inline-flex items-center gap-1 p-1 rounded-full bg-black/30 border border-white/15 backdrop-blur-sm">
+            <div className="mb-12">
+              <div className="inline-flex items-center gap-1 p-1 rounded-2xl bg-black/30 border border-white/15 backdrop-blur-sm">
                 {(
                   [
                     { key: "netdisk", label: "我们的网盘", hint: "与第一步相同的网盘" },
@@ -204,9 +204,9 @@ export default function HelpSteps() {
                     type="button"
                     onClick={() => setDownloadSource(item.key)}
                     aria-pressed={downloadSource === item.key}
-                    className={`px-5 py-2 rounded-full text-[0.9rem] font-semibold transition-all duration-300 border-0 cursor-pointer ${
+                    className={`px-5 py-2 rounded-xl text-[0.9rem] font-semibold transition-all duration-300 border-0 cursor-pointer ${
                       downloadSource === item.key
-                        ? "bg-accent-green text-bg-dark shadow-[0_4px_14px_rgba(0,230,118,0.35)]"
+                        ? "bg-white text-bg-dark shadow-[0_4px_12px_rgba(0,0,0,0.28)]"
                         : "bg-transparent text-white/70 hover:text-white hover:bg-white/10"
                     }`}
                     title={item.hint}
@@ -217,7 +217,7 @@ export default function HelpSteps() {
               </div>
               {downloadSource === "netdisk" && sharedPassword && (
                 <p className="text-[0.82rem] text-white/55 mt-3 mb-0">
-                  网盘下载密码：<span className="text-accent-gold font-semibold">{sharedPassword}</span>
+                  网盘下载密码：<span className="text-white font-semibold">{sharedPassword}</span>
                 </p>
               )}
             </div>
@@ -226,32 +226,32 @@ export default function HelpSteps() {
           <div className="launcher-grid grid gap-6 sm:grid-cols-2 lg:grid-cols-4 max-w-[1200px] mx-auto">
             {help.launchers.map((launcher, i) => (
               <ScrollFadeUp key={launcher.name} delay={((i + 1) * 100) as 100 | 200 | 300 | 400}>
-                <div className="launcher-card group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-[24px] text-left h-full flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:bg-white/[0.08] hover:border-accent-gold/40 hover:shadow-[0_20px_45px_rgba(0,0,0,0.35)]">
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-gradient-to-r from-transparent via-accent-gold/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="launcher-card group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6 text-left h-full flex flex-col overflow-hidden transition-all duration-300 hover:-translate-y-2 hover:bg-white/[0.08] hover:border-white/30 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-[1.15rem] font-bold text-white">{launcher.name}</h4>
                     {launcher.tag && (
-                      <span className="text-[0.72rem] font-bold px-2 py-0.5 rounded-full text-bg-dark bg-accent-green">
+                      <span className="text-[0.72rem] font-bold px-2 py-1 rounded-lg text-bg-dark bg-white">
                         {launcher.tag}
                       </span>
                     )}
                   </div>
-                  <p className="text-[0.88rem] text-white/65 mb-5 leading-relaxed flex-1">
+                  <p className="text-[0.88rem] text-white/65 mb-6 leading-relaxed flex-1">
                     {launcher.desc}
                   </p>
-                  <div className="flex flex-col gap-2.5">
+                  <div className="flex flex-col gap-2">
                     {linksOf(launcher).map((link) => (
                       <a
                         key={link.label + link.url}
                         href={link.url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="group flex items-center justify-between gap-2 bg-white/10 hover:bg-white hover:text-bg-dark border border-white/10 rounded-lg px-3.5 py-2.5 text-[0.88rem] font-semibold text-white transition-all duration-300 no-underline"
+                        className="group flex items-center justify-between gap-2 bg-white/10 hover:bg-white hover:text-bg-dark border border-white/10 rounded-lg px-4 py-2 text-[0.88rem] font-semibold text-white transition-all duration-300 no-underline"
                       >
                         <span className="flex min-w-0 flex-col leading-tight">
                           <span className="truncate">{link.label}</span>
                           {link.note && (
-                            <span className="mt-0.5 text-[0.72rem] font-normal text-accent-gold group-hover:text-bg-dark/70">
+                            <span className="mt-1 text-[0.72rem] font-normal text-white/70 group-hover:text-bg-dark/70">
                               {link.note}
                             </span>
                           )}

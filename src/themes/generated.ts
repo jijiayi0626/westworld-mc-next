@@ -22,9 +22,9 @@ export const THEMES: GeneratedTheme[] = [
   {
     key: "v1",
     name: "模板一 · 经典",
-    desc: "深色玻璃质感 + 翠绿点缀，全屏 Hero 大图与卡片式区块，信息密度高、氛围浓厚。",
+    desc: "深色玻璃质感 + 白灰点缀，全屏 Hero 大图与卡片式区块，信息密度高、氛围浓厚。",
     version: "1.0.0",
-    swatch: ["#0f172a","#10b981","#ffffff"],
+    swatch: ["#0f172a","#e2e8f0","#ffffff"],
     css: "",
     Layout: LayoutV1,
     Home: HomeV1,
@@ -32,9 +32,9 @@ export const THEMES: GeneratedTheme[] = [
   {
     key: "v3",
     name: "模板三 · 极光幻境",
-    desc: "深空靛蓝底 + 极光渐变，悬浮胶囊导航、超大标题与便当式卡片布局，偏现代 SaaS 的科技风。",
+    desc: "中性深色底 + 明暗层次，悬浮胶囊导航、超大标题与便当式卡片布局，偏现代 SaaS 的科技风。",
     version: "1.0.0",
-    swatch: ["#070812","#6d5efc","#22d3ee"],
+    swatch: ["#0f172a","#e2e8f0","#94a3b8"],
     css: "/themes/v3/theme.css",
     Layout: LayoutV3,
     Home: HomeV3,

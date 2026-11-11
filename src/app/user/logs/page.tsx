@@ -47,7 +47,7 @@ export default function LogsPage() {
       <PageHeader title="操作日志" desc="账号最近 50 条操作记录" />
 
       <Card>
-        {error && <div className="mb-3 text-red-300 text-[0.85rem]">{error}</div>}
+        {error && <div className="mb-3 text-red-600 text-[0.85rem]">{error}</div>}
         {list === null ? (
           <Empty text="加载中..." />
         ) : list.length === 0 ? (
@@ -57,10 +57,10 @@ export default function LogsPage() {
             <table className="w-full text-left text-[0.88rem]">
               <thead>
                 <tr className="text-slate-500 text-[0.78rem] border-b border-slate-200">
-                  <th className="py-2.5 pr-3 font-medium">时间</th>
-                  <th className="py-2.5 pr-3 font-medium">操作</th>
-                  <th className="py-2.5 pr-3 font-medium">详情</th>
-                  <th className="py-2.5 font-medium">IP</th>
+                  <th className="py-3 pr-3 font-medium">时间</th>
+                  <th className="py-3 pr-3 font-medium">操作</th>
+                  <th className="py-3 pr-3 font-medium">详情</th>
+                  <th className="py-3 font-medium">IP</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">

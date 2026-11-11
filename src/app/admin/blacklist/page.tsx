@@ -152,7 +152,7 @@ export default function AdminBlacklistPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <div className="flex items-start justify-between gap-3 mb-5 flex-wrap">
+        <div className="flex items-start justify-between gap-3 mb-6 flex-wrap">
           <div>
             <h1 className="text-[1.35rem] font-bold text-slate-900">风控看板</h1>
             <p className="text-[0.82rem] text-slate-400 mt-1">多账号关联、黑名单与近期注册行为一览，评分仅作排查参考。</p>
@@ -167,8 +167,8 @@ export default function AdminBlacklistPage() {
           <Empty text="正在计算风险评分..." />
         ) : (
           <>
-            <div className={`border rounded-[14px] p-5 mb-5 ${tone.panel}`}>
-              <div className="flex flex-col md:flex-row md:items-center gap-5">
+            <div className={`border rounded-[16px] p-6 mb-6 ${tone.panel}`}>
+              <div className="flex flex-col md:flex-row md:items-center gap-6">
                 <div className="flex items-center gap-4">
                   <div className={`w-20 h-20 rounded-full bg-white/70 border ${tone.panel} flex flex-col items-center justify-center flex-shrink-0`}>
                     <span className={`text-[1.9rem] font-extrabold leading-none ${tone.num}`}>{risk.score}</span>
@@ -183,10 +183,10 @@ export default function AdminBlacklistPage() {
                 </div>
                 <div className="flex flex-wrap gap-2 md:ml-auto">
                   {risk.factors.length === 0 ? (
-                    <span className="px-3 py-1.5 rounded-full bg-white/70 text-emerald-700 text-[0.8rem] border border-emerald-200">未发现异常信号</span>
+                    <span className="px-3 py-2 rounded-full bg-white/70 text-emerald-700 text-[0.8rem] border border-emerald-200">未发现异常信号</span>
                   ) : (
                     risk.factors.map((f) => (
-                      <span key={f.label} title={f.detail} className="px-3 py-1.5 rounded-full bg-white/80 text-slate-700 text-[0.8rem] border border-white/80">
+                      <span key={f.label} title={f.detail} className="px-3 py-2 rounded-full bg-white/80 text-slate-700 text-[0.8rem] border border-white/80">
                         {f.label} <b className="text-slate-900">+{f.points}</b>
                       </span>
                     ))
@@ -195,7 +195,7 @@ export default function AdminBlacklistPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-5">
+            <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-3 mb-6">
               {[
                 { label: "账号总数", value: risk.stats.total, tone: "slate" },
                 { label: "7 日活跃", value: risk.stats.active_7d, tone: "green" },
@@ -206,18 +206,18 @@ export default function AdminBlacklistPage() {
               ].map((c) => (
                 <div key={c.label} className={`stat-card sc-${c.tone} rounded-[12px] p-3 ${c.tone === "slate" ? "text-slate-700" : ""}`}>
                   <div className="text-[1.5rem] font-extrabold">{c.value}</div>
-                  <div className="text-[0.76rem] font-medium mt-0.5">{c.label}</div>
+                  <div className="text-[0.76rem] font-medium mt-1">{c.label}</div>
                 </div>
               ))}
             </div>
 
-            <Card className="mb-5">
+            <Card className="mb-6">
               <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
                 <div>
                   <h3 className="text-[1.05rem] font-bold text-slate-800">多账号关联</h3>
-                  <p className="text-[0.78rem] text-slate-400 mt-0.5">同一 IP 或浏览器指纹下出现多个账号时列出；移动网络与公共网络可能造成误判。</p>
+                  <p className="text-[0.78rem] text-slate-400 mt-1">同一 IP 或浏览器指纹下出现多个账号时列出；移动网络与公共网络可能造成误判。</p>
                 </div>
-                <div className="flex gap-1 p-1 bg-slate-50 rounded-[10px]">
+                <div className="flex gap-1 p-1 bg-slate-50 rounded-[12px]">
                   {[
                     { key: "register" as const, label: "注册 IP", count: risk.shared_register_ips.length },
                     { key: "login" as const, label: "登录 IP", count: risk.shared_login_ips.length },
@@ -227,7 +227,7 @@ export default function AdminBlacklistPage() {
                       key={t.key}
                       type="button"
                       onClick={() => setTab(t.key)}
-                      className={`px-3 py-1.5 rounded-[8px] text-[0.8rem] font-semibold cursor-pointer ${
+                      className={`px-3 py-2 rounded-[8px] text-[0.8rem] font-semibold cursor-pointer ${
                         tab === t.key ? "bg-white text-slate-800 shadow-sm" : "text-slate-500 hover:text-slate-700"
                       }`}
                     >
@@ -261,25 +261,25 @@ export default function AdminBlacklistPage() {
                   <table className="w-full text-[0.86rem]">
                     <thead>
                       <tr className="text-left text-slate-500 text-[0.78rem] bg-slate-50 border-b border-slate-200">
-                        <th className="py-2.5 px-3">IP</th>
-                        <th className="py-2.5 px-3">账号</th>
-                        <th className="py-2.5 px-3">关联账号</th>
-                        <th className="py-2.5 px-3">最近活跃</th>
-                        <th className="py-2.5 px-3 text-right">操作</th>
+                        <th className="py-3 px-3">IP</th>
+                        <th className="py-3 px-3">账号</th>
+                        <th className="py-3 px-3">关联账号</th>
+                        <th className="py-3 px-3">最近活跃</th>
+                        <th className="py-3 px-3 text-right">操作</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
                       {sharedList.map((s) => (
                         <tr key={s.ip} className="hover:bg-slate-50">
-                          <td className="py-2.5 px-3 font-mono text-slate-700">{s.ip}</td>
-                          <td className="py-2.5 px-3 text-slate-600">
+                          <td className="py-3 px-3 font-mono text-slate-700">{s.ip}</td>
+                          <td className="py-3 px-3 text-slate-600">
                             {s.accounts} 个 {s.banned > 0 && <Badge color="red">封禁 {s.banned}</Badge>}
                           </td>
-                          <td className="py-2.5 px-3 text-slate-500 max-w-[340px]">
+                          <td className="py-3 px-3 text-slate-500 max-w-[340px]">
                             <div className="truncate" title={s.usernames}>{s.usernames}</div>
                           </td>
-                          <td className="py-2.5 px-3 text-slate-500 whitespace-nowrap">{fmtTime(s.last_seen)}</td>
-                          <td className="py-2.5 px-3 text-right">
+                          <td className="py-3 px-3 text-slate-500 whitespace-nowrap">{fmtTime(s.last_seen)}</td>
+                          <td className="py-3 px-3 text-right">
                             <Btn
                               variant="danger"
                               size="sm"
@@ -301,7 +301,7 @@ export default function AdminBlacklistPage() {
               )}
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-5">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-6">
               <Card>
                 <h3 className="text-[1.05rem] font-bold text-slate-800 mb-3">最近注册</h3>
                 {risk.recent_registrations.length === 0 ? (
@@ -309,7 +309,7 @@ export default function AdminBlacklistPage() {
                 ) : (
                   <div className="flex flex-col divide-y divide-slate-100">
                     {risk.recent_registrations.map((u) => (
-                      <div key={u.id} className="py-2.5 flex items-center justify-between gap-3">
+                      <div key={u.id} className="py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-[0.88rem] font-medium text-slate-800 truncate">{u.username}</div>
                           <div className="text-[0.75rem] text-slate-500 truncate">{u.email} · <span className="font-mono">{u.register_ip || "未知 IP"}</span></div>
@@ -331,7 +331,7 @@ export default function AdminBlacklistPage() {
                 ) : (
                   <div className="flex flex-col divide-y divide-slate-100">
                     {risk.recent_logs.map((l) => (
-                      <div key={l.id} className="py-2.5 flex items-center justify-between gap-3">
+                      <div key={l.id} className="py-3 flex items-center justify-between gap-3">
                         <div className="min-w-0">
                           <div className="text-[0.86rem] text-slate-700">
                             <b>{l.username || "未知用户"}</b> · {ACTION_LABEL[l.action] || l.action}
@@ -348,7 +348,7 @@ export default function AdminBlacklistPage() {
           </>
         )}
 
-        <Card className="mb-5">
+        <Card className="mb-6">
           <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">IP 黑名单</h3>
           <form onSubmit={add} className="flex flex-col gap-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -360,7 +360,7 @@ export default function AdminBlacklistPage() {
               </Field>
             </div>
             <div>
-              <button type="submit" disabled={busy} className="px-5 py-2 rounded-[10px] bg-[#ef4444] text-white text-[0.9rem] font-semibold hover:bg-[#dc2626] transition-colors disabled:opacity-50">
+              <button type="submit" disabled={busy} className="px-6 py-2 rounded-[12px] bg-[#ef4444] text-white text-[0.9rem] font-semibold hover:bg-[#dc2626] transition-colors disabled:opacity-50">
                 {busy ? "封禁中..." : "封禁 IP"}
               </button>
             </div>
@@ -376,7 +376,7 @@ export default function AdminBlacklistPage() {
           ) : (
             <div className="flex flex-col divide-y divide-slate-100">
               {risk.blacklist.map((b) => (
-                <div key={b.id} className="py-3.5 flex items-center justify-between gap-3">
+                <div key={b.id} className="py-4 flex items-center justify-between gap-3">
                   <div className="min-w-0">
                     <div className="font-mono text-slate-800 font-medium">{b.ip}</div>
                     <div className="mt-1 text-[0.78rem] text-slate-500">{b.reason || "无原因"} · {fmtTime(b.created_at)}</div>

@@ -163,8 +163,8 @@ export default function AdminTicketsPage() {
           </div>
 
           {detail.ticket.ai_summary && (
-            <div className="mt-4 px-4 py-3 rounded-[10px] bg-emerald-50 border border-emerald-200">
-              <div className="flex items-center justify-between gap-2 mb-1.5">
+            <div className="mt-4 px-4 py-3 rounded-[12px] bg-emerald-50 border border-emerald-200">
+              <div className="flex items-center justify-between gap-2 mb-2">
                 <span className="text-[0.8rem] font-semibold text-emerald-700">AI 处理摘要</span>
                 <span className="text-[0.72rem] text-emerald-600/70">仅供参考，请以原始对话为准</span>
               </div>
@@ -177,11 +177,11 @@ export default function AdminTicketsPage() {
             {detail.replies.map((r) => (
               <div
                 key={r.id}
-                className={`px-4 py-3 rounded-[10px] text-[0.9rem] leading-relaxed ${
+                className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed ${
                   r.is_staff ? "bg-emerald-500/10 border border-emerald-500/25 text-emerald-100 ml-6" : "bg-slate-50 border border-slate-200 text-slate-200 mr-6"
                 }`}
               >
-                <div className="flex items-center gap-2 mb-1.5 text-[0.75rem] text-slate-500">
+                <div className="flex items-center gap-2 mb-2 text-[0.75rem] text-slate-500">
                   <span className={r.is_staff ? "text-emerald-400 font-semibold" : "text-slate-500 font-semibold"}>{r.is_staff ? "管理员" : "玩家"}</span>
                   <span>{fmtTime(r.created_at)}</span>
                 </div>
@@ -214,18 +214,18 @@ export default function AdminTicketsPage() {
           )}
         </Card>
       ) : (
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
           <div className="flex flex-wrap items-center gap-3 px-4 py-3 border-b border-slate-100">
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
             >
               <option value="">全部工单</option>
               <option value="open">待回复</option>
               <option value="closed">已关闭</option>
             </select>
-            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">刷新</button>
+            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">刷新</button>
           </div>
           <ErrorNote message={error} />
           {list === null ? (
@@ -237,7 +237,7 @@ export default function AdminTicketsPage() {
               {filtered.map((t) => (
                 <button key={t.id} type="button" onClick={() => openDetail(t.id)} className="py-4 text-left cursor-pointer group">
                   <div className="flex items-center justify-between gap-3">
-                    <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="flex items-center gap-3 min-w-0">
                       <span className="font-mono text-slate-500 text-[0.82rem]">#{t.id}</span>
                       <span className="text-slate-800 font-medium truncate group-hover:text-emerald-600 transition-colors">{t.subject}</span>
                     </div>

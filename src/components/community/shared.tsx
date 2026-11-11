@@ -148,11 +148,11 @@ export interface CommunityLimits {
 }
 
 export const BOARDS = [
-  { key: "general", name: "综合讨论", cls: "bg-sky-500/15 text-sky-300 border-sky-400/30" },
-  { key: "announcement", name: "官方公告", cls: "bg-amber-500/15 text-amber-300 border-amber-400/30" },
-  { key: "qa", name: "问答求助", cls: "bg-violet-500/15 text-violet-300 border-violet-400/30" },
-  { key: "share", name: "作品分享", cls: "bg-pink-500/15 text-pink-300 border-pink-400/30" },
-  { key: "guide", name: "攻略教程", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-400/30" },
+  { key: "general", name: "综合讨论", cls: "bg-white/10 text-white/70 border-white/15" },
+  { key: "announcement", name: "官方公告", cls: "bg-white/10 text-white/70 border-white/15" },
+  { key: "qa", name: "问答求助", cls: "bg-white/10 text-white/70 border-white/15" },
+  { key: "share", name: "作品分享", cls: "bg-white/10 text-white/70 border-white/15" },
+  { key: "guide", name: "攻略教程", cls: "bg-white/10 text-white/70 border-white/15" },
 ] as const;
 
 export const COMPOSE_BOARDS = ["general", "qa", "share", "guide"];
@@ -189,21 +189,6 @@ export function relTime(s: string): string {
   return fmtTime(s);
 }
 
-const GRADIENTS = [
-  "from-emerald-400 to-teal-500",
-  "from-sky-400 to-indigo-500",
-  "from-amber-400 to-orange-500",
-  "from-pink-400 to-rose-500",
-  "from-violet-400 to-purple-500",
-  "from-cyan-400 to-blue-500",
-];
-
-function gradientOf(name: string): string {
-  let h = 0;
-  for (let i = 0; i < name.length; i += 1) h = (h * 31 + name.charCodeAt(i)) >>> 0;
-  return GRADIENTS[h % GRADIENTS.length];
-}
-
 export function Avatar({
   src,
   name,
@@ -221,14 +206,14 @@ export function Avatar({
   return (
     <div
       style={{ width: size, height: size }}
-      className={`relative shrink-0 overflow-hidden ${rounded} bg-gradient-to-br ${gradientOf(name || "?")} ${className}`}
+      className={`relative shrink-0 overflow-hidden border border-white/10 bg-white/10 ${rounded} ${className}`}
     >
       {src ? (
         // eslint-disable-next-line @next/next/no-img-element
         <img src={src} alt={name || "头像"} className="h-full w-full object-cover" />
       ) : (
         <span
-          className="flex h-full w-full items-center justify-center font-bold text-white/95"
+          className="flex h-full w-full items-center justify-center font-bold text-white/70"
           style={{ fontSize: Math.max(12, size * 0.42) }}
         >
           {label}
@@ -273,14 +258,14 @@ export function PresenceDot({
 export function RoleBadge({ role }: { role: string }) {
   if (role === "owner") {
     return (
-      <span className="rounded-md border border-amber-400/30 bg-amber-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-amber-300">
+      <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/70">
         群主
       </span>
     );
   }
   if (role === "admin") {
     return (
-      <span className="rounded-md border border-emerald-400/30 bg-emerald-400/15 px-1.5 py-0.5 text-[10px] font-semibold text-emerald-300">
+      <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/70">
         管理员
       </span>
     );
@@ -288,23 +273,23 @@ export function RoleBadge({ role }: { role: string }) {
   return null;
 }
 
-export const CARD = "rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl";
+export const CARD = "rounded-2xl border border-white/10 bg-white/[0.04]";
 export const INPUT =
-  "w-full rounded-xl border border-white/10 bg-white/[0.05] px-3.5 py-2.5 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-emerald-400/50 focus:bg-white/[0.08]";
+  "w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/30 focus:bg-white/[0.08]";
 export const BTN_PRIMARY =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl bg-emerald-500 px-4 py-2 text-sm font-semibold text-[#04120c] transition hover:bg-emerald-400 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#0b1220] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50";
 export const BTN_GHOST =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl border border-white/10 bg-white/[0.05] px-3.5 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50";
 export const BTN_DANGER =
-  "inline-flex items-center justify-center gap-1.5 rounded-xl border border-rose-400/30 bg-rose-500/10 px-3.5 py-2 text-sm font-semibold text-rose-300 transition hover:bg-rose-500/20 disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-xl border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm font-semibold text-rose-200 transition hover:bg-rose-500/20 disabled:opacity-50";
 
 export function Note({ kind = "error", text }: { kind?: "error" | "ok"; text: string }) {
   if (!text) return null;
   return (
     <div
-      className={`rounded-xl border px-3.5 py-2.5 text-sm ${
+      className={`rounded-xl border px-4 py-2 text-sm ${
         kind === "ok"
-          ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
+          ? "border-white/20 bg-white/10 text-white/80"
           : "border-rose-400/30 bg-rose-400/10 text-rose-200"
       }`}
     >
@@ -315,7 +300,7 @@ export function Note({ kind = "error", text }: { kind?: "error" | "ok"; text: st
 
 export function EmptyState({ title, desc, action }: { title: string; desc?: string; action?: ReactNode }) {
   return (
-    <div className={`${CARD} flex flex-col items-center justify-center gap-2 px-6 py-14 text-center`}>
+    <div className={`${CARD} flex flex-col items-center justify-center gap-2 px-6 py-12 text-center`}>
       <div className="mb-1 h-12 w-12 rounded-2xl border border-white/10 bg-white/[0.04] p-3">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="h-full w-full text-white/30">
           <path d="M4 6h16M4 12h10M4 18h7" strokeLinecap="round" />
@@ -330,8 +315,8 @@ export function EmptyState({ title, desc, action }: { title: string; desc?: stri
 
 export function Spinner({ label = "加载中" }: { label?: string }) {
   return (
-    <div className="flex items-center justify-center gap-2.5 py-16 text-sm text-white/45">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-emerald-400" />
+    <div className="flex items-center justify-center gap-3 py-16 text-sm text-white/45">
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
       {label}
     </div>
   );
@@ -356,14 +341,14 @@ export function Modal({
       <button
         aria-label="关闭"
         onClick={onClose}
-        className="absolute inset-0 cursor-default bg-black/65 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default bg-black/65"
       />
-      <div className={`relative w-full ${width} animate-[popup-in_0.22s_ease-out] rounded-2xl border border-white/10 bg-[#101a2c] p-5 shadow-2xl`}>
+      <div className={`relative w-full ${width} animate-[popup-in_0.22s_ease-out] rounded-2xl border border-white/10 bg-[#101a2c] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.3),0_24px_48px_rgba(0,0,0,0.45)]`}>
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-base font-bold text-white">{title}</h3>
           <button
             onClick={onClose}
-            className="rounded-lg p-1.5 text-white/40 transition hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-2 text-white/40 transition hover:bg-white/10 hover:text-white"
           >
             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="h-4 w-4">
               <path d="M6 6l12 12M18 6L6 18" strokeLinecap="round" />

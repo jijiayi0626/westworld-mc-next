@@ -78,7 +78,7 @@ export default function AppearanceTab() {
           控制（例如 <span className="font-mono text-slate-600">v1,v3</span>）。
         </p>
 
-        <div className="mt-5">
+        <div className="mt-6">
           {visibleThemes.map((t) => {
             const isCurrent = currentTheme === t.key;
             return (
@@ -87,9 +87,9 @@ export default function AppearanceTab() {
                 className="flex items-center justify-between gap-6 py-4"
               >
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2.5">
+                  <div className="flex items-center gap-3">
                     <span className="text-[0.98rem] font-semibold text-slate-900">{t.name}</span>
-                    <span className="flex gap-1.5">
+                    <span className="flex gap-2">
                       {t.swatch.map((c) => (
                         <span key={c} className="w-3 h-3 rounded-full" style={{ background: c }} />
                       ))}
@@ -124,7 +124,7 @@ export default function AppearanceTab() {
           选中后会缓存到本地，下次打开不再重新下载。
         </p>
 
-        <div className="mt-5">
+        <div className="mt-6">
           {FONT_OPTIONS.map((f) => {
             const isCurrent = currentFont === f.key;
             return (

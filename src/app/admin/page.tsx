@@ -103,17 +103,17 @@ export default function AdminHomePage() {
           <h1 className="text-[1.35rem] font-bold text-slate-900">后台首页</h1>
         </div>
 
-        {error && <div className="mb-4 px-4 py-3 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]">{error}</div>}
+        {error && <div className="mb-4 px-4 py-3 rounded-[12px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]">{error}</div>}
 
         {/* 运营待办概览 */}
-        <div className="stat-card sc-blue rounded-[12px] px-4 py-3 mb-5 text-[0.92rem] font-semibold">
+        <div className="stat-card sc-blue rounded-[12px] px-4 py-3 mb-6 text-[0.92rem] font-semibold">
           运营待办概览
         </div>
 
         {/* 统计卡片区 */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {statCards.map((c) => (
-            <Link key={c.label} href={c.href} className={`stat-card block rounded-[14px] p-4 transition-all hover:shadow-md hover:-translate-y-0.5 sc-${c.tone}`}>
+            <Link key={c.label} href={c.href} className={`stat-card block rounded-[16px] p-4 transition-all hover:shadow-md hover:-translate-y-0.5 sc-${c.tone}`}>
               <div className="text-[0.82rem] font-medium">{c.label}</div>
               <div className="text-[2rem] font-extrabold mt-1">{c.value ?? "—"}</div>
             </Link>
@@ -121,12 +121,12 @@ export default function AdminHomePage() {
         </div>
 
         {/* 系统健康自检：自动发现不可用组件 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] p-5 mb-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="bg-white border border-slate-200 rounded-[16px] p-6 mb-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="flex items-center justify-between gap-3 mb-3">
-            <div className="flex items-center gap-2.5">
+            <div className="flex items-center gap-3">
               <h3 className="text-[1.02rem] font-bold text-slate-900">系统健康</h3>
               {health && (
-                <span className={`px-2 py-0.5 rounded-full text-[0.72rem] font-medium ${health.all_ok ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
+                <span className={`px-2 py-1 rounded-full text-[0.72rem] font-medium ${health.all_ok ? "bg-emerald-50 text-emerald-600 border border-emerald-200" : "bg-red-50 text-red-600 border border-red-200"}`}>
                   {health.all_ok ? "全部正常" : health.items.filter((i) => !i.ok).length + " 项待处理"}
                 </span>
               )}
@@ -135,7 +135,7 @@ export default function AdminHomePage() {
               type="button"
               onClick={() => void loadHealth()}
               disabled={healthBusy}
-              className="px-3 py-1.5 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
+              className="px-3 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 text-[0.8rem] hover:bg-slate-100 disabled:opacity-50 cursor-pointer"
             >
               {healthBusy ? "检测中..." : "重新检测"}
             </button>
@@ -143,13 +143,13 @@ export default function AdminHomePage() {
           {health === null ? (
             <p className="text-slate-400 text-[0.88rem]">{healthBusy ? "自动检测中..." : "健康状态加载失败"}</p>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2.5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3">
               {health.items.map((i) => (
-                <div key={i.id} className="flex items-start gap-2.5">
+                <div key={i.id} className="flex items-start gap-3">
                   <span className={`mt-[7px] w-2 h-2 rounded-full shrink-0 ${i.ok ? "bg-emerald-500" : "bg-red-500"}`} />
                   <div className="min-w-0">
                     <div className={`text-[0.88rem] font-medium ${i.ok ? "text-slate-700" : "text-red-600"}`}>{i.label}</div>
-                    <div className={`text-[0.78rem] mt-0.5 leading-relaxed ${i.ok ? "text-slate-400" : "text-red-500"}`}>{i.detail}</div>
+                    <div className={`text-[0.78rem] mt-1 leading-relaxed ${i.ok ? "text-slate-400" : "text-red-500"}`}>{i.detail}</div>
                   </div>
                 </div>
               ))}
@@ -160,10 +160,10 @@ export default function AdminHomePage() {
         {/* 功能卡片区 */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
           {actionCards.map((c) => (
-            <div key={c.title} className="bg-white border border-slate-200 rounded-[14px] p-5 flex items-center justify-between gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+            <div key={c.title} className="bg-white border border-slate-200 rounded-[16px] p-6 flex items-center justify-between gap-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <div>
                 <h3 className="text-[1.02rem] font-bold text-slate-900">{c.title}</h3>
-                <p className="text-[0.85rem] text-slate-500 mt-1.5 leading-relaxed">{c.desc}</p>
+                <p className="text-[0.85rem] text-slate-500 mt-2 leading-relaxed">{c.desc}</p>
               </div>
               <div className="flex flex-col items-center gap-3 flex-shrink-0">
                 <span className="text-[1.5rem] font-extrabold text-slate-800">{c.num ?? "0"}</span>
@@ -180,15 +180,15 @@ export default function AdminHomePage() {
 
         {/* 底部按钮区（图5：三个绿色按钮） */}
         <div className="flex flex-wrap gap-3">
-          <Link href="/admin/applications" className="px-5 py-2.5 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">处理入服申请</Link>
-          <Link href="/admin/messages" className="px-5 py-2.5 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">查看消息通知</Link>
-          <Link href="/admin/blacklist" className="px-5 py-2.5 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">查看风险分析</Link>
+          <Link href="/admin/applications" className="px-6 py-3 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">处理入服申请</Link>
+          <Link href="/admin/messages" className="px-6 py-3 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">查看消息通知</Link>
+          <Link href="/admin/blacklist" className="px-6 py-3 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.9rem] font-semibold transition-all hover:bg-[color:var(--green-dark,#059669)]">查看风险分析</Link>
         </div>
 
         {/* 快捷入口 */}
-        <div className="mt-8 bg-white border border-slate-200 rounded-[14px] p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="mt-8 bg-white border border-slate-200 rounded-[16px] p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h3 className="text-[0.95rem] font-bold text-slate-900 mb-3">快捷入口</h3>
-          <div className="flex flex-wrap gap-2.5 text-[0.88rem]">
+          <div className="flex flex-wrap gap-3 text-[0.88rem]">
             {[
               ["公告与论坛", "/admin/forum"],
               ["内容管理", "/admin/content"],
@@ -199,7 +199,7 @@ export default function AdminHomePage() {
               ["网站设置", "/admin/settings/basic"],
               ["返回前台", "/"],
             ].map(([label, href]) => (
-              <Link key={href} href={href} className="px-3.5 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900 transition-colors">
+              <Link key={href} href={href} className="px-4 py-2 rounded-[8px] bg-slate-50 border border-slate-200 text-slate-600 hover:bg-slate-100 hover:border-slate-300 hover:text-slate-900 transition-colors">
                 {label}
               </Link>
             ))}

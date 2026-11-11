@@ -318,7 +318,7 @@ export default function CommunityApp() {
 
   const loginGate = (
     <div className={`${CARD} flex flex-col items-center justify-center gap-3 px-6 py-16 text-center`}>
-      <div className="grid h-14 w-14 place-items-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-600 text-xl font-black text-[#04120c]">
+      <div className="grid h-14 w-14 place-items-center rounded-2xl border border-white/10 bg-white/10 text-xl font-black text-white/70">
         西
       </div>
       <h2 className="text-lg font-extrabold text-white">加入西域社区</h2>
@@ -383,7 +383,7 @@ export default function CommunityApp() {
   if (loading && !user) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0b1220] text-sm text-white/40">
-        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-emerald-400" />
+        <span className="mr-2 h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
         正在进入社区…
       </div>
     );
@@ -399,37 +399,32 @@ export default function CommunityApp() {
         />
       )}
       <div
-        className="pointer-events-none fixed inset-0 bg-gradient-to-b from-[#0b1220]/35 via-[#0b1220]/60 to-[#0b1220]/85"
+        className="pointer-events-none fixed inset-0 bg-[#0b1220]/75"
         aria-hidden
       />
-      <div className="pointer-events-none fixed inset-0 overflow-hidden" aria-hidden>
-        <div className="absolute -left-40 -top-40 h-[420px] w-[420px] rounded-full bg-emerald-500/[0.08] blur-[120px]" />
-        <div className="absolute -right-32 top-1/3 h-[380px] w-[380px] rounded-full bg-sky-500/[0.06] blur-[120px]" />
-        <div className="absolute bottom-0 left-1/2 h-[300px] w-[560px] -translate-x-1/2 rounded-full bg-teal-500/[0.05] blur-[120px]" />
-      </div>
 
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1220]/85 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0b1220]/95">
         <div className="relative mx-auto flex h-16 w-full max-w-[1320px] items-center gap-3 px-4 md:px-6">
-          <Link href="/" className="flex items-center gap-2.5">
-            <div className="grid h-9 w-9 place-items-center rounded-xl bg-gradient-to-br from-emerald-400 to-teal-600 text-sm font-black text-[#04120c]">
+          <Link href="/" className="flex items-center gap-2">
+            <div className="grid h-9 w-9 place-items-center rounded-xl border border-white/10 bg-white/10 text-sm font-black text-white/70">
               西
             </div>
             <div className="leading-tight">
               <p className="text-[15px] font-extrabold tracking-tight text-white">西域社区</p>
-              <p className="hidden text-[9px] tracking-[0.22em] text-emerald-300/60 sm:block">
+              <p className="hidden text-[9px] tracking-[0.22em] text-white/40 sm:block">
                 WESTWORLD COMMUNITY
               </p>
             </div>
           </Link>
 
           <div className="ml-auto flex items-center gap-2">
-            <Link href="/" className={`${BTN_GHOST} hidden !px-3 !py-1.5 !text-xs sm:inline-flex`}>
+            <Link href="/" className={`${BTN_GHOST} hidden !px-3 !py-2 !text-xs sm:inline-flex`}>
               返回官网
             </Link>
             {user ? (
               <Link
                 href="/user"
-                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-2 py-1.5 transition hover:bg-white/10"
+                className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-2 py-2 transition hover:bg-white/10"
               >
                 <Avatar src={user.avatar} name={user.username} size={26} />
                 <span className="hidden max-w-[110px] truncate text-xs font-semibold text-white/75 sm:block">
@@ -455,13 +450,13 @@ export default function CommunityApp() {
                 <button
                   key={item.key}
                   onClick={() => switchView(item.key)}
-                  className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-left transition ${
+                  className={`flex items-center gap-3 rounded-xl px-3 py-3 text-left transition ${
                     activeItem
-                      ? "bg-emerald-500/15 text-emerald-300"
+                      ? "bg-white/10 text-white"
                       : "text-white/50 hover:bg-white/[0.05] hover:text-white/80"
                   }`}
                 >
-                  <span className={activeItem ? "text-emerald-300" : "text-white/35"}>
+                  <span className={activeItem ? "text-white/90" : "text-white/35"}>
                     <NavIcon view={item.key} />
                   </span>
                   <span className="flex-1">
@@ -469,7 +464,7 @@ export default function CommunityApp() {
                     <span className="block text-[10px] text-white/25">{item.desc}</span>
                   </span>
                   {badge > 0 && (
-                    <span className="rounded-full bg-emerald-500 px-1.5 py-0.5 text-[10px] font-bold text-[#04120c]">
+                    <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-[#0b1220] tabular-nums">
                       {badge > 99 ? "99+" : badge}
                     </span>
                   )}
@@ -508,7 +503,7 @@ export default function CommunityApp() {
                     {user.role === "admin" ? "社区管理员" : "社区成员"}
                   </p>
                   <button
-                    className="mt-0.5 flex max-w-full items-center gap-1.5 text-[10px] text-white/35 transition hover:text-white/70"
+                    className="mt-1 flex max-w-full items-center gap-2 text-[10px] text-white/35 transition hover:text-white/70"
                     onClick={openStatus}
                     title="设置在线状态"
                   >
@@ -520,27 +515,33 @@ export default function CommunityApp() {
                   </button>
                 </div>
               </div>
-              <div className="mt-3 flex flex-col gap-1.5">
+              <div className="mt-3 flex flex-col gap-2">
                 <Link
                   href="/user"
-                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                 >
                   个人中心
-                  <span className="text-white/20">→</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/20" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
                 </Link>
                 <button
-                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                   onClick={() => openProfile(user.id)}
                 >
                   我的主页
-                  <span className="text-white/20">→</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/20" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
                 </button>
                 <button
-                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-2.5 py-1.5 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
+                  className="flex items-center justify-between rounded-lg border border-white/5 bg-white/[0.03] px-3 py-2 text-[11px] text-white/50 transition hover:bg-white/[0.07] hover:text-white"
                   onClick={() => avatarRef.current?.click()}
                 >
                   更换头像
-                  <span className="text-white/20">→</span>
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/20" aria-hidden="true">
+                    <path d="m9 18 6-6-6-6" />
+                  </svg>
                 </button>
               </div>
             </div>
@@ -558,14 +559,14 @@ export default function CommunityApp() {
 
           <div className={`${CARD} mt-4 p-4`}>
             <p className="text-[11px] font-semibold text-white/50">社区提示</p>
-            <p className="mt-1.5 text-[10px] leading-relaxed text-white/25">
+            <p className="mt-1 text-[10px] leading-relaxed text-white/25">
               文明交流，禁止刷屏与广告。违规内容会被管理员撤回或删除。
             </p>
           </div>
         </aside>
 
         <main className="min-w-0 flex-1">
-          <div className="mb-4 flex gap-1.5 overflow-x-auto pb-1 lg:hidden">
+          <div className="mb-4 flex gap-2 overflow-x-auto pb-1 lg:hidden">
             {NAV.map((item) => {
               const activeItem = view === item.key;
               const badge = badgeOf(item.key);
@@ -575,13 +576,13 @@ export default function CommunityApp() {
                   onClick={() => switchView(item.key)}
                   className={`relative shrink-0 rounded-xl border px-3 py-2 text-xs font-semibold transition ${
                     activeItem
-                      ? "border-emerald-400/30 bg-emerald-500/15 text-emerald-300"
+                      ? "border-white/20 bg-white/10 text-white"
                       : "border-white/10 bg-white/[0.04] text-white/45"
                   }`}
                 >
                   {item.label}
                   {badge > 0 && (
-                    <span className="ml-1 rounded-full bg-emerald-500 px-1 text-[9px] font-bold text-[#04120c]">
+                    <span className="ml-1 rounded-lg bg-white px-1 py-1 text-[9px] font-bold text-[#0b1220] tabular-nums">
                       {badge > 99 ? "99+" : badge}
                     </span>
                   )}
@@ -610,7 +611,7 @@ export default function CommunityApp() {
                 onClick={() => setStatusDraft(key)}
                 className={`rounded-xl border px-3 py-2 text-left transition ${
                   statusDraft === key
-                    ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-200"
+                    ? "border-white/20 bg-white/10 text-white"
                     : "border-white/10 bg-white/[0.03] text-white/55 hover:bg-white/[0.06]"
                 }`}
               >
@@ -620,7 +621,7 @@ export default function CommunityApp() {
             ))}
           </div>
           <div>
-            <p className="mb-1.5 text-[11px] text-white/40">状态文案（好友与群成员可见）</p>
+            <p className="mb-2 text-[11px] text-white/40">状态文案（好友与群成员可见）</p>
             <input
               className={INPUT}
               value={statusText}

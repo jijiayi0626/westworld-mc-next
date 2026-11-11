@@ -373,13 +373,13 @@ export default function AdminShopPage() {
     <AdminShell>
       <PageHeader title="商城管理" desc="商品上下架、订单收款与发货、经济插件对接" />
 
-      <div className="flex gap-2 mb-5 p-1 bg-slate-50 rounded-[10px] w-fit">
+      <div className="flex gap-2 mb-6 p-1 bg-slate-50 rounded-[12px] w-fit">
         {tabs.map((t) => (
           <button
             key={t.key}
             type="button"
             onClick={() => setTab(t.key)}
-            className={`px-5 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
+            className={`px-6 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
               tab === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-500 hover:text-slate-800"
             }`}
           >
@@ -391,21 +391,21 @@ export default function AdminShopPage() {
       <SwitchFade switchKey={tab}>
       {/* 统计卡（图13/14/15） */}
       {tab === "products" ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {[
             { label: "商品总数", value: products?.length ?? 0, tone: "green" },
             { label: "已上架", value: (products ?? []).filter((p) => p.active === 1).length, tone: "blue" },
             { label: "已下架", value: (products ?? []).filter((p) => p.active === 0).length, tone: "slate" },
             { label: "总订单", value: orders?.length ?? 0, tone: "amber" },
           ].map((c) => (
-            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[16px] p-4`}>
               <div className="text-[0.82rem] font-medium">{c.label}</div>
               <div className="text-[1.8rem] font-extrabold mt-1">{c.value}</div>
             </div>
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-5 gap-4 mb-6">
           {[
             { label: "全部订单", value: String(orders?.length ?? 0), tone: "green", hint: "" },
             { label: "待支付", value: String((orders ?? []).filter((o) => o.status === "pending").length), tone: "amber", hint: "" },
@@ -413,7 +413,7 @@ export default function AdminShopPage() {
             { label: "已完成", value: String((orders ?? []).filter((o) => o.status === "completed").length), tone: "blue", hint: "" },
             { label: "总成交额", value: `${revenue.toFixed(2)} ${revenueCurrency}`, tone: "slate", hint: revenueMixed ? "混合币种，仅统计展示" : "已支付 / 已完成订单" },
           ].map((c) => (
-            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[16px] p-4`}>
               <div className="text-[0.82rem] font-medium">{c.label}</div>
               <div className={`mt-1 font-extrabold ${c.label === "总成交额" ? "text-[1.55rem]" : "text-[1.8rem]"}`}>{c.value}</div>
               {c.hint && <div className="text-[0.72rem] opacity-70 mt-1">{c.hint}</div>}
@@ -427,7 +427,7 @@ export default function AdminShopPage() {
 
       {tab === "products" ? (
         <>
-          <Card className="mb-5">
+          <Card className="mb-6">
             <h3 className="text-[1.05rem] font-bold text-slate-800 mb-4">{editingId ? `编辑商品 #${editingId}` : "新增商品"}</h3>
             <form onSubmit={saveProduct} className="flex flex-col gap-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -437,13 +437,13 @@ export default function AdminShopPage() {
                 <div className="grid grid-cols-2 gap-4">
                   <Field label="价格">
                     <Input type="number" step="0.01" min="0" value={price} onChange={(e) => setPrice(e.target.value)} required />
-                    <div className="flex flex-wrap gap-1.5 mt-1">
+                    <div className="flex flex-wrap gap-2 mt-1">
                       {[9.9, 19.9, 29.9, 49.9, 99].map((v) => (
                         <button
                           key={v}
                           type="button"
                           onClick={() => setPrice(String(v))}
-                          className={`px-2 py-0.5 rounded-[6px] text-[0.75rem] font-semibold border cursor-pointer transition-colors ${
+                          className={`px-2 py-1 rounded-[8px] text-[0.75rem] font-semibold border cursor-pointer transition-colors ${
                             Number(price) === v
                               ? "bg-emerald-50 border-emerald-300 text-emerald-700"
                               : "bg-white border-slate-200 text-slate-500 hover:bg-slate-50"
@@ -517,7 +517,7 @@ export default function AdminShopPage() {
                   value={productKeyword}
                   onChange={(e) => setProductKeyword(e.target.value)}
                   placeholder="搜索商品名称 / 分类..."
-                  className="w-full sm:w-[240px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+                  className="w-full sm:w-[240px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
                 />
               </div>
             </div>
@@ -532,15 +532,15 @@ export default function AdminShopPage() {
                 <table className="w-full text-[0.88rem]">
                   <thead>
                     <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
-                      <th className="py-2.5 pr-3">ID</th>
-                      <th className="py-2.5 pr-3">名称</th>
-                      <th className="py-2.5 pr-3">价格</th>
-                      <th className="py-2.5 pr-3">分类</th>
-                      <th className="py-2.5 pr-3">库存</th>
-                      <th className="py-2.5 pr-3">自动发货</th>
-                      <th className="py-2.5 pr-3">排序</th>
-                      <th className="py-2.5 pr-3">状态</th>
-                      <th className="py-2.5">操作</th>
+                      <th className="py-3 pr-3">ID</th>
+                      <th className="py-3 pr-3">名称</th>
+                      <th className="py-3 pr-3">价格</th>
+                      <th className="py-3 pr-3">分类</th>
+                      <th className="py-3 pr-3">库存</th>
+                      <th className="py-3 pr-3">自动发货</th>
+                      <th className="py-3 pr-3">排序</th>
+                      <th className="py-3 pr-3">状态</th>
+                      <th className="py-3">操作</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-white/10">
@@ -596,7 +596,7 @@ export default function AdminShopPage() {
             <Empty text="加载中..." />
           ) : (
             <div className="flex flex-col gap-4">
-              <label className="flex items-center gap-2.5 cursor-pointer w-fit">
+              <label className="flex items-center gap-3 cursor-pointer w-fit">
                 <input
                   type="checkbox"
                   checked={eco.enabled}
@@ -627,7 +627,7 @@ export default function AdminShopPage() {
                   </div>
                 </Field>
                 {ecoTestOut && (
-                  <pre className="mt-3 p-3 bg-slate-50 rounded-[10px] text-[0.78rem] text-slate-600 whitespace-pre-wrap break-all max-h-[180px] overflow-auto">{ecoTestOut}</pre>
+                  <pre className="mt-3 p-3 bg-slate-50 rounded-[12px] text-[0.78rem] text-slate-600 whitespace-pre-wrap break-all max-h-[180px] overflow-auto">{ecoTestOut}</pre>
                 )}
               </div>
               <div className="flex gap-2">
@@ -657,7 +657,7 @@ export default function AdminShopPage() {
                 value={orderKeyword}
                 onChange={(e) => setOrderKeyword(e.target.value)}
                 placeholder="搜索订单号 / 商品名 / 用户名..."
-                className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+                className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
               />
             </div>
           </div>
@@ -672,15 +672,15 @@ export default function AdminShopPage() {
               <table className="w-full text-[0.88rem]">
                 <thead>
                   <tr className="text-left text-slate-500 text-[0.8rem] border-b border-slate-200">
-                    <th className="py-2.5 pr-3">订单号</th>
-                    <th className="py-2.5 pr-3">商品</th>
-                    <th className="py-2.5 pr-3">买家</th>
-                    <th className="py-2.5 pr-3">金额</th>
-                    <th className="py-2.5 pr-3">支付方式</th>
-                    <th className="py-2.5 pr-3">状态</th>
-                    <th className="py-2.5 pr-3">发货</th>
-                    <th className="py-2.5 pr-3">时间</th>
-                    <th className="py-2.5">操作</th>
+                    <th className="py-3 pr-3">订单号</th>
+                    <th className="py-3 pr-3">商品</th>
+                    <th className="py-3 pr-3">买家</th>
+                    <th className="py-3 pr-3">金额</th>
+                    <th className="py-3 pr-3">支付方式</th>
+                    <th className="py-3 pr-3">状态</th>
+                    <th className="py-3 pr-3">发货</th>
+                    <th className="py-3 pr-3">时间</th>
+                    <th className="py-3">操作</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-white/10">
@@ -746,7 +746,7 @@ export default function AdminShopPage() {
           )}
 
           {deliverOrderId !== null && (
-            <form onSubmit={deliver} className="mt-5 border-t border-slate-200 pt-4">
+            <form onSubmit={deliver} className="mt-6 border-t border-slate-200 pt-4">
               <Field label={`订单 #${deliverOrderId} 发货信息`} hint="填写发放方式/信息，提交后订单标记为已完成">
                 <TextArea value={delivery} onChange={(e) => setDelivery(e.target.value)} placeholder="如：已发放 100 金币至玩家 Steve_01" maxLength={2000} required />
               </Field>

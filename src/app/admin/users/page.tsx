@@ -274,43 +274,43 @@ export default function AdminUsersPage() {
   return (
     <AdminShell>
       <div className="px-6 py-6">
-        <div className="flex items-center justify-between mb-5">
+        <div className="flex items-center justify-between mb-6">
           <h1 className="text-[1.35rem] font-bold text-slate-900">用户管理</h1>
         </div>
 
         <ErrorNote message={error} />
 
         {/* 检索区 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+        <div className="bg-white border border-slate-200 rounded-[16px] p-4 mb-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <div className="flex flex-wrap items-center gap-3">
             <input
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索用户名 / 游戏ID / 邮箱"
-              className="flex-1 min-w-[220px] bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.9rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
+              className="flex-1 min-w-[220px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.9rem] text-slate-800 focus:outline-none focus:border-[#3b82f6] placeholder:text-slate-400"
             />
             <select
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
-              className="bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
+              className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.9rem] text-slate-700 focus:outline-none"
             >
               <option value="">全部状态</option>
               <option value="active">正常</option>
               <option value="banned">已封禁</option>
             </select>
-            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
+            <button type="button" onClick={() => void load()} className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.88rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors">查询</button>
           </div>
           <div className="mt-3 flex items-center gap-2 flex-wrap">
-            <button type="button" onClick={() => { setCreateOpen(true); setCreateMsg({ err: "", ok: "" }); }} className="px-3.5 py-1.5 rounded-[8px] bg-white border border-slate-200 text-slate-700 text-[0.85rem] font-semibold hover:bg-slate-50 transition-colors cursor-pointer">新建用户</button>
-            <button type="button" onClick={() => { setNotifyOpen(true); setNotifyResult(""); }} className="px-3.5 py-1.5 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors cursor-pointer">批量通知</button>
+            <button type="button" onClick={() => { setCreateOpen(true); setCreateMsg({ err: "", ok: "" }); }} className="px-4 py-2 rounded-[8px] bg-white border border-slate-200 text-slate-700 text-[0.85rem] font-semibold hover:bg-slate-50 transition-colors cursor-pointer">新建用户</button>
+            <button type="button" onClick={() => { setNotifyOpen(true); setNotifyResult(""); }} className="px-4 py-2 rounded-[8px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] transition-colors cursor-pointer">批量通知</button>
             <span className="text-slate-400 text-[0.78rem]">通过邮件通知用户，单次最多 500 人；需先在「网站设置 → 邮件服务」完成配置</span>
           </div>
         </div>
 
         {/* 统计卡片 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
           {statCards.map((c) => (
-            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[14px] p-4`}>
+            <div key={c.label} className={`stat-card sc-${c.tone} rounded-[16px] p-4`}>
               <div className="text-[0.82rem] font-medium">{c.label}</div>
               <div className="text-[1.8rem] font-extrabold mt-1">{c.value ?? "—"}</div>
             </div>
@@ -318,7 +318,7 @@ export default function AdminUsersPage() {
         </div>
 
         {/* 用户表格 */}
-        <div className="bg-white border border-slate-200 rounded-[14px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
+        <div className="bg-white border border-slate-200 rounded-[16px] shadow-[0_1px_2px_rgba(0,0,0,0.04)] overflow-hidden">
           {filtered.length === 0 ? (
             <Empty text="暂无用户数据" />
           ) : (
@@ -418,23 +418,23 @@ export default function AdminUsersPage() {
                   { label: "浏览器", value: detailUa?.browser ?? "—" },
                   { label: "操作系统", value: detailUa?.os ?? "—" },
                 ].map((row) => (
-                  <div key={row.label} className="bg-slate-50 rounded-[10px] px-3.5 py-2.5">
-                    <div className="text-[0.72rem] text-slate-400 mb-0.5">{row.label}</div>
+                  <div key={row.label} className="bg-slate-50 rounded-[12px] px-4 py-3">
+                    <div className="text-[0.72rem] text-slate-400 mb-1">{row.label}</div>
                     <div className="text-[0.88rem] text-slate-800 font-medium break-all">{row.value}</div>
                   </div>
                 ))}
               </div>
               {detail.last_login_ua && (
-                <div className="mb-4 px-3.5 py-2.5 rounded-[10px] bg-slate-50 border border-slate-100">
-                  <div className="text-[0.72rem] text-slate-400 mb-0.5">完整 UA（最后登录）</div>
+                <div className="mb-4 px-4 py-3 rounded-[12px] bg-slate-50 border border-slate-100">
+                  <div className="text-[0.72rem] text-slate-400 mb-1">完整 UA（最后登录）</div>
                   <div className="text-[0.72rem] text-slate-500 font-mono break-all leading-relaxed">{detail.last_login_ua}</div>
                 </div>
               )}
 
               {/* 头像与积分 */}
               <div className="border-t border-slate-100 pt-4 mb-4">
-                <h4 className="text-[0.9rem] font-bold text-slate-700 mb-2.5">头像与积分</h4>
-                <div className="flex items-center gap-3 mb-2.5">
+                <h4 className="text-[0.9rem] font-bold text-slate-700 mb-3">头像与积分</h4>
+                <div className="flex items-center gap-3 mb-3">
                   {editAvatar ? (
                     <img src={editAvatar} alt="头像预览" className="w-12 h-12 rounded-full object-cover border border-slate-200" />
                   ) : (
@@ -447,7 +447,7 @@ export default function AdminUsersPage() {
                     value={editAvatar}
                     onChange={(e) => setEditAvatar(e.target.value)}
                     placeholder="头像地址：https://... 或 /static/..."
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.82rem] focus:outline-none focus:border-[#3b82f6]"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-slate-800 text-[0.82rem] focus:outline-none focus:border-[#3b82f6]"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -457,13 +457,13 @@ export default function AdminUsersPage() {
                     inputMode="numeric"
                     value={editPoints}
                     onChange={(e) => setEditPoints(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                    className="w-32 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
+                    className="w-32 bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
                   />
                   <button
                     type="button"
                     onClick={() => void saveProfile()}
                     disabled={busyId === detail.id}
-                    className="ml-auto px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="ml-auto px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     保存头像与积分
                   </button>
@@ -472,20 +472,20 @@ export default function AdminUsersPage() {
 
               {/* 修改邮箱 */}
               <div className="border-t border-slate-100 pt-4 mb-4">
-                <h4 className="text-[0.9rem] font-bold text-slate-700 mb-2.5">修改邮箱</h4>
+                <h4 className="text-[0.9rem] font-bold text-slate-700 mb-3">修改邮箱</h4>
                 <div className="flex gap-2">
                   <input
                     type="email"
                     value={newEmail}
                     onChange={(e) => setNewEmail(e.target.value)}
                     placeholder="新邮箱地址"
-                    className="flex-1 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
+                    className="flex-1 bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
                   />
                   <button
                     type="button"
                     onClick={() => void changeEmail()}
                     disabled={busyId === detail.id || newEmail.trim() === detail.email}
-                    className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                    className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                   >
                     保存
                   </button>
@@ -495,20 +495,20 @@ export default function AdminUsersPage() {
               {/* 重置密码 */}
               {me?.id !== detail.id && detail.role !== "admin" && (
                 <div className="border-t border-slate-100 pt-4">
-                  <h4 className="text-[0.9rem] font-bold text-slate-700 mb-2.5">重置密码</h4>
+                  <h4 className="text-[0.9rem] font-bold text-slate-700 mb-3">重置密码</h4>
                   <div className="flex gap-2">
                     <input
                       type="text"
                       value={newPwd}
                       onChange={(e) => setNewPwd(e.target.value)}
                       placeholder="新密码（8-64 位，含字母和数字）"
-                      className="flex-1 bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
+                      className="flex-1 bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-slate-800 text-[0.88rem] focus:outline-none focus:border-[#3b82f6]"
                     />
                     <button
                       type="button"
                       onClick={() => void resetPassword()}
                       disabled={busyId === detail.id || !newPwd}
-                      className="px-4 py-2 rounded-[10px] bg-slate-700 text-white text-[0.85rem] font-semibold hover:bg-slate-800 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="px-4 py-2 rounded-[12px] bg-slate-700 text-white text-[0.85rem] font-semibold hover:bg-slate-800 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
                     >
                       重置
                     </button>
@@ -516,8 +516,8 @@ export default function AdminUsersPage() {
                 </div>
               )}
 
-              {detailMsg.err && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{detailMsg.err}</div>}
-              {detailMsg.ok && <div className="mt-3 px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{detailMsg.ok}</div>}
+              {detailMsg.err && <div className="mt-3 px-4 py-3 rounded-[12px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{detailMsg.err}</div>}
+              {detailMsg.ok && <div className="mt-3 px-4 py-3 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{detailMsg.ok}</div>}
             </>
           ) : null}
         </Modal>
@@ -542,7 +542,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => setCreateForm((p) => ({ ...p, username: e.target.value }))}
                 placeholder="3-20 位字母 / 数字 / 下划线 / 中文"
                 maxLength={20}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
               />
             </div>
             <div>
@@ -552,7 +552,7 @@ export default function AdminUsersPage() {
                 value={createForm.email}
                 onChange={(e) => setCreateForm((p) => ({ ...p, email: e.target.value }))}
                 placeholder="user@example.com"
-                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
               />
             </div>
             <div>
@@ -563,7 +563,7 @@ export default function AdminUsersPage() {
                 onChange={(e) => setCreateForm((p) => ({ ...p, password: e.target.value }))}
                 placeholder="8-64 位，含字母和数字"
                 autoComplete="new-password"
-                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[#3b82f6]"
               />
             </div>
             <div>
@@ -571,17 +571,17 @@ export default function AdminUsersPage() {
               <select
                 value={createForm.role}
                 onChange={(e) => setCreateForm((p) => ({ ...p, role: e.target.value }))}
-                className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3 py-2 text-[0.88rem] text-slate-700 focus:outline-none"
+                className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.88rem] text-slate-700 focus:outline-none"
               >
                 <option value="user">普通用户</option>
                 <option value="admin">管理员</option>
               </select>
             </div>
-            {createMsg.err && <div className="px-3.5 py-2.5 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{createMsg.err}</div>}
-            {createMsg.ok && <div className="px-3.5 py-2.5 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{createMsg.ok}</div>}
+            {createMsg.err && <div className="px-4 py-3 rounded-[12px] bg-red-50 border border-red-200 text-red-600 text-[0.85rem]">{createMsg.err}</div>}
+            {createMsg.ok && <div className="px-4 py-3 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{createMsg.ok}</div>}
             <div className="flex justify-end gap-2 mt-1">
-              <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-[10px] bg-slate-100 text-slate-600 text-[0.86rem] font-semibold hover:bg-slate-200 cursor-pointer">取消</button>
-              <button type="button" onClick={() => void createUser()} disabled={createBusy} className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.86rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer">
+              <button type="button" onClick={() => setCreateOpen(false)} className="px-4 py-2 rounded-[12px] bg-slate-100 text-slate-600 text-[0.86rem] font-semibold hover:bg-slate-200 cursor-pointer">取消</button>
+              <button type="button" onClick={() => void createUser()} disabled={createBusy} className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.86rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] disabled:opacity-50 cursor-pointer">
                 {createBusy ? "创建中..." : "创建用户"}
               </button>
             </div>
@@ -606,7 +606,7 @@ export default function AdminUsersPage() {
                   onChange={(e) => setNotifySubject(e.target.value)}
                   placeholder="邮件标题"
                   maxLength={200}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.9rem] focus:outline-none focus:border-[#3b82f6]"
                 />
                 <textarea
                   value={notifyContent}
@@ -614,7 +614,7 @@ export default function AdminUsersPage() {
                   placeholder="邮件正文（支持换行）"
                   rows={6}
                   maxLength={5000}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.9rem] resize-y focus:outline-none focus:border-[#3b82f6]"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.9rem] resize-y focus:outline-none focus:border-[#3b82f6]"
                 />
                 <label className="flex items-center gap-2 text-[0.88rem] text-slate-700 cursor-pointer">
                   <input type="checkbox" checked={notifyOnlyActive} onChange={(e) => setNotifyOnlyActive(e.target.checked)} className="w-4 h-4 accent-emerald-500" />
@@ -625,13 +625,13 @@ export default function AdminUsersPage() {
                     type="button"
                     onClick={() => void sendNotify()}
                     disabled={notifyBusy}
-                    className="px-4 py-2 rounded-[10px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-50"
+                    className="px-4 py-2 rounded-[12px] bg-[color:var(--green,#10b981)] text-white text-[0.85rem] font-semibold hover:bg-[color:var(--green-dark,#059669)] cursor-pointer disabled:opacity-50"
                   >
                     {notifyBusy ? "发送中..." : "发送"}
                   </button>
-                  <button type="button" onClick={() => setNotifyOpen(false)} className="px-4 py-2 rounded-[10px] bg-slate-100 text-slate-600 text-[0.85rem] font-semibold hover:bg-slate-200 cursor-pointer">关闭</button>
+                  <button type="button" onClick={() => setNotifyOpen(false)} className="px-4 py-2 rounded-[12px] bg-slate-100 text-slate-600 text-[0.85rem] font-semibold hover:bg-slate-200 cursor-pointer">关闭</button>
                 </div>
-                {notifyResult && <div className="px-3.5 py-2.5 rounded-[10px] bg-slate-50 border border-slate-200 text-slate-700 text-[0.85rem] break-all">{notifyResult}</div>}
+                {notifyResult && <div className="px-4 py-3 rounded-[12px] bg-slate-50 border border-slate-200 text-slate-700 text-[0.85rem] break-all">{notifyResult}</div>}
               </div>
         </Modal>
       </div>
