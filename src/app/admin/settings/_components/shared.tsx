@@ -113,13 +113,13 @@ export function SettingsPage({
   return (
     <AdminShell>
       <PageHeader title={title} desc={desc} />
-      <div className="flex flex-wrap gap-2 mb-5 p-1 bg-slate-50 rounded-[10px] w-fit">
+      <div className="flex flex-wrap gap-1 mb-8 w-fit">
         {SETTINGS_TABS.map((t) => (
           <Link
             key={t.key}
             href={t.href}
-            className={`px-5 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all ${
-              active === t.key ? "bg-accent-emerald/90 text-white" : "text-slate-500 hover:text-slate-800"
+            className={`px-4 py-2 rounded-[12px] text-[0.88rem] font-semibold transition-colors duration-150 ${
+              active === t.key ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
             }`}
           >
             {t.label}

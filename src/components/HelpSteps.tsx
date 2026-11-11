@@ -150,7 +150,7 @@ export default function HelpSteps() {
                   )}
                   {i === 2 && (
                     <span className="highlight-text block font-bold text-accent-gold mt-[15px] text-[1.1rem] relative z-[1]">
-                      祝您游戏愉快！
+                      祝您游戏愉快
             </span>
                   )}
         </div>

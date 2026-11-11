@@ -70,7 +70,7 @@ button { cursor: pointer; }
 
 :root[data-theme="dark"] .topbar { background: rgba(15,20,25,.88); }
 :root[data-theme="dark"] .nav-item.active,
-:root[data-theme="dark"] .nav-subitem.active { background: rgba(16,185,129,.14); }
+:root[data-theme="dark"] .nav-subitem.active { background: var(--text-primary); color: var(--bg-card); }
 :root[data-theme="dark"] input,
 :root[data-theme="dark"] select,
 :root[data-theme="dark"] textarea { color: var(--text-primary); background-color: var(--bg-input); border-color: var(--border); }
@@ -959,7 +959,7 @@ button { cursor: pointer; }
     padding: 0 24px;
     border-bottom: 1px solid var(--border);
 }
-.sidebar-logo { display: flex; align-items: center; gap: 12px; color: var(--green-dark); font-weight: 700; font-size: 1.25rem; }
+.sidebar-logo { display: flex; align-items: center; gap: 12px; color: var(--text-primary); font-weight: 700; font-size: 1.25rem; }
 
 .sidebar-nav { padding: 24px 16px; flex: 1; overflow-y: auto; }
 .nav-item {
@@ -970,14 +970,14 @@ button { cursor: pointer; }
     border-radius: 12px;
     color: var(--text-secondary);
     font-weight: 500;
-    margin-bottom: 4px;
+    margin-bottom: 2px;
     transition: var(--tr);
 }
 .nav-item:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-.nav-item.active { background: var(--green-bg); color: var(--green-dark); font-weight: 600; }
+.nav-item.active { background: var(--text-primary); color: var(--bg-card); font-weight: 600; }
 .nav-divider { height: 1px; background: var(--border); margin: 16px 8px; }
 
-.nav-section { margin-bottom: 16px; }
+.nav-section { margin-bottom: 24px; }
 .nav-section-title {
     padding: 0 16px 8px;
     color: var(--text-muted);
@@ -1012,7 +1012,7 @@ button { cursor: pointer; }
     min-height: 34px;
     padding: 7px 12px;
     margin: 2px 0;
-    border-radius: 10px;
+    border-radius: 12px;
     color: var(--text-secondary);
     font-size: 0.92rem;
     font-weight: 500;
@@ -1023,8 +1023,8 @@ button { cursor: pointer; }
     color: var(--text-primary);
 }
 .nav-subitem.active {
-    background: var(--green-bg);
-    color: var(--green-dark);
+    background: var(--text-primary);
+    color: var(--bg-card);
     font-weight: 700;
 }
 

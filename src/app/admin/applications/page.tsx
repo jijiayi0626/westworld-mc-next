@@ -281,7 +281,7 @@ function RconWizard() {
                     title="显示/隐藏"
                     className="absolute right-9 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-800 text-sm cursor-pointer"
                   >
-                    {showPwd ? "🙈" : "👁"}
+                    {showPwd ? "隐藏" : "显示"}
                   </button>
                   {cfg.has_password && (
                     <button
@@ -294,7 +294,7 @@ function RconWizard() {
                       title="清除已保存的密码"
                       className="absolute right-2 top-1/2 -translate-y-1/2 text-red-400 hover:text-red-300 text-sm cursor-pointer"
                     >
-                      ✕
+                      <span className="text-[0.8rem]">清除</span>
                     </button>
                   )}
                 </div>

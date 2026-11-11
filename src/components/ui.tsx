@@ -8,7 +8,7 @@ import type { HTMLMotionProps } from "motion/react";
 
 export function Card({ children, className = "" }: { children: ReactNode; className?: string }) {
   return (
-    <div className={`bg-white border border-slate-200 rounded-[14px] p-5 md:p-6 shadow-[0_1px_2px_rgba(0,0,0,0.05)] ${className}`}>
+    <div className={`bg-white rounded-[16px] p-6 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_8px_24px_rgba(15,23,42,0.06)] ${className}`}>
       {children}
     </div>
   );
@@ -38,28 +38,28 @@ export function Btn({
 }: HTMLMotionProps<"button"> & { variant?: BtnVariant; size?: BtnSize }) {
   const styles: Record<BtnVariant, string> = {
     primary:
-      "bg-[color:var(--green,#10b981)] text-white hover:bg-[color:var(--green-dark,#059669)] shadow-[0_4px_6px_-1px_rgba(16,185,129,0.3)]",
+      "bg-slate-900 text-white hover:bg-slate-800",
     danger: "bg-[#ef4444] text-white hover:bg-[#dc2626]",
     ghost:
-      "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 hover:border-slate-300",
+      "bg-white text-slate-600 hover:bg-slate-50",
     subtle: "bg-slate-100 text-slate-700 hover:bg-slate-200",
   };
   const sizes: Record<BtnSize, string> = {
     sm: "px-3 py-1.5 text-[0.82rem] rounded-[8px]",
-    md: "px-4 py-2 text-[0.9rem] rounded-[10px]",
+    md: "px-4 py-2 text-[0.9rem] rounded-[12px]",
   };
   return (
     <motion.button
       whileTap={props.disabled ? undefined : { scale: 0.96 }}
       transition={{ duration: 0.12, ease: "easeOut" }}
-      className={`inline-flex items-center justify-center gap-2 font-semibold cursor-pointer transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${sizes[size]} ${className}`}
+      className={`inline-flex items-center justify-center gap-2 font-semibold cursor-pointer transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed ${styles[variant]} ${sizes[size]} ${className}`}
       {...props}
     />
   );
 }
 
 const fieldCls =
-  "w-full bg-white border border-slate-200 rounded-[10px] px-3.5 py-2.5 text-slate-800 text-[0.95rem] transition-all duration-300 focus:outline-none focus:border-[#3b82f6] focus:shadow-[0_0_0_3px_rgba(59,130,246,0.1)] placeholder:text-slate-400";
+  "w-full bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-slate-900 placeholder:text-slate-400";
 
 export function Field({
   label,
@@ -102,7 +102,7 @@ export function Badge({ color = "gray", children }: { color?: "green" | "red" | 
     gray: "bg-slate-100 text-slate-600 border-slate-200",
   };
   return (
-    <span className={`inline-block px-2 py-0.5 rounded-full text-[0.75rem] font-semibold border ${map[color]}`}>
+    <span className={`inline-block px-2 py-0.5 rounded-[8px] text-[0.75rem] font-semibold border ${map[color]}`}>
       {children}
     </span>
   );
@@ -111,7 +111,7 @@ export function Badge({ color = "gray", children }: { color?: "green" | "red" | 
 export function Spinner({ text = "加载中..." }: { text?: string }) {
   return (
     <div className="py-14 text-center text-slate-500 text-sm flex flex-col items-center gap-3">
-      <span className="inline-block w-6 h-6 rounded-full border-2 border-slate-200 border-t-[color:var(--green,#10b981)] animate-spin" />
+      <span className="inline-block w-6 h-6 rounded-full border-2 border-slate-200 border-t-slate-900 animate-spin" />
       {text}
     </div>
   );
@@ -124,7 +124,7 @@ export function ErrorNote({ message }: { message: string }) {
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="px-4 py-3 rounded-[10px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]"
+      className="px-4 py-3 rounded-[12px] bg-red-50 border border-red-200 text-red-600 text-[0.88rem]"
     >
       {message}
     </motion.div>
@@ -138,7 +138,7 @@ export function SuccessNote({ message }: { message: string }) {
       initial={{ opacity: 0, y: -4 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.2 }}
-      className="px-4 py-3 rounded-[10px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.88rem]"
+      className="px-4 py-3 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.88rem]"
     >
       {message}
     </motion.div>

@@ -554,7 +554,7 @@ app.post("/chat", requireAuth, async (c) => {
     reply = sanitizeAiText(result.text);
   } else {
     reply =
-      "你好！我是西域之光的人工智能助手（演示模式）。\n" +
+      "你好，我是西域之光的人工智能助手（演示模式）。\n" +
       "回答常见问题：\n" +
       "· 如何入服？→ 在「入服申请」页面填写游戏名和自我介绍，等待管理员审核。\n" +
       "· 服务器地址？→ Java 与基岩版均为 sdcmc.chipzz.top:23400，版本 Java 1.7-26.2 / 基岩 26.0-26.40。\n" +

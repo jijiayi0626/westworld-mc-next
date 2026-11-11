@@ -123,7 +123,7 @@ export default function OrdersPage() {
         body: JSON.stringify({ product_id: productId, qty, payment_method: payMethod === "economy" && ecoEnabled ? "economy" : "manual" }),
       });
       if (data.economy_paid) {
-        setSuccess(`支付成功！订单 ${data.order_no} 已扣除 ${data.total} ${data.currency}，等待管理员发货。`);
+        setSuccess(`支付成功，订单 ${data.order_no} 已扣除 ${data.total} ${data.currency}，等待管理员发货。`);
         void refreshBalance();
       } else if (payMethod === "epay" && epayEnabled) {
         const pay = await api<{ pay_url: string }>("/pay/create", {

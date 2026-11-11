@@ -108,7 +108,7 @@ export const defaultContent: SiteContent = {
     name: "西域之光",
     nav_brand: "Westworld西域之光",
     description:
-      "西域之光（westworld）—— 我的世界原版生存服务器，纯净原版体验、生电友好、和谐社区。稳定流畅，欢迎加入！Minecraft Survival Server.",
+      "西域之光（westworld）—— 我的世界原版生存服务器，纯净原版体验、生电友好、和谐社区。稳定流畅，欢迎加入。Minecraft Survival Server.",
     keywords:
       "我的世界, Minecraft, 服务器, 生存服, 原版, 生电, 西域之光, westworld, MC, 游戏, 多人联机",
     server_ip: "sdcmc.chipzz.top:23400",
@@ -183,7 +183,7 @@ export const defaultContent: SiteContent = {
       {
         number: "03",
         title: "进入游戏",
-        desc: "双击服务器列表中的图标，即可连接进入服务器，开始您的探索！",
+        desc: "双击服务器列表中的图标，即可连接进入服务器，开始您的探索。",
       },
     ],
     launchers: [

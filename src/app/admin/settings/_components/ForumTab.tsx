@@ -169,7 +169,7 @@ export default function ForumTab() {
                 value={chatForm.welcome}
                 onChange={(e) => setChatForm((p) => ({ ...p, welcome: e.target.value }))}
                 maxLength={200}
-                placeholder="如：欢迎来到西域社区！文明发言，禁止刷屏与广告。"
+                placeholder="如：欢迎来到西域社区，文明发言，禁止刷屏与广告。"
               />
             </Field>
 

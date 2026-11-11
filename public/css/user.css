@@ -461,27 +461,11 @@ a:focus-visible,
 }
 .sidebar-nav .nav-item:hover { background: var(--bg-card-hover); color: var(--text-primary); }
 .sidebar-nav .nav-item.active {
-    background: var(--green-light);
-    color: var(--green-dark);
+    background: var(--text-primary);
+    color: var(--bg-card);
     font-weight: 600;
 }
-.sidebar-nav .nav-item.active::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 6px;
-    bottom: 6px;
-    width: 3px;
-    border-radius: 0 3px 3px 0;
-    background: var(--green);
-    opacity: 0;
-    animation: sidebarIndicatorIn 200ms var(--ease-out) forwards;
-}
-@keyframes sidebarIndicatorIn {
-    from { opacity: 0; transform: scaleY(0.4); }
-    to   { opacity: 1; transform: scaleY(1); }
-}
-.sidebar-nav .nav-item svg { flex-shrink: 0; width: 20px; height: 20px; }
+.sidebar-nav .nav-item svg { flex-shrink: 0; width: 16px; height: 16px; }
 .sidebar-nav .nav-divider { height: 1px; background: var(--border); margin: 14px 8px; }
 
 .nav-badge {
@@ -4039,8 +4023,7 @@ body.auth-page .fade-up {
     .ep-tickets > .el-card,
     .ep-application > .el-card,
     .ep-notifs > .el-card,
-    .ep-app-status-card,
-    .sidebar-nav .nav-item.active::before {
+    .ep-app-status-card {
         animation: none !important;
         opacity: 1;
         transform: none;

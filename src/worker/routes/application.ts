@@ -251,7 +251,7 @@ app.post("/admin/:id/review", async (c) => {
   // 通知用户
   const title = status === "approved" ? "入服申请已通过" : "入服申请被拒绝";
   const content = status === "approved"
-    ? `游戏名 ${appRow.mc_name} 已通过审核，欢迎加入西域之光！`
+    ? `游戏名 ${appRow.mc_name} 已通过审核，欢迎加入西域之光`
     : `游戏名 ${appRow.mc_name} 未通过审核${note ? `：${note}` : ""}`;
   if (await siteNotifyEnabled(c.env.DB)) {
     await c.env.DB.prepare(

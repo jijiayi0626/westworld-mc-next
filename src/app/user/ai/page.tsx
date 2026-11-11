@@ -162,7 +162,7 @@ export default function AiPage() {
                   </svg>
                 </div>
                 <p className="text-slate-500 text-[0.9rem] max-w-[320px]">
-                  你好！我是西域之光 AI 助手。可以问我服务器玩法、如何入服、地址版本等问题。
+                  你好，我是西域之光 AI 助手。可以问我服务器玩法、如何入服、地址版本等问题。
                 </p>
               </div>
             ) : (
