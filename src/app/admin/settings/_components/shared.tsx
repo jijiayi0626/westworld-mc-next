@@ -92,7 +92,7 @@ export const SETTINGS_TABS: { key: string; href: string; label: string }[] = [
 export function StatusDot({ ok: good, label }: { ok: boolean; label: string }) {
   return (
     <span className="inline-flex items-center gap-2 text-[0.85rem]">
-      <span className={`w-2 h-2 rounded-full ${good ? "bg-slate-900" : "bg-slate-300"}`} />
+      <span className={`w-2 h-2 rounded-full ${good ? "bg-emerald-500" : "bg-slate-300"}`} />
       <span className={good ? "text-slate-800" : "text-slate-400"}>{label}</span>
     </span>
   );
@@ -176,7 +176,7 @@ export function SettingsPage({
             key={t.key}
             href={t.href}
             className={`px-4 py-2 rounded-[12px] text-[0.88rem] font-semibold transition-colors duration-150 ${
-              active === t.key ? "bg-slate-900 text-white" : "text-slate-500 hover:text-slate-900 hover:bg-slate-100"
+              active === t.key ? "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-sm" : "text-slate-500 hover:text-emerald-600 hover:bg-emerald-50"
             }`}
           >
             {t.label}

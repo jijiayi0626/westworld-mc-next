@@ -236,7 +236,7 @@ export default function MailTab() {
                   type="button"
                   onClick={() => void sendTest()}
                   disabled={mailBusy}
-                  className="px-4 py-2 rounded-[12px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer"
+                  className="px-4 py-2 rounded-[12px] bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[0.85rem] font-semibold hover:from-emerald-600 hover:to-green-700 transition-colors disabled:opacity-50 cursor-pointer"
                 >
                   {mailBusy ? "发送中..." : "发送测试"}
                 </button>

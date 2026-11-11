@@ -38,11 +38,11 @@ export function Btn({
 }: HTMLMotionProps<"button"> & { variant?: BtnVariant; size?: BtnSize }) {
   const styles: Record<BtnVariant, string> = {
     primary:
-      "bg-slate-900 text-white hover:bg-slate-800",
+      "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 shadow-sm",
     danger: "bg-[#ef4444] text-white hover:bg-[#dc2626]",
     ghost:
-      "bg-white text-slate-600 hover:bg-slate-50",
-    subtle: "bg-slate-100 text-slate-700 hover:bg-slate-200",
+      "bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-600",
+    subtle: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
   };
   const sizes: Record<BtnSize, string> = {
     sm: "px-3 py-1.5 text-[0.82rem] rounded-[8px]",
@@ -59,7 +59,7 @@ export function Btn({
 }
 
 const fieldCls =
-  "w-full bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-slate-900 placeholder:text-slate-400";
+  "w-full bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-emerald-500 placeholder:text-slate-400";
 
 export function Field({
   label,

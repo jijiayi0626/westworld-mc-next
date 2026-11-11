@@ -6475,15 +6475,18 @@ tbody tr { transition: background var(--tr-fast); }
 .stat-btn:hover { opacity: .9; }
 
 /* ==================== 设置页：分组标题 + 逐行设置 ==================== */
-.settings-stack { display: flex; flex-direction: column; gap: 32px; padding-bottom: 64px; }
+.settings-stack { display: flex; flex-direction: column; gap: 16px; padding-bottom: 64px; }
 .settings-group {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding-top: 24px;
-  border-top: 1px solid var(--border);
+  gap: 12px;
+  padding: 20px 24px;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, .04);
 }
-.settings-stack > .settings-group:first-child { border-top: 0; padding-top: 0; }
+.settings-stack > .settings-group:first-child { border-top: 1px solid var(--border); padding-top: 20px; }
 .settings-group__head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; }
 .settings-group__title { font-size: 1.05rem; font-weight: 700; color: var(--text-primary); text-wrap: balance; }
 .settings-group__desc { margin-top: 4px; max-width: 72ch; font-size: .85rem; line-height: 1.65; color: var(--text-secondary); }

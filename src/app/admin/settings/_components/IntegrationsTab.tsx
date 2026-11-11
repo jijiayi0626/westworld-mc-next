@@ -159,7 +159,7 @@ export default function IntegrationsTab() {
                   </code>
                 </div>
                 <div>
-                  <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[12px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer">
+                  <button type="submit" disabled={msBusy} className="px-4 py-2 rounded-[12px] bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[0.85rem] font-semibold hover:from-emerald-600 hover:to-green-700 transition-colors disabled:opacity-50 cursor-pointer">
                     {msBusy ? "保存中..." : "保存微软配置"}
                   </button>
                 </div>
@@ -265,7 +265,7 @@ export default function IntegrationsTab() {
                   保存到站点设置并即时生效，无需重新部署；Secret 仅保存在服务端，不会回传到浏览器，环境变量仍可作为回退。
                 </p>
                 <div>
-                  <button type="submit" disabled={inuBusy} className="px-4 py-2 rounded-[12px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors disabled:opacity-50 cursor-pointer">
+                  <button type="submit" disabled={inuBusy} className="px-4 py-2 rounded-[12px] bg-gradient-to-r from-emerald-500 to-green-600 text-white text-[0.85rem] font-semibold hover:from-emerald-600 hover:to-green-700 transition-colors disabled:opacity-50 cursor-pointer">
                     {inuBusy ? "保存中..." : "保存 INU 配置"}
                   </button>
                 </div>

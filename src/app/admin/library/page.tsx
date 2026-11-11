@@ -216,7 +216,7 @@ export default function AdminLibraryPage() {
                 />
                 <div className="absolute top-1.5 left-1.5 flex gap-1">
                   {i.system && (
-                    <span className="px-2 py-1 rounded-full bg-slate-900/70 text-white text-[0.62rem] font-medium backdrop-blur-sm">系统</span>
+                    <span className="px-2 py-1 rounded-full bg-emerald-600/85 text-white text-[0.62rem] font-medium backdrop-blur-sm">系统</span>
                   )}
                   {i.in_use && (
                     <span className="px-2 py-1 rounded-full bg-emerald-500/85 text-white text-[0.62rem] font-medium">使用中</span>

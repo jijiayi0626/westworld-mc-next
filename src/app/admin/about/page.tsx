@@ -68,7 +68,7 @@ export default function AdminAboutPage() {
         {tab === "info" && (
           <Card className="max-w-xl mb-6">
             <div className="flex items-center gap-4 mb-6">
-              <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center text-white text-2xl font-extrabold shadow-md flex-shrink-0">
+              <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-400 to-green-600 flex items-center justify-center text-white text-2xl font-extrabold shadow-md flex-shrink-0">
                 {PROJECT.name.slice(0, 1).toUpperCase()}
               </div>
               <div className="min-w-0">
