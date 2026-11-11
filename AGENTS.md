@@ -7,6 +7,7 @@ Westworld 西域之光官网（Next.js 静态导出 + Cloudflare Workers + Hono 
 1. 先读 [.trae/rules/project_rules.md](.trae/rules/project_rules.md)（设计与交互规范，最高优先级）。
 2. 再读本文件（工程约定）。
 3. 涉及版本时读 [CHANGELOG.md](CHANGELOG.md) 顶部规则。
+4. 做 UI / 视觉 / 设计评审前，加载 [.trae/skills/refactoring-ui/SKILL.md](.trae/skills/refactoring-ui/SKILL.md)（Refactoring UI 规则与诊断）。
 
 ## 工程约定
 
