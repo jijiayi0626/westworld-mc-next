@@ -127,7 +127,7 @@ export default function TeamCarousel() {
                 key={i}
                 className="team-card flex-[0_0_280px] w-[280px] min-w-0 bg-white/[0.06] backdrop-blur-glass border border-white/10 rounded-3xl px-8 py-8 text-center transition-all duration-300 flex flex-col items-center relative overflow-hidden hover:-translate-y-2 hover:bg-white/[0.1] hover:border-white/25 hover:shadow-[0_16px_40px_rgba(0,0,0,0.36)] group"
               >
-                <div className="relative z-[1] team-avatar w-[104px] h-[104px] rounded-full mb-6 overflow-hidden border border-accent-emerald/40 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:border-emerald-400 group-hover:scale-105">
+                <div className="relative z-[1] team-avatar w-[104px] h-[104px] rounded-full mb-4 overflow-hidden border border-accent-emerald/40 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:border-emerald-400 group-hover:scale-105">
                   <img
                     src={member.avatar}
                     alt={`${member.name}头像`}
@@ -145,7 +145,7 @@ export default function TeamCarousel() {
                 </p>
                 <a
                   href={member.contact_href}
-                  className="relative z-[1] team-contact-btn inline-block mt-6 px-6 py-2 bg-white text-bg-dark font-bold no-underline rounded-lg transition-all duration-300 opacity-0 translate-y-2 animate-fade-in-up-btn shadow-[0_4px_8px_rgba(0,0,0,0.16)] hover:-translate-y-1 hover:scale-105 hover:shadow-[0_8px_20px_rgba(0,0,0,0.28)] hover:bg-primary-hover"
+                  className="relative z-[1] team-contact-btn inline-block mt-5 px-6 py-2 bg-white text-bg-dark font-bold no-underline rounded-lg transition-all duration-300 opacity-0 translate-y-2 animate-fade-in-up-btn shadow-[0_4px_8px_rgba(0,0,0,0.16)] hover:-translate-y-1 hover:scale-105 hover:shadow-[0_8px_20px_rgba(0,0,0,0.28)] hover:bg-primary-hover"
                 >
                   联系我
                 </a>

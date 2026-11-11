@@ -99,7 +99,7 @@ export default function AppearanceTab() {
                 </div>
                 <div className="shrink-0">
                   {isCurrent ? (
-                    <span className="text-[0.85rem] text-slate-400">当前使用</span>
+                    <span className="text-[0.85rem] text-slate-500">当前使用</span>
                   ) : (
                     <Btn
                       size="sm"
@@ -144,7 +144,7 @@ export default function AppearanceTab() {
                 </div>
                 <div className="shrink-0">
                   {isCurrent ? (
-                    <span className="text-[0.85rem] text-slate-400">当前使用</span>
+                    <span className="text-[0.85rem] text-slate-500">当前使用</span>
                   ) : (
                     <Btn
                       size="sm"

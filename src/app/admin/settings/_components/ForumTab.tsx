@@ -220,7 +220,7 @@ export default function ForumTab() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[640px] text-left text-[0.85rem]">
               <thead>
-                <tr className="border-b border-slate-200 text-slate-400">
+                <tr className="border-b border-slate-200 text-slate-500">
                   <th className="py-2 pr-3 font-medium">名称</th>
                   <th className="py-2 pr-3 font-medium">类型</th>
                   <th className="py-2 pr-3 font-medium">成员</th>
@@ -251,7 +251,7 @@ export default function ForumTab() {
                     <td className="py-3 pr-3 text-slate-500">{room.member_count}</td>
                     <td className="py-3 pr-3 text-slate-500">{room.message_count}</td>
                     <td className="py-3 pr-3 text-slate-500">{room.owner_name || "—"}</td>
-                    <td className="py-3 pr-3 text-slate-400">{room.created_at}</td>
+                    <td className="py-3 pr-3 text-slate-500">{room.created_at}</td>
                     <td className="py-3 text-right">
                       {room.kind === "community" ? (
                         <span className="text-[0.78rem] text-slate-300">固定保留</span>

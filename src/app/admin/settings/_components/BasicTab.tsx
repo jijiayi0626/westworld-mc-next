@@ -130,7 +130,7 @@ export default function BasicTab() {
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={favicon} alt="网站图标预览" className="h-full w-full object-cover" />
               ) : (
-                <span className="text-[0.7rem] text-slate-400">默认</span>
+                <span className="text-[0.7rem] text-slate-500">默认</span>
               )}
             </div>
             <div className="min-w-[220px] flex-1">
@@ -200,7 +200,7 @@ export default function BasicTab() {
               value={keyword}
               onChange={(e) => setKeyword(e.target.value)}
               placeholder="搜索 Key / 值..."
-              className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-slate-400 placeholder:text-slate-400"
+              className="w-full sm:w-[260px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-slate-400 placeholder:text-slate-500"
             />
           }
         >

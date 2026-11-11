@@ -93,7 +93,7 @@ export function StatusDot({ ok: good, label }: { ok: boolean; label: string }) {
   return (
     <span className="inline-flex items-center gap-2 text-[0.85rem]">
       <span className={`w-2 h-2 rounded-full ${good ? "bg-emerald-500" : "bg-slate-300"}`} />
-      <span className={good ? "text-emerald-600" : "text-slate-400"}>{label}</span>
+      <span className={good ? "text-emerald-600" : "text-slate-500"}>{label}</span>
     </span>
   );
 }
