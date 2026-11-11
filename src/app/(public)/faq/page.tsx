@@ -65,7 +65,7 @@ export default function FaqPage() {
                 <div
                   className={`group relative bg-white/5 backdrop-blur-glass border rounded-2xl overflow-hidden transition-all duration-300 ${
                     isOpen
-                      ? "border-emerald-400/40 bg-white/[0.08]"
+                      ? "border-accent-emerald/40 bg-white/[0.08]"
                       : "border-white/10 hover:border-emerald-400/30 hover:bg-white/[0.07]"
                   }`}
                 >
@@ -80,7 +80,7 @@ export default function FaqPage() {
                     </span>
                     <span
                       className={`flex-shrink-0 w-8 h-8 rounded-full bg-white/10 border border-white/15 flex items-center justify-center transition-transform duration-300 ${
-                        isOpen ? "rotate-180 text-emerald-400" : "text-white/70"
+                        isOpen ? "rotate-180 text-accent-emerald" : "text-white/70"
                       }`}
                     >
                       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -107,8 +107,8 @@ export default function FaqPage() {
 
         <div className="mt-16 max-w-[860px] mx-auto">
           <ScrollFadeUp>
-            <div className="bg-emerald-500/10 border border-emerald-500/30 rounded-2xl p-6 text-center">
-              <p className="text-emerald-300 text-[0.95rem]">
+            <div className="bg-accent-emerald/10 border border-accent-emerald/30 rounded-2xl p-6 text-center">
+              <p className="text-accent-emerald text-[0.95rem]">
                 没有找到答案？前往「<a href="/contact" className="underline hover:text-emerald-200">联系我们</a>」提交留言，或登录后提交工单
               </p>
             </div>

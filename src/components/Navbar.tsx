@@ -71,7 +71,7 @@ export default function Navbar() {
 
   const linkCls = (href: string) =>
     `text-[0.95rem] font-semibold transition-all duration-300 relative py-1 ${
-      isActive(href) ? "text-emerald-400 nav-link-active" : "text-white/80 hover:text-white"
+      isActive(href) ? "text-accent-emerald nav-link-active" : "text-white/80 hover:text-white"
     }`;
 
   return (
@@ -148,7 +148,7 @@ export default function Navbar() {
                   aria-expanded={moreOpen}
                   className={`text-[0.95rem] font-semibold relative py-1 flex items-center gap-1 cursor-pointer transition-colors duration-300 ${
                     moreOpen || moreItems.some((i) => isActive(i.href))
-                      ? "text-emerald-400 nav-link-active"
+                      ? "text-accent-emerald nav-link-active"
                       : "text-white/80 hover:text-white"
                   }`}
                 >
@@ -175,7 +175,7 @@ export default function Navbar() {
                         href={item.href}
                         className={`block px-4 py-2 text-[0.9rem] font-medium transition-colors ${
                           isActive(item.href)
-                            ? "text-emerald-300 bg-emerald-400/10"
+                            ? "text-accent-emerald bg-emerald-400/10"
                             : "text-white/75 hover:text-white hover:bg-white/10"
                         }`}
                       >

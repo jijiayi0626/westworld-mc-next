@@ -92,7 +92,7 @@ export function SpecsEditor({ content, set }: { content: SiteContent; set: Sette
                 type="button"
                 onClick={() => upd({ cpu_brand: opt.key })}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl border transition-all cursor-pointer ${
-                  active ? "border-emerald-500 bg-emerald-50/60" : "border-slate-200 hover:border-slate-300"
+                  active ? "border-accent-emerald bg-emerald-50/60" : "border-slate-200 hover:border-slate-300"
                 }`}
               >
                 <img src={opt.src} alt={opt.label} className="w-10 h-10 object-contain" />

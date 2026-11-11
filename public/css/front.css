@@ -6,7 +6,7 @@
     --secondary-color: #cbd5e1;
     --secondary-hover: #94a3b8;
     --accent-gold: #e2e8f0;
-    --accent-green: #10b981;
+    --accent-green: #00e676;
     --text-main: #f8fafc;
     --text-muted: #cbd5e1;
     --glass-border: 1px solid rgba(255, 255, 255, 0.1);
@@ -221,7 +221,7 @@ body.has-announcement-popup {
     margin-bottom: 24px; font-size: 0.9rem; color: #fff;
 }
 .status-dot { width: 10px; height: 10px; background-color: var(--accent-green); border-radius: 50%; }
-.highlight-green { color: #34d399; font-weight: 800; }
+.highlight-green { background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98); background-size: 300% 300%; -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; }
 
 .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.06); border-left: 3px solid var(--primary-color); padding: 6px 16px; font-size: 0.85rem; color: var(--primary-color); margin-bottom: 16px; font-weight: 700; text-transform: uppercase; letter-spacing: 1px; }
 
@@ -232,7 +232,7 @@ body.has-announcement-popup {
 .hero-features { display: flex; gap: 24px; margin-bottom: 48px; }
 .h-feature { display: flex; align-items: center; gap: 8px; color: #fff; font-size: 0.95rem; font-weight: 600; background: rgba(255, 255, 255, 0.05); padding: 8px 16px; border-radius: 8px; border: 1px solid rgba(255, 255, 255, 0.1); backdrop-filter: blur(10px); transition: var(--transition); }
 .h-feature:hover { background: rgba(255, 255, 255, 0.15); border-color: rgba(255, 255, 255, 0.3); }
-.h-feature svg { color: #34d399; }
+.h-feature svg { color: var(--accent-green); filter: drop-shadow(0 0 5px rgba(0, 230, 118, 0.45)); }
 
 /* Buttons */
 .hero-buttons { display: flex; gap: 24px; margin-bottom: 56px; }
@@ -304,7 +304,7 @@ body.has-announcement-popup {
 .spec-card:hover .spec-icon-wrapper img { transform: scale(1.1); }
 .spec-title { font-size: 1.2rem; font-weight: 700; margin-bottom: 8px; color: #fff; }
 .spec-desc { font-size: 0.9rem; color: rgba(255, 255, 255, 0.7); margin-bottom: 16px; line-height: 1.4; }
-.spec-value { font-size: 1rem; font-weight: 800; color: #34d399; padding: 8px 12px; background: rgba(16, 185, 129, 0.1); border-radius: 8px; display: inline-block; border: 1px solid rgba(16, 185, 129, 0.3); font-variant-numeric: tabular-nums; }
+.spec-value { font-size: 1rem; font-weight: 800; color: var(--accent-green); padding: 6px 12px; background: rgba(0, 230, 118, 0.1); border-radius: 8px; display: inline-block; border: 1px solid rgba(0, 230, 118, 0.3); font-variant-numeric: tabular-nums; }
 
 /* Features Section */
 .features-section { padding: 96px 0; content-visibility: auto; contain-intrinsic-size: auto 700px; }

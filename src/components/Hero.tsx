@@ -71,7 +71,7 @@ export default function Hero() {
                   key={i}
                   className="h-feature flex items-center gap-2 text-white text-[0.95rem] font-semibold bg-white/5 px-4 py-2 rounded-lg border border-white/10 backdrop-blur-md transition-all duration-300 hover:bg-white/15 hover:border-white/30"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-accent-emerald">
                     <path d="M20 6L9 17L4 12" />
                  </svg>
                   {feat}

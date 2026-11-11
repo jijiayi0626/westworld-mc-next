@@ -90,10 +90,10 @@ export default function RulesPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-[1000px] mx-auto">
           {rules.map((rule, i) => (
             <ScrollFadeUp key={rule.title} delay={((i % 2) * 100) as 0 | 100}>
-              <div className="group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:border-emerald-400/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
+              <div className="group relative bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-6 overflow-hidden transition-all duration-300 hover:-translate-y-1 hover:bg-white/[0.08] hover:border-accent-emerald/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
                 <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 <div className="flex items-start gap-4">
-                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-emerald-400 flex-shrink-0 transition-colors group-hover:bg-emerald-500/25">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/15 border border-accent-emerald/30 flex items-center justify-center text-accent-emerald flex-shrink-0 transition-colors group-hover:bg-emerald-500/25">
                     <RuleIcon name={rule.icon} />
                   </div>
                   <div>

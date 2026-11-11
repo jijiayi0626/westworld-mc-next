@@ -61,7 +61,7 @@ export default function MotdQuery({ defaultHost }: { defaultHost?: string }) {
       {error && <div className="mt-2 text-[0.82rem] text-red-500">{error}</div>}
 
       {result && (
-        <div className="mt-3 rounded-[12px] bg-black/85 border border-white/10 p-4 flex items-start gap-3 overflow-hidden">
+        <div className="mt-3 rounded-[12px] bg-white/5 border border-white/10 p-4 flex items-start gap-3 overflow-hidden">
           {result.icon ? (
             // eslint-disable-next-line @next/next/no-img-element
             <img src={result.icon} alt="server icon" className="w-16 h-16 rounded-lg image-rendering-pixelated flex-shrink-0" />

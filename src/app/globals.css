@@ -48,13 +48,21 @@
   }
 
   .text-rainbow {
-    @apply inline-block font-extrabold;
-    color: #34d399;
+    background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98, #00ff7f, #adff2f, #7cfc00);
+    background-size: 400% 400%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    @apply inline-block font-extrabold animate-rainbow-flow-slow;
   }
 
   .text-rainbow-fast {
-    @apply inline-block font-extrabold;
-    color: #34d399;
+    background: linear-gradient(90deg, #00ff00, #32cd32, #00fa9a, #98fb98);
+    background-size: 300% 300%;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    @apply inline-block font-extrabold animate-rainbow-flow;
   }
 }
 

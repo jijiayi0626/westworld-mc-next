@@ -50,13 +50,13 @@ export default function AboutPage() {
         {/* Hero */}
         <ScrollFadeUp>
           <div className="section-header mb-4 text-center">
-            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg about-glass text-[0.8rem] text-emerald-300 font-medium mb-6">
+            <span className="inline-flex items-center gap-2 px-4 py-2 rounded-lg about-glass text-[0.8rem] text-accent-emerald font-medium mb-6">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400" />
               自 2021 年稳定运营至今
             </span>
             <h1 className="section-title text-[clamp(2.2rem,6vw,3.4rem)] font-extrabold text-white mb-6 leading-tight">
               关于
-              <span className="text-emerald-300"> 西域之光</span>
+              <span className="text-accent-emerald"> 西域之光</span>
             </h1>
             <p className="text-[1.08rem] text-white/75 max-w-[680px] mx-auto leading-[1.9]">
               一个长期运营的 Minecraft 跨版本生存服务器。
@@ -73,13 +73,13 @@ export default function AboutPage() {
                 key={s.label}
                 className="about-glass rounded-3xl p-6 text-center transition-all duration-300 hover:-translate-y-1 border border-white/10"
               >
-                <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-emerald-400/15 border border-emerald-300/25 flex items-center justify-center text-emerald-300">
+                <div className="w-10 h-10 mx-auto mb-3 rounded-xl bg-emerald-400/15 border border-emerald-300/25 flex items-center justify-center text-accent-emerald">
                   <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d={s.icon} />
                   </svg>
                 </div>
                 <div className="text-[0.8rem] text-white/55 mb-1">{s.label}</div>
-                <div className="text-[1.35rem] font-extrabold text-emerald-300">{s.value}</div>
+                <div className="text-[1.35rem] font-extrabold text-accent-emerald">{s.value}</div>
                 <div className="text-[0.75rem] text-white/45 mt-1">{s.desc}</div>
               </div>
             ))}
@@ -98,7 +98,7 @@ export default function AboutPage() {
             {values.map((v) => (
               <div key={v.title} className="about-glass rounded-3xl p-6 transition-all duration-300 hover:-translate-y-1">
                 <div className="flex items-center gap-3 mb-3">
-                  <span className="w-10 h-10 rounded-xl bg-emerald-400/15 border border-emerald-300/25 flex items-center justify-center text-emerald-300 shrink-0">
+                  <span className="w-10 h-10 rounded-xl bg-emerald-400/15 border border-emerald-300/25 flex items-center justify-center text-accent-emerald shrink-0">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
                       <path d={v.icon} />
                     </svg>
@@ -123,7 +123,7 @@ export default function AboutPage() {
             {timeline.map((t, i) => (
               <div key={t.year} className="flex gap-6">
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-2xl about-glass flex items-center justify-center text-[0.78rem] font-bold text-emerald-300 shrink-0">
+                  <div className="w-12 h-12 rounded-2xl about-glass flex items-center justify-center text-[0.78rem] font-bold text-accent-emerald shrink-0">
                     {t.year}
                   </div>
                   {i < timeline.length - 1 && (
@@ -143,14 +143,14 @@ export default function AboutPage() {
         <ScrollFadeUp>
           <div className="max-w-[820px] mx-auto relative rounded-3xl overflow-hidden">
             <div className="relative about-glass rounded-3xl p-8 text-center">
-              <div className="inline-flex w-14 h-14 mb-4 rounded-2xl bg-emerald-400/15 border border-emerald-300/25 items-center justify-center text-emerald-300">
+              <div className="inline-flex w-14 h-14 mb-4 rounded-2xl bg-emerald-400/15 border border-emerald-300/25 items-center justify-center text-accent-emerald">
                 <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="M4 4h16v16H4V4Z" /><path d="M4 12h16" /><path d="M12 4v16" />
                 </svg>
               </div>
               <h2 className="text-[1.45rem] font-bold text-white mb-3">准备好进入西域了吗？</h2>
               <p className="text-[0.95rem] text-white/70 mb-6">
-                服务器地址：<span className="font-mono text-emerald-300 select-all">sdcmc.chipzz.top:23400</span>（Java / 基岩通用）
+                服务器地址：<span className="font-mono text-accent-emerald select-all">sdcmc.chipzz.top:23400</span>（Java / 基岩通用）
               </p>
               <div className="flex flex-wrap items-center justify-center gap-3">
                 <Link href="/help" className="inline-flex items-center px-6 py-3 rounded-2xl bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold text-[0.95rem] transition-all shadow-[0_6px_16px_rgba(16,185,129,0.3)] hover:-translate-y-0.5">

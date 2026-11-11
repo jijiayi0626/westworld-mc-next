@@ -109,7 +109,7 @@ export default function ServerStatus({
               failed
                 ? "bg-slate-100 text-slate-500"
                 : online
-                  ? "bg-emerald-50 text-emerald-600"
+                  ? "bg-emerald-50 text-accent-emerald"
                   : "bg-slate-100 text-slate-600"
             }`}
           >

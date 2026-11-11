@@ -41,7 +41,7 @@ export function Btn({
       "bg-gradient-to-r from-emerald-500 to-green-600 text-white hover:from-emerald-600 hover:to-green-700 shadow-sm",
     danger: "bg-[#ef4444] text-white hover:bg-[#dc2626]",
     ghost:
-      "bg-white text-slate-600 hover:bg-emerald-50 hover:text-emerald-600",
+      "bg-white text-slate-600 hover:bg-emerald-50 hover:text-accent-emerald",
     subtle: "bg-emerald-50 text-emerald-700 hover:bg-emerald-100",
   };
   const sizes: Record<BtnSize, string> = {
@@ -60,7 +60,7 @@ export function Btn({
 }
 
 const fieldCls =
-  "w-full bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-emerald-500 placeholder:text-slate-400";
+  "w-full bg-white border border-slate-200 rounded-[12px] px-3.5 py-2.5 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-accent-emerald placeholder:text-slate-400";
 
 export function Field({
   label,
