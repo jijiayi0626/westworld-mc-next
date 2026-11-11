@@ -39,7 +39,7 @@ function highlightMentions(content: string, names: Set<string>, mentionedMe: boo
         <span
           key={i}
           className={`rounded-lg px-1 font-semibold ${
-            mentionedMe ? "bg-white/20 text-white" : "bg-white/10 text-white/80"
+            mentionedMe ? "bg-emerald-400/30 text-emerald-100" : "bg-emerald-400/15 text-emerald-300"
           }`}
         >
           {part}
@@ -517,7 +517,7 @@ export default function RoomChat({
           <div className="flex items-center gap-2">
             <h2 className="truncate text-sm font-bold text-white">{title}</h2>
             {kind === "community" && (
-              <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/80">
+              <span className="rounded-lg border border-emerald-400/30 bg-emerald-400/10 px-2 py-1 text-[10px] font-semibold text-emerald-300">
                 社区
               </span>
             )}
@@ -584,7 +584,7 @@ export default function RoomChat({
 
       {/* 公告 */}
       {room?.notice ? (
-        <div className="border-b border-white/5 bg-white/[0.04] px-4 py-2 text-[11px] leading-relaxed text-white/70">
+        <div className="border-b border-white/5 bg-emerald-400/[0.06] px-4 py-2 text-[11px] leading-relaxed text-emerald-200/80">
           {room.notice}
         </div>
       ) : null}
@@ -623,26 +623,26 @@ export default function RoomChat({
                     <div className={`mb-1 flex items-center gap-2 ${mine ? "flex-row-reverse" : ""}`}>
                       <span className="text-[11px] font-semibold text-white/55">{m.username}</span>
                       {m.role === "admin" ? (
-                        <span className="rounded-lg border border-white/20 px-1 text-[9px] text-white/70">管理</span>
+                        <span className="rounded border border-emerald-400/25 px-1 text-[9px] text-emerald-300/80">管理</span>
                       ) : null}
                       <span className="text-[10px] text-white/25">{fmtTime(m.created_at)}</span>
                     </div>
                     <div
                       className={`relative rounded-2xl px-4 py-2 text-sm leading-relaxed ${
                         mine
-                          ? "rounded-tr-lg bg-white/10 text-white"
+                          ? "rounded-tr-lg bg-emerald-500/15 text-emerald-50"
                           : "rounded-tl-lg border border-white/5 bg-white/[0.06] text-white/75"
                       }`}
                     >
                       {m.reply_to_id ? (
                         <div
-                          className="mb-2 rounded-lg border-l border-white/40 bg-black/20 px-2 py-1 text-[11px] leading-snug text-white/45"
+                          className="mb-2 rounded-lg border-l border-emerald-400/50 bg-black/20 px-2 py-1 text-[11px] leading-snug text-white/45"
                           onClick={() => {
                             const el = listRef.current?.querySelector(`[data-mid="${m.reply_to_id}"]`);
                             el?.scrollIntoView({ behavior: "smooth", block: "center" });
                           }}
                         >
-                          <span className="font-semibold text-white/70">{m.reply_to_name}</span>
+                          <span className="font-semibold text-emerald-300/80">{m.reply_to_name}</span>
                           <span className="ml-1 line-clamp-2 break-words">{m.reply_to_text || "[消息]"}</span>
                         </div>
                       ) : null}
@@ -691,9 +691,9 @@ export default function RoomChat({
       {/* 输入区 */}
       <div className="border-t border-white/10 p-3">
         {replyTarget && (
-          <div className="mb-2 flex items-start gap-2 rounded-lg border-l border-white/40 bg-white/[0.04] px-3 py-2">
+          <div className="mb-2 flex items-start gap-2 rounded-lg border-l border-emerald-400/60 bg-white/[0.04] px-3 py-2">
             <div className="min-w-0 flex-1 text-[11px] leading-snug text-white/45">
-              正在回复 <span className="font-semibold text-white/70">{replyTarget.username}</span>
+              正在回复 <span className="font-semibold text-emerald-300/80">{replyTarget.username}</span>
               <p className="mt-1 line-clamp-1 break-words">{replyTarget.content || "[图片]"}</p>
             </div>
             <button
@@ -763,7 +763,7 @@ export default function RoomChat({
             aria-label="发送图片"
           >
             {uploading ? (
-              <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+              <span className="block h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-emerald-400" />
             ) : (
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4">
                 <rect x="3" y="4" width="18" height="16" rx="2" />
@@ -775,7 +775,7 @@ export default function RoomChat({
           <button
             className={`mb-1 rounded-xl border p-2 transition disabled:opacity-40 ${
               mentionOpen
-                ? "border-white/20 bg-white/10 text-white/80"
+                ? "border-emerald-400/40 bg-emerald-400/10 text-emerald-300"
                 : "border-white/10 bg-white/[0.04] text-white/45 hover:bg-white/10 hover:text-white"
             }`}
             onClick={() => setMentionOpen((v) => !v)}
@@ -944,7 +944,7 @@ export default function RoomChat({
                         <PresenceDot presence={u.presence} size={6} />
                       </div>
                       <button
-                        className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/80 disabled:opacity-40"
+                        className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
                         disabled={memberBusy === u.id || !canInvite}
                         title={canInvite ? undefined : "只能邀请已成为好友的玩家"}
                         onClick={() => void addMember(u.id)}

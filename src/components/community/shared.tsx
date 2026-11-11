@@ -152,7 +152,7 @@ export const BOARDS = [
   { key: "announcement", name: "官方公告", cls: "bg-white/10 text-white/70 border-white/15" },
   { key: "qa", name: "问答求助", cls: "bg-white/10 text-white/70 border-white/15" },
   { key: "share", name: "作品分享", cls: "bg-white/10 text-white/70 border-white/15" },
-  { key: "guide", name: "攻略教程", cls: "bg-white/10 text-white/70 border-white/15" },
+  { key: "guide", name: "攻略教程", cls: "bg-emerald-500/15 text-emerald-300 border-emerald-400/30" },
 ] as const;
 
 export const COMPOSE_BOARDS = ["general", "qa", "share", "guide"];
@@ -258,14 +258,14 @@ export function PresenceDot({
 export function RoleBadge({ role }: { role: string }) {
   if (role === "owner") {
     return (
-      <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/70">
+      <span className="rounded-lg border border-emerald-400/30 bg-emerald-400/15 px-2 py-1 text-[10px] font-semibold text-emerald-300">
         群主
       </span>
     );
   }
   if (role === "admin") {
     return (
-      <span className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/70">
+      <span className="rounded-lg border border-emerald-400/30 bg-emerald-400/15 px-2 py-1 text-[10px] font-semibold text-emerald-300">
         管理员
       </span>
     );
@@ -275,9 +275,9 @@ export function RoleBadge({ role }: { role: string }) {
 
 export const CARD = "rounded-2xl border border-white/10 bg-white/[0.04]";
 export const INPUT =
-  "w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-white/30 focus:bg-white/[0.08]";
+  "w-full rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-sm text-white outline-none transition placeholder:text-white/30 focus:border-emerald-400/50 focus:bg-white/[0.08]";
 export const BTN_PRIMARY =
-  "inline-flex items-center justify-center gap-2 rounded-xl bg-white px-4 py-2 text-sm font-semibold text-[#0b1220] transition hover:bg-white/90 disabled:cursor-not-allowed disabled:opacity-50";
+  "inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:from-emerald-400 hover:to-emerald-500 disabled:cursor-not-allowed disabled:opacity-50";
 export const BTN_GHOST =
   "inline-flex items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-4 py-2 text-sm font-semibold text-white/75 transition hover:bg-white/10 hover:text-white disabled:cursor-not-allowed disabled:opacity-50";
 export const BTN_DANGER =
@@ -289,7 +289,7 @@ export function Note({ kind = "error", text }: { kind?: "error" | "ok"; text: st
     <div
       className={`rounded-xl border px-4 py-2 text-sm ${
         kind === "ok"
-          ? "border-white/20 bg-white/10 text-white/80"
+          ? "border-emerald-400/30 bg-emerald-400/10 text-emerald-200"
           : "border-rose-400/30 bg-rose-400/10 text-rose-200"
       }`}
     >
@@ -316,7 +316,7 @@ export function EmptyState({ title, desc, action }: { title: string; desc?: stri
 export function Spinner({ label = "加载中" }: { label?: string }) {
   return (
     <div className="flex items-center justify-center gap-3 py-16 text-sm text-white/45">
-      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-white/70" />
+      <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/20 border-t-emerald-400" />
       {label}
     </div>
   );

@@ -134,7 +134,7 @@ export default function AdminVisualPage() {
           <div className="flex-1 min-w-0 flex flex-col">
             <div className="flex items-center justify-between px-3 py-2 rounded-t-[16px] bg-[#0b1220] border border-b-0 border-white/10 text-[0.8rem] text-slate-400">
               <span>实时预览（仅示意，完整页面请访问前台）</span>
-              <span className="text-slate-500">已同步编辑内容</span>
+              <span className="text-emerald-400">已同步编辑内容</span>
             </div>
             <div className="visual-preview flex-1 min-h-[420px] lg:min-h-0 bg-[#0f172a] rounded-b-[16px] border border-white/10 overflow-y-auto">
               <SiteContentProvider value={content}>

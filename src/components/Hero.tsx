@@ -15,12 +15,12 @@ export default function Hero() {
       style={{ backgroundImage: `url('${hero.bg_image}')` }}
     >
       <div className="absolute inset-0 bg-black/45" />
-      {/* 背景层：纯中性遮罩，不使用光晕与网格渐变 */}
+      {/* 背景层：细网格 + 低透明度绿色光晕 */}
       <div
         className="hero-glow absolute inset-0 pointer-events-none"
         aria-hidden="true"
       />
-      {/* 浮动方块装饰已在样式中关闭，保留结构兼容旧主题 */}
+      {/* 浮动方块粒子（贴合 MC 主题） */}
       <div className="hero-floating" aria-hidden="true">
         <span className="hero-cube hero-cube-1" />
         <span className="hero-cube hero-cube-2" />
@@ -71,7 +71,7 @@ export default function Hero() {
                   key={i}
                   className="h-feature flex items-center gap-2 text-white text-[0.95rem] font-semibold bg-white/5 px-4 py-2 rounded-lg border border-white/10 backdrop-blur-md transition-all duration-300 hover:bg-white/15 hover:border-white/30"
                 >
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-white/70">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-emerald-400">
                     <path d="M20 6L9 17L4 12" />
                  </svg>
                   {feat}

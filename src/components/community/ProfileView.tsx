@@ -124,7 +124,7 @@ export default function ProfileView({
             </p>
             <p className="mt-1 text-xs leading-relaxed text-white/45">{user.bio || "这个玩家还没有填写简介。"}</p>
             <p className="mt-2 text-[11px] text-white/25">
-              加入于 {fmtTime(user.created_at)} · 积分 <span className="font-bold text-white/80">{user.points}</span>
+              加入于 {fmtTime(user.created_at)} · 积分 <span className="font-bold text-emerald-300">{user.points}</span>
             </p>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function ProfileView({
             onClick={() => setTab(t.key)}
             className={`rounded-xl border px-3 py-2 text-xs font-semibold transition ${
               tab === t.key
-                ? "border-white/20 bg-white/10 text-white/80"
+                ? "border-emerald-400/35 bg-emerald-400/15 text-emerald-300"
                 : "border-white/10 bg-white/[0.03] text-white/45 hover:text-white/75"
             }`}
           >
@@ -171,7 +171,7 @@ export default function ProfileView({
               <button
                 key={p.id}
                 onClick={() => onOpenPost(p.id)}
-                className={`${CARD} p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]`}
+                className={`${CARD} p-4 text-left transition hover:border-emerald-400/25 hover:bg-white/[0.06]`}
               >
                 <div className="flex items-center gap-2">
                   <span className={`rounded-lg border px-2 py-1 text-[10px] font-semibold ${boardMeta(p.board).cls}`}>
@@ -201,10 +201,10 @@ export default function ProfileView({
             <button
               key={r.id}
               onClick={() => onOpenPost(r.post_id)}
-              className={`${CARD} p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]`}
+              className={`${CARD} p-4 text-left transition hover:border-emerald-400/25 hover:bg-white/[0.06]`}
             >
               <p className="line-clamp-2 text-xs leading-relaxed text-white/60">
-                {r.parent_id ? <span className="text-white/70">楼中楼：</span> : null}
+                {r.parent_id ? <span className="text-emerald-300/70">楼中楼：</span> : null}
                 {r.content}
               </p>
               <p className="mt-2 truncate text-[10px] text-white/25">

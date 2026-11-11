@@ -215,12 +215,12 @@ export default function TicketsPage() {
                 key={r.id}
                 className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed ${
                   r.is_staff
-                    ? "bg-white border border-slate-300 text-slate-800 ml-6"
+                    ? "bg-emerald-50 border border-emerald-200 text-emerald-700 ml-6"
                     : "bg-slate-50 border border-slate-200 text-slate-600 mr-6"
                 }`}
               >
                 <div className="flex items-center gap-2 mb-2 text-[0.75rem] text-slate-500">
-                  <span className={r.is_staff ? "text-slate-800 font-semibold" : "text-slate-500 font-semibold"}>
+                  <span className={r.is_staff ? "text-emerald-600 font-semibold" : "text-slate-500 font-semibold"}>
                     {r.is_staff ? "管理员" : "我"}
                   </span>
                   <span>{fmtTime(r.created_at)}</span>
@@ -259,7 +259,7 @@ export default function TicketsPage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex items-center gap-3 min-w-0">
                       <span className="font-mono text-slate-500 text-[0.82rem] tabular-nums">#{t.id}</span>
-                      <span className="text-slate-800 font-medium truncate group-hover:text-slate-950 transition-colors">{t.subject}</span>
+                      <span className="text-slate-800 font-medium truncate group-hover:text-emerald-600 transition-colors">{t.subject}</span>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <StatusBadge status={t.status} />

@@ -138,7 +138,7 @@ export default function ForumTab() {
                   type="checkbox"
                   checked={chatForm.enabled}
                   onChange={(e) => setChatForm((p) => ({ ...p, enabled: e.target.checked }))}
-                  className="w-4 h-4 accent-slate-900"
+                  className="w-4 h-4 accent-emerald-500"
                 />
               </SettingRow>
               <SettingRow label="显示公告">
@@ -146,7 +146,7 @@ export default function ForumTab() {
                   type="checkbox"
                   checked={chatForm.show_announcements}
                   onChange={(e) => setChatForm((p) => ({ ...p, show_announcements: e.target.checked }))}
-                  className="w-4 h-4 accent-slate-900"
+                  className="w-4 h-4 accent-emerald-500"
                 />
               </SettingRow>
               <SettingRow label="显示社区消息">
@@ -154,7 +154,7 @@ export default function ForumTab() {
                   type="checkbox"
                   checked={chatForm.show_chat}
                   onChange={(e) => setChatForm((p) => ({ ...p, show_chat: e.target.checked }))}
-                  className="w-4 h-4 accent-slate-900"
+                  className="w-4 h-4 accent-emerald-500"
                 />
               </SettingRow>
 

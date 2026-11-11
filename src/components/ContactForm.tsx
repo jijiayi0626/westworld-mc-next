@@ -77,7 +77,7 @@ export default function ContactForm() {
                 </h3>
                 <ul className="rules-list flex flex-col gap-4">
                   <li className="flex gap-4 items-start text-slate-300 text-[0.95rem] leading-relaxed">
-                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-white/10 text-white rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
+                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
                       1
                     </span>
                     <span className="rule-text">
@@ -85,7 +85,7 @@ export default function ContactForm() {
                     </span>
                   </li>
                   <li className="flex gap-4 items-start text-slate-300 text-[0.95rem] leading-relaxed">
-                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-white/10 text-white rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
+                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
                       2
                     </span>
                     <span className="rule-text">
@@ -94,7 +94,7 @@ export default function ContactForm() {
                     </span>
                   </li>
                   <li className="flex gap-4 items-start text-slate-300 text-[0.95rem] leading-relaxed">
-                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-white/10 text-white rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
+                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
                       3
                     </span>
                     <span className="rule-text">
@@ -103,7 +103,7 @@ export default function ContactForm() {
                     </span>
                   </li>
                   <li className="flex gap-4 items-start text-slate-300 text-[0.95rem] leading-relaxed">
-                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-white/10 text-white rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
+                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
                       4
                     </span>
                     <span className="rule-text">
@@ -111,7 +111,7 @@ export default function ContactForm() {
                     </span>
                   </li>
                   <li className="flex gap-4 items-start text-slate-300 text-[0.95rem] leading-relaxed">
-                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-white/10 text-white rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
+                    <span className="rule-icon flex items-center justify-center w-6 h-6 bg-emerald-500/20 text-emerald-400 rounded-full text-[0.8rem] font-bold flex-shrink-0 mt-0.5">
                       5
                     </span>
                     <span className="rule-text">
@@ -137,7 +137,7 @@ export default function ContactForm() {
                     name="name"
                     placeholder="请输入游戏ID或昵称"
                     required
-                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] transition-all duration-300 focus:outline-none focus:border-white/50 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-white/35 focus:outline-offset-2"
+                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] transition-all duration-300 focus:outline-none focus:border-emerald-500 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-emerald-500/40 focus:outline-offset-2"
                   />
                 </div>
 
@@ -151,7 +151,7 @@ export default function ContactForm() {
                     name="email"
                     placeholder="用于接收回复的邮箱地址"
                     required
-                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] transition-all duration-300 focus:outline-none focus:border-white/50 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-white/35 focus:outline-offset-2"
+                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] transition-all duration-300 focus:outline-none focus:border-emerald-500 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-emerald-500/40 focus:outline-offset-2"
                   />
                 </div>
 
@@ -162,7 +162,7 @@ export default function ContactForm() {
                   <select
                     id="subject"
                     name="subject"
-                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] transition-all duration-300 focus:outline-none focus:border-white/50 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-white/35 focus:outline-offset-2 [&>option]:bg-[#1a1a2e] [&>option]:text-white"
+                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] transition-all duration-300 focus:outline-none focus:border-emerald-500 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-emerald-500/40 focus:outline-offset-2 [&>option]:bg-[#1a1a2e] [&>option]:text-white"
                   >
                     <option value="report">举报违规</option>
                     <option value="bug">Bug反馈</option>
@@ -182,7 +182,7 @@ export default function ContactForm() {
                     rows={5}
                     placeholder="请详细描述您遇到的问题..."
                     required
-                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] resize-y min-h-[100px] leading-relaxed transition-all duration-300 focus:outline-none focus:border-white/50 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-white/35 focus:outline-offset-2"
+                    className="bg-black/30 border border-white/10 rounded-lg px-4 py-3 text-white text-[1rem] resize-y min-h-[100px] leading-relaxed transition-all duration-300 focus:outline-none focus:border-emerald-500 focus:bg-black/50 focus:outline focus:outline-1 focus:outline-emerald-500/40 focus:outline-offset-2"
                   />
                 </div>
 
@@ -195,7 +195,7 @@ export default function ContactForm() {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="submit-btn mt-2 bg-slate-900 hover:bg-slate-800 text-white border-none px-6 py-3 rounded-xl font-semibold text-[1.1rem] cursor-pointer transition-colors duration-150 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
+                  className="submit-btn mt-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white border-none px-6 py-3 rounded-xl font-semibold text-[1.1rem] cursor-pointer transition-colors duration-150 flex items-center justify-center gap-3 disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   <span>{submitting ? "发送中..." : submitted ? "已提交" : "发送邮件"}</span>
                   <svg viewBox="0 0 24 24" width="20" height="20">

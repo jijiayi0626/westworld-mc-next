@@ -131,7 +131,7 @@ export default function IntegrationsTab() {
                     type="checkbox"
                     checked={msForm.enabled}
                     onChange={(e) => setMsForm((p) => ({ ...p, enabled: e.target.checked }))}
-                    className="w-4 h-4 accent-slate-900"
+                    className="w-4 h-4 accent-emerald-500"
                   />
                 </SettingRow>
                 <Field label="Client ID">
@@ -139,7 +139,7 @@ export default function IntegrationsTab() {
                     value={msForm.client_id}
                     onChange={(e) => setMsForm((p) => ({ ...p, client_id: e.target.value }))}
                     placeholder={integrations.microsoft.client_id ? `Client ID（已保存 ${integrations.microsoft.client_id}，留空保留）` : "Azure 应用 Client ID"}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                   />
                 </Field>
                 <Field label="Client Secret">
@@ -149,7 +149,7 @@ export default function IntegrationsTab() {
                     onChange={(e) => setMsForm((p) => ({ ...p, client_secret: e.target.value }))}
                     placeholder={integrations.microsoft.client_secret_set ? "Client Secret（已保存，留空保留）" : "Azure 应用 Client Secret"}
                     autoComplete="new-password"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                   />
                 </Field>
                 <div className="settings-note">
@@ -182,7 +182,7 @@ export default function IntegrationsTab() {
                   <select
                     value={upopForm.upop_enabled ?? "false"}
                     onChange={(e) => setUpopForm((prev) => ({ ...prev, upop_enabled: e.target.value }))}
-                    className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                    className="bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                   >
                     <option value="false">关闭</option>
                     <option value="true">启用</option>
@@ -216,7 +216,7 @@ export default function IntegrationsTab() {
                     type="checkbox"
                     checked={inuForm.enabled}
                     onChange={(e) => setInuForm((p) => ({ ...p, enabled: e.target.checked }))}
-                    className="w-4 h-4 accent-slate-900"
+                    className="w-4 h-4 accent-emerald-500"
                   />
                 </SettingRow>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -225,7 +225,7 @@ export default function IntegrationsTab() {
                       value={inuForm.client_id}
                       onChange={(e) => setInuForm((p) => ({ ...p, client_id: e.target.value }))}
                       placeholder={integrations.inu.client_id ? `Client ID（已保存 ${integrations.inu.client_id}，留空保留）` : "INU 应用 Client ID"}
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                     />
                   </Field>
                   <Field label="Client Secret">
@@ -235,7 +235,7 @@ export default function IntegrationsTab() {
                       onChange={(e) => setInuForm((p) => ({ ...p, client_secret: e.target.value }))}
                       placeholder={integrations.inu.client_secret_set ? "Client Secret（已保存，留空保留）" : "Client Secret（公开客户端可留空）"}
                       autoComplete="new-password"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                     />
                   </Field>
                   <Field label="授权范围">
@@ -243,7 +243,7 @@ export default function IntegrationsTab() {
                       value={inuForm.scopes}
                       onChange={(e) => setInuForm((p) => ({ ...p, scopes: e.target.value }))}
                       placeholder="授权范围，默认 profile email"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                     />
                   </Field>
                   <Field label="回调地址">
@@ -251,7 +251,7 @@ export default function IntegrationsTab() {
                       value={inuForm.redirect_uri}
                       onChange={(e) => setInuForm((p) => ({ ...p, redirect_uri: e.target.value }))}
                       placeholder="如 https://站点域名/api/inu/callback"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-slate-400"
+                      className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.85rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                     />
                   </Field>
                 </div>

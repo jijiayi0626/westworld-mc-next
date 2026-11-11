@@ -175,7 +175,7 @@ export default function Navbar() {
                         href={item.href}
                         className={`block px-4 py-2 text-[0.9rem] font-medium transition-colors ${
                           isActive(item.href)
-                            ? "text-white bg-white/10"
+                            ? "text-emerald-300 bg-emerald-400/10"
                             : "text-white/75 hover:text-white hover:bg-white/10"
                         }`}
                       >

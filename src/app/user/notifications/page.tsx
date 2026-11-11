@@ -65,17 +65,17 @@ export default function NotificationsPage() {
         ) : (
           <div className="flex flex-col divide-y divide-slate-100">
             {list.map((n) => (
-              <div key={n.id} className={`py-4 ${!n.is_read ? "bg-slate-50 -mx-4 px-4 rounded-[8px]" : ""}`}>
+              <div key={n.id} className={`py-4 ${!n.is_read ? "bg-emerald-50/60 -mx-4 px-4 rounded-[8px]" : ""}`}>
                 <div className="flex items-center justify-between gap-3">
                   <div className="flex items-center gap-3 min-w-0">
                     <StatusBadge status={n.type} />
                     <span className={`text-slate-800 font-medium truncate ${!n.is_read ? "font-semibold" : ""}`}>{n.title}</span>
-                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-slate-700 flex-shrink-0" />}
+                    {!n.is_read && <span className="w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" />}
                   </div>
                   <div className="flex items-center gap-3 flex-shrink-0">
                     <span className="text-[0.75rem] text-slate-500 tabular-nums">{fmtTime(n.created_at)}</span>
                     {!n.is_read && (
-                      <button type="button" onClick={() => markRead(n.id)} className="text-[0.75rem] text-slate-700 hover:text-slate-900 underline underline-offset-2 cursor-pointer">
+                      <button type="button" onClick={() => markRead(n.id)} className="text-[0.75rem] text-emerald-600 hover:text-emerald-700 hover:underline cursor-pointer">
                         标为已读
                       </button>
                     )}

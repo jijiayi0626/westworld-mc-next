@@ -34,8 +34,8 @@ type OrderFilter = "all" | "pending" | "paid" | "completed" | "cancelled";
 
 const DELIVERY_HINTS: Record<string, { text: string; className: string }> = {
   pending: { text: "自动发货处理中", className: "text-slate-400" },
-  sent: { text: "已自动发货", className: "text-slate-700" },
-  failed: { text: "发货重试中，请联系管理员", className: "text-slate-700" },
+  sent: { text: "已自动发货", className: "text-emerald-600" },
+  failed: { text: "发货重试中，请联系管理员", className: "text-amber-600" },
   exhausted: { text: "自动发货失败，请联系管理员", className: "text-red-600" },
   skipped: { text: "等待管理员手动发货", className: "text-slate-400" },
 };
@@ -180,7 +180,7 @@ export default function OrdersPage() {
               <span className="text-slate-500">
                 {mcName ? `游戏币余额（${mcName}）：` : "游戏币余额："}
               </span>
-              <span className="font-bold text-slate-900 tabular-nums">
+              <span className="font-bold text-emerald-600 tabular-nums">
                 {balanceLoading ? "查询中..." : balance !== null ? `${balance} ${ecoCurrency}` : "获取失败"}
               </span>
               <Btn size="sm" variant="ghost" onClick={refreshBalance} disabled={balanceLoading}>刷新</Btn>
@@ -194,7 +194,7 @@ export default function OrdersPage() {
                 type="button"
                 onClick={() => setPayMethod("economy")}
                 className={`px-4 py-2 rounded-[8px] text-[0.84rem] font-medium border transition-colors cursor-pointer ${
-                  payMethod === "economy" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:text-slate-800"
+                  payMethod === "economy" ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "border-slate-200 text-slate-500 hover:text-slate-800"
                 }`}
               >
                 游戏币支付（{ecoCurrency}）
@@ -205,7 +205,7 @@ export default function OrdersPage() {
                 type="button"
                 onClick={() => setPayMethod("epay")}
                 className={`px-4 py-2 rounded-[8px] text-[0.84rem] font-medium border transition-colors cursor-pointer ${
-                  payMethod === "epay" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:text-slate-800"
+                  payMethod === "epay" ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "border-slate-200 text-slate-500 hover:text-slate-800"
                 }`}
               >
                 在线支付
@@ -215,7 +215,7 @@ export default function OrdersPage() {
               type="button"
               onClick={() => setPayMethod("manual")}
               className={`px-4 py-2 rounded-[8px] text-[0.84rem] font-medium border transition-colors cursor-pointer ${
-                payMethod === "manual" ? "bg-slate-900 border-slate-900 text-white" : "border-slate-200 text-slate-500 hover:text-slate-800"
+                payMethod === "manual" ? "bg-emerald-50 border-emerald-500 text-emerald-700" : "border-slate-200 text-slate-500 hover:text-slate-800"
               }`}
             >
               转账支付（联系管理员）
@@ -224,7 +224,7 @@ export default function OrdersPage() {
               <select
                 value={payType}
                 onChange={(e) => setPayType(e.target.value)}
-                className="px-3 py-2 rounded-[8px] border border-slate-200 bg-white text-[0.84rem] text-slate-700 focus:outline-none focus:border-slate-400"
+                className="px-3 py-2 rounded-[8px] border border-slate-200 bg-white text-[0.84rem] text-slate-700 focus:outline-none focus:border-emerald-500"
               >
                 {payTypes.map((t) => (
                   <option key={t} value={t}>{PAY_TYPE_LABELS[t] || t}</option>
@@ -248,7 +248,7 @@ export default function OrdersPage() {
                 <p className="text-[0.82rem] text-slate-500 flex-1">{p.description || "暂无描述"}</p>
                 <div className="flex items-end justify-between gap-2 mt-2">
                   <div className="flex flex-col">
-                    <span className="text-slate-900 font-bold text-[1.05rem] tabular-nums">{p.price} {p.currency}</span>
+                    <span className="text-emerald-600 font-bold text-[1.05rem] tabular-nums">{p.price} {p.currency}</span>
                     {p.stock === 0 ? (
                       <span className="text-[0.72rem] text-red-600">已售罄</span>
                     ) : p.stock > 0 ? (
@@ -288,7 +288,7 @@ export default function OrdersPage() {
                 onClick={() => setOrderFilter(t.key)}
                 className={`px-3 py-2 rounded-[8px] text-[0.8rem] font-medium border transition-colors cursor-pointer tabular-nums ${
                   orderFilter === t.key
-                    ? "bg-slate-900 border-slate-900 text-white"
+                    ? "bg-emerald-50 border-emerald-500 text-emerald-700"
                     : "bg-white border-slate-200 text-slate-500 hover:text-slate-800"
                 }`}
               >
@@ -324,7 +324,7 @@ export default function OrdersPage() {
                     <td className="py-3 pr-3 font-mono text-[0.78rem]">{o.order_no}</td>
                     <td className="py-3 pr-3">{o.product_name}</td>
                     <td className="py-3 pr-3">{o.qty}</td>
-                    <td className="py-3 pr-3 text-slate-900 font-semibold tabular-nums">{o.total} {o.currency}</td>
+                    <td className="py-3 pr-3 text-emerald-600 font-semibold tabular-nums">{o.total} {o.currency}</td>
                     <td className="py-3 pr-3">
                       <StatusBadge status={o.status} />
                       {o.status === "paid" && o.delivery_status && DELIVERY_HINTS[o.delivery_status] && (

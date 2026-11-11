@@ -54,7 +54,7 @@ export default function AnnouncementsSection() {
               <path
                 fill="currentColor"
                 d="M12 22a2 2 0 0 0 2-2h-4a2 2 0 0 0 2 2zm6-6v-5a6 6 0 0 0-5-5.91V4a1 1 0 1 0-2 0v1.09A6 6 0 0 0 6 11v5l-2 2v1h16v-1l-2-2z"
-                className="text-white"
+                className="text-emerald-400"
               />
             </svg>
             官方公告
@@ -62,7 +62,7 @@ export default function AnnouncementsSection() {
           <button
             type="button"
             onClick={() => router.push("/forum")}
-            className="inline-flex items-center gap-1 text-[0.88rem] text-white/60 hover:text-white transition-colors cursor-pointer"
+            className="inline-flex items-center gap-1 text-[0.88rem] text-white/60 hover:text-emerald-400 transition-colors cursor-pointer"
           >
             进入社区
             <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">

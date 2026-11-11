@@ -128,7 +128,7 @@ export default function UserPointsPage() {
           <div className="flex flex-col gap-4">
             <Card className="text-center">
               <div className="text-[0.82rem] text-slate-500">当前积分</div>
-              <div className="mt-1 text-[2.6rem] font-extrabold text-slate-900 leading-none tabular-nums">{data.points}</div>
+              <div className="mt-1 text-[2.6rem] font-extrabold text-emerald-600 leading-none tabular-nums">{data.points}</div>
               <div className="mt-3 flex items-center justify-center gap-2">
                 {data.checkin.checked_in ? (
                   <Badge color="green">今日已签到</Badge>
@@ -204,7 +204,7 @@ export default function UserPointsPage() {
                         {log.detail || "—"} · {fmtTime(log.created_at)}
                       </p>
                     </div>
-                    <span className={`text-[0.95rem] font-bold tabular-nums ${log.amount >= 0 ? "text-slate-900" : "text-red-600"}`}>
+                    <span className={`text-[0.95rem] font-bold tabular-nums ${log.amount >= 0 ? "text-emerald-600" : "text-red-600"}`}>
                       {log.amount >= 0 ? "+" : ""}{log.amount}
                     </span>
                   </li>
@@ -225,7 +225,7 @@ function Rule({ label, value, hint }: { label: string; value: string; hint: stri
         <p className="font-medium text-slate-700">{label}</p>
         <p className="text-[0.75rem] text-slate-400">{hint}</p>
       </div>
-      <span className="shrink-0 font-bold text-slate-900 tabular-nums">{value}</span>
+      <span className="shrink-0 font-bold text-emerald-600 tabular-nums">{value}</span>
     </li>
   );
 }

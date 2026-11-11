@@ -49,12 +49,12 @@
 
   .text-rainbow {
     @apply inline-block font-extrabold;
-    color: #ffffff;
+    color: #34d399;
   }
 
   .text-rainbow-fast {
     @apply inline-block font-extrabold;
-    color: #ffffff;
+    color: #34d399;
   }
 }
 
@@ -119,8 +119,8 @@
   left: 0;
   width: 100%;
   height: 2px;
-  background: #e2e8f0;
-  border-radius: 0;
+  background: #10b981;
+  border-radius: 1px;
 }
 
 /* Hamburger 动画 */
@@ -201,7 +201,7 @@ body.nav-open {
   }
   .nav-links a:hover,
   .nav-links a:active {
-    background: rgba(255, 255, 255, 0.08);
+    background: rgba(16, 185, 129, 0.12);
     color: #ffffff;
   }
   .nav-link-active::after {
@@ -324,15 +324,59 @@ body.nav-open {
 }
 
 /* ============================================================
-   Hero 背景：纯中性色，不再使用光晕与网格渐变
+   Hero 光效背景：细网格 + 低透明度绿色光晕
    ============================================================ */
 .hero-glow {
-  background: none;
+  background:
+    radial-gradient(ellipse at 15% 35%, rgba(16, 185, 129, 0.14) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 70%, rgba(16, 185, 129, 0.08) 0%, transparent 45%),
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: auto, auto, 44px 44px, 44px 44px;
+  -webkit-mask-image: radial-gradient(ellipse at center, black 25%, transparent 78%);
+  mask-image: radial-gradient(ellipse at center, black 25%, transparent 78%);
 }
 
-/* Hero 浮动装饰已移除，保留容器占位以兼容既有结构 */
+/* Hero 浮动方块粒子（纯 CSS，仅动 transform / opacity） */
 .hero-floating {
-  display: none;
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 1;
+}
+.hero-cube {
+  position: absolute;
+  bottom: -60px;
+  opacity: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04));
+  border: 1px solid rgba(16, 185, 129, 0.22);
+  border-radius: 2px;
+  animation: hero-cube-rise linear infinite;
+}
+.hero-cube-1 { left: 8%;  width: 18px; height: 18px; animation-duration: 16s; animation-delay: 0s; }
+.hero-cube-2 { left: 20%; width: 12px; height: 12px; animation-duration: 21s; animation-delay: 3s; }
+.hero-cube-3 { left: 34%; width: 26px; height: 26px; animation-duration: 18s; animation-delay: 6s; }
+.hero-cube-4 { left: 48%; width: 14px; height: 14px; animation-duration: 23s; animation-delay: 9s; }
+.hero-cube-5 { left: 62%; width: 20px; height: 20px; animation-duration: 17s; animation-delay: 4s; }
+.hero-cube-6 { left: 74%; width: 15px; height: 15px; animation-duration: 20s; animation-delay: 7s; }
+.hero-cube-7 { left: 86%; width: 22px; height: 22px; animation-duration: 19s; animation-delay: 11s; }
+.hero-cube-8 { left: 93%; width: 11px; height: 11px; animation-duration: 24s; animation-delay: 2s; }
+
+@keyframes hero-cube-rise {
+  0%   { transform: translate3d(0, 0, 0) rotate(0deg); opacity: 0; }
+  10%  { opacity: 0.8; }
+  90%  { opacity: 0.4; }
+  100% { transform: translate3d(0, -110vh, 0) rotate(540deg); opacity: 0; }
+}
+
+@media (max-width: 767px) {
+  .hero-cube { display: none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-floating { display: none; }
+  .hero-cube { animation: none; }
 }
 
 /* ============================================================
@@ -390,8 +434,8 @@ body.nav-open {
   transform: translateX(-50%);
   width: 56px;
   height: 2px;
-  border-radius: 0;
-  background: #94a3b8;
+  border-radius: 1px;
+  background: #10b981;
 }
 
 /* ============================================================
@@ -411,11 +455,11 @@ body.nav-open {
 }
 .home-announcements .home-announcement:hover {
   background: rgba(255, 255, 255, 0.09);
-  border-color: rgba(255, 255, 255, 0.3);
+  border-color: rgba(16, 185, 129, 0.4);
 }
 .home-announcements .home-announcement-level {
-  background: rgba(255, 255, 255, 0.1);
-  color: #e2e8f0;
+  background: rgba(16, 185, 129, 0.16);
+  color: #34d399;
 }
 .home-announcements .home-announcement-time {
   color: #94a3b8;
@@ -464,10 +508,12 @@ body.nav-open {
 }
 
 /* ============================================================
-   规则/FAQ 等独立页背景：中性纯色
+   规则/FAQ 等独立页背景光效
    ============================================================ */
 .rules-glow {
-  background: none;
+  background:
+    radial-gradient(ellipse at 20% 0%, rgba(16, 185, 129, 0.1) 0%, transparent 45%),
+    radial-gradient(ellipse at 85% 100%, rgba(16, 185, 129, 0.06) 0%, transparent 45%);
 }
 
 /* ============================================================
@@ -508,7 +554,7 @@ body.nav-open {
   transition: transform 0.2s ease, border-color 0.15s ease, box-shadow 0.2s ease;
 }
 .mc-card:hover {
-  border-color: rgba(255, 255, 255, 0.28);
+  border-color: rgba(52, 211, 153, 0.4);
   transform: translateY(-3px);
 }
 
@@ -552,7 +598,7 @@ select:focus-visible,
 
 /* 文本选中色 */
 ::selection {
-  background: rgba(255, 255, 255, 0.24);
+  background: rgba(16, 185, 129, 0.35);
   color: #fff;
 }
 

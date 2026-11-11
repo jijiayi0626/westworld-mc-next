@@ -31,7 +31,7 @@ export function AttachmentList({ items }: { items: TicketAttachment[] }) {
           href={a.url}
           target="_blank"
           rel="noreferrer"
-          className="group block border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-slate-400 transition-colors"
+          className="group block border border-slate-200 rounded-lg overflow-hidden bg-white hover:border-emerald-300 transition-colors"
           title={a.name}
         >
           {isImage(a) ? (

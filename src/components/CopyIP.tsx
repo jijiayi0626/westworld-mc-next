@@ -37,19 +37,19 @@ export default function CopyIP({ ip }: CopyIPProps) {
       className={`boton-minecraft flex items-center gap-2.5 px-6 py-3 text-lg font-bold rounded-lg cursor-pointer transition-all duration-300 border-none h-14 ${
         copied
           ? "bg-slate-200 text-slate-900 shadow-[inset_0_2px_5px_rgba(0,0,0,0.1)]"
-          : "bg-white text-bg-dark shadow-[0_4px_12px_rgba(0,0,0,0.28)] hover:bg-white/90 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(0,0,0,0.32)] hover:border hover:border-white/10 active:scale-[0.98]"
+          : "bg-gradient-to-r from-emerald-500 to-green-600 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)] hover:from-emerald-600 hover:to-green-700 hover:-translate-y-0.5 hover:shadow-[0_6px_16px_rgba(16,185,129,0.36)] hover:border hover:border-emerald-400/30 active:scale-[0.98]"
       }`}
     >
       <svg viewBox="0 0 32 32" height="24" width="24" xmlns="http://www.w3.org/2000/svg">
-        <path d="M30 2H2v28h28z" fill={copied ? "#334155" : "#0f172a"} />
+        <path d="M30 2H2v28h28z" fill={copied ? "#228b22" : "#52a535"} />
         <path
           d="M24.4 13.2h-5.6v.47h5.6zm-5.6 8.4h-5.6v.47h5.6zm2.8 2.8h-2.8v.47h2.8zm-8.4 0h-2.8v.47h2.8zm0-11.2H7.6v.47h5.6z"
-          fill="#cbd5e1"
+          fill="#86d562"
         />
         <path d="M24.4 13.2V7.6h-5.6v5.6h-5.6V16h-2.8v8.4h2.8v-2.8h5.6v2.8h2.8V16h-2.8v-2.8zM13.2 7.6H7.6v5.6h5.6z" />
         <path
           d="M24.4 7.6h-5.6v.47h5.6zm-5.6 5.6h-5.6v.47h5.6zm-5.6-5.6H7.6v.47h5.6zm0 8.4h-2.8v.47h2.8zm8.4 0h-2.8v.47h2.8z"
-          fill="#94a3b8"
+          fill="#86d562"
         />
     </svg>
       <div className="relative flex justify-center items-center w-[140px] h-6 overflow-hidden">

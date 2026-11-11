@@ -47,9 +47,7 @@
 }
 
 :root[data-theme="dark"] .user-container {
-  --sb-accent: #f1f5f9;
-  --sb-accent-strong: #f1f5f9;
-  --sb-accent-bg: rgba(255, 255, 255, 0.08);
+  --sb-accent-bg: color-mix(in srgb, var(--green) 16%, transparent);
 }
 
 /* ---------- 顶栏（桌面 sticky / 移动 fixed） ---------- */

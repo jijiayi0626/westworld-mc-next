@@ -90,12 +90,12 @@ export default function HelpSteps() {
           {help.steps.map((step, i) => (
             <div key={i} className="contents">
               <ScrollFadeUp delay={((i * 2 + 1) * 100) as 100 | 300 | 500}>
-                <div className="step-card group bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-8 text-center flex-1 min-w-[280px] max-w-[350px] transition-all duration-300 relative overflow-hidden hover:-translate-y-2 hover:bg-white/[0.08] hover:border-white/30 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
-                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                <div className="step-card group bg-white/5 backdrop-blur-glass border border-white/10 rounded-2xl p-8 text-center flex-1 min-w-[280px] max-w-[350px] transition-all duration-300 relative overflow-hidden hover:-translate-y-2 hover:bg-white/[0.08] hover:border-emerald-400/40 hover:shadow-[0_16px_40px_rgba(0,0,0,0.32)]">
+                  <div className="absolute top-0 left-0 right-0 h-[3px] bg-emerald-500/60 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   <div className="step-number absolute -top-2.5 -right-2.5 text-[5rem] font-black text-white/[0.05] leading-none z-0 pointer-events-none">
                     {step.number}
         </div>
-                  <div className="step-icon w-[70px] h-[70px] bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 text-white/70 relative z-[1] border border-white/10 transition-all duration-300 hover:bg-white hover:text-bg-dark hover:scale-110 hover:rotate-[10deg] hover:shadow-[0_8px_16px_rgba(0,0,0,0.24)]">
+                  <div className="step-icon w-[70px] h-[70px] bg-white/10 rounded-full flex items-center justify-center mx-auto mb-6 text-emerald-400 relative z-[1] border border-white/10 transition-all duration-300 hover:bg-emerald-400 hover:text-bg-dark hover:scale-110 hover:rotate-[10deg] hover:shadow-[0_8px_16px_rgba(16,185,129,0.3)]">
                     {i === 0 && (
                       <svg width="40" height="40" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path d="M21 15V19C21 19.5304 20.7893 20.0391 20.4142 20.4142C20.0391 20.7893 19.5304 21 19 21H5C4.46957 21 3.96086 20.7893 3.58579 20.4142C3.21071 20.0391 3 19.5304 3 19V15" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -132,7 +132,7 @@ export default function HelpSteps() {
                   )}
                   {i === 1 && (
                     <div className="server-address-box bg-black/30 border border-white/10 rounded-lg px-3 py-2 flex items-center justify-between gap-2 relative z-[1]">
-                      <span className="font-mono text-white font-bold tracking-wider">
+                      <span className="font-mono text-emerald-400 font-bold tracking-wider">
                         {site.server_ip}
             </span>
                       <button
@@ -177,7 +177,7 @@ export default function HelpSteps() {
             <p className="text-[0.95rem] text-white/70 mb-6 text-center">
               输入任意服务器地址即可查询 MOTD、版本与在线人数（由 MineBBS MOTD API 提供）
             </p>
-            <div className="[&_input]:bg-white/10 [&_input]:border [&_input]:border-white/15 [&_input]:rounded-[8px] [&_input]:px-4 [&_input]:py-2 [&_input]:text-white [&_input]:placeholder:text-white/40 [&_input]:text-[0.9rem] [&_input]:focus:outline-none [&_input]:focus:border-white/50 [&_button]:bg-white [&_button]:text-bg-dark [&_button]:border-0 [&_button]:rounded-[8px] [&_button]:px-5 [&_button]:py-2 [&_button]:font-semibold [&_button]:cursor-pointer [&_button]:hover:bg-white/90 [&_button]:transition-colors [&_button]:disabled:opacity-50">
+            <div className="[&_input]:bg-white/10 [&_input]:border [&_input]:border-white/15 [&_input]:rounded-[8px] [&_input]:px-4 [&_input]:py-2 [&_input]:text-white [&_input]:placeholder:text-white/40 [&_input]:text-[0.9rem] [&_input]:focus:outline-none [&_input]:focus:border-emerald-500/60 [&_button]:bg-emerald-500 [&_button]:text-white [&_button]:border-0 [&_button]:rounded-[8px] [&_button]:px-5 [&_button]:py-2 [&_button]:font-semibold [&_button]:cursor-pointer [&_button]:hover:bg-emerald-600 [&_button]:transition-colors [&_button]:disabled:opacity-50">
               <MotdQuery defaultHost={site.server_ip} />
             </div>
           </ScrollFadeUp>
@@ -206,7 +206,7 @@ export default function HelpSteps() {
                     aria-pressed={downloadSource === item.key}
                     className={`px-5 py-2 rounded-xl text-[0.9rem] font-semibold transition-all duration-300 border-0 cursor-pointer ${
                       downloadSource === item.key
-                        ? "bg-white text-bg-dark shadow-[0_4px_12px_rgba(0,0,0,0.28)]"
+                        ? "bg-emerald-500 text-white shadow-[0_4px_12px_rgba(16,185,129,0.3)]"
                         : "bg-transparent text-white/70 hover:text-white hover:bg-white/10"
                     }`}
                     title={item.hint}
@@ -231,7 +231,7 @@ export default function HelpSteps() {
                   <div className="flex items-center justify-between mb-3">
                     <h4 className="text-[1.15rem] font-bold text-white">{launcher.name}</h4>
                     {launcher.tag && (
-                      <span className="text-[0.72rem] font-bold px-2 py-1 rounded-lg text-bg-dark bg-white">
+                      <span className="text-[0.72rem] font-bold px-2 py-1 rounded-lg text-white bg-emerald-500">
                         {launcher.tag}
                       </span>
                     )}

@@ -213,7 +213,7 @@ export default function BasicTab() {
               {filteredList.map((s) => (
                 <div key={s.key} className="settings-row">
                   <div className="settings-row__label">
-                    <div className="font-mono text-[0.85rem] text-slate-700 break-all">{s.key}</div>
+                    <div className="font-mono text-[0.85rem] text-emerald-700 break-all">{s.key}</div>
                     <div className="mt-1 text-[0.85rem] text-slate-600 break-all">{s.value}</div>
                   </div>
                   <div className="settings-row__control">

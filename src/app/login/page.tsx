@@ -187,7 +187,7 @@ export default function LoginPage() {
                   setSuccess("");
                 }}
                 className={`flex-1 py-2 rounded-[8px] text-[0.88rem] font-semibold transition-all cursor-pointer ${
-                  tab === t.key ? "bg-white text-slate-900 shadow-sm" : "text-slate-500 hover:text-slate-700"
+                  tab === t.key ? "bg-white text-emerald-600 shadow-sm" : "text-slate-500 hover:text-emerald-600"
                 }`}
               >
                 {t.label}
@@ -220,7 +220,7 @@ export default function LoginPage() {
               </div>
               <button type="submit" className="login-btn hm-press" disabled={busy}>{busy ? "提交中..." : "重置密码"}</button>
               <div className="login-footer">
-                <button type="button" onClick={() => setTab("login")} className="bg-transparent border-none text-slate-400 hover:text-slate-900 cursor-pointer text-[0.85rem]">
+                <button type="button" onClick={() => setTab("login")} className="bg-transparent border-none text-slate-400 hover:text-emerald-600 cursor-pointer text-[0.85rem]">
                   ← 返回登录
                 </button>
               </div>
@@ -294,7 +294,7 @@ export default function LoginPage() {
               </div>
               <a
                 href="/api/inu/start"
-                className="block w-full py-3 rounded-[12px] border border-slate-200 text-center text-[0.92rem] font-semibold text-slate-700 hover:border-slate-400 hover:text-slate-900 transition-colors"
+                className="block w-full py-3 rounded-[12px] border border-slate-200 text-center text-[0.92rem] font-semibold text-slate-700 hover:border-emerald-400 hover:text-emerald-600 transition-colors"
               >
                 使用 INU 账号登录
               </a>
@@ -304,8 +304,8 @@ export default function LoginPage() {
 
           <div className="login-footer">
             <div className="flex items-center justify-between text-[0.82rem]">
-              <button type="button" onClick={() => { setTab("forgot"); setError(""); setSuccess(""); }} className="bg-transparent border-none text-slate-400 hover:text-slate-900 cursor-pointer text-[0.82rem]">忘记密码？</button>
-              <Link href="/" className="text-slate-400 hover:text-slate-900">返回网站首页</Link>
+              <button type="button" onClick={() => { setTab("forgot"); setError(""); setSuccess(""); }} className="bg-transparent border-none text-slate-400 hover:text-emerald-600 cursor-pointer text-[0.82rem]">忘记密码？</button>
+              <Link href="/" className="text-slate-400 hover:text-emerald-600">返回网站首页</Link>
             </div>
             <div className="mt-4 pt-3 border-t border-slate-100 text-slate-400 text-[0.78rem]">
               注册即代表同意遵守服务器规则，请文明游戏

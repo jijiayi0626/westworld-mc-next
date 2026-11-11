@@ -77,7 +77,7 @@ export function ImgTxt({ value, onChange, placeholder }: { value: string; onChan
                   key={i.key}
                   type="button"
                   onClick={() => { onChange(i.url); setOpen(false); }}
-                  className="rounded-lg overflow-hidden border border-slate-200 hover:border-slate-400 hover:shadow-md transition-all cursor-pointer bg-slate-50"
+                  className="rounded-lg overflow-hidden border border-slate-200 hover:border-emerald-400 hover:shadow-md transition-all cursor-pointer bg-slate-50"
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img src={i.url} alt={i.key} className="w-full h-20 object-cover" loading="lazy" />

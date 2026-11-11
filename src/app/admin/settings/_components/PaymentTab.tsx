@@ -94,7 +94,7 @@ export default function PaymentTab() {
           desc="兼容主流易支付服务商的通用协议。用户在商城下单后可直接跳转支付宝 / 微信 / QQ 钱包收银台，支付成功由服务端异步通知自动更新订单状态。"
           aside={
             payCfg ? (
-              <Badge color="gray">
+              <Badge color={payCfg.configured ? "green" : payCfg.enabled ? "yellow" : "gray"}>
                 {payCfg.configured ? "已配置可用" : payCfg.enabled ? "已启用（配置不完整）" : "未启用"}
               </Badge>
             ) : undefined
@@ -109,7 +109,7 @@ export default function PaymentTab() {
                 type="checkbox"
                 checked={payForm.enabled}
                 onChange={(e) => setPayForm((p) => ({ ...p, enabled: e.target.checked }))}
-                className="w-4 h-4 accent-slate-900"
+                className="w-4 h-4 accent-emerald-600"
               />
             </SettingRow>
 
@@ -160,7 +160,7 @@ export default function PaymentTab() {
                           types: e.target.checked ? [...p.types, t.key] : p.types.filter((x) => x !== t.key),
                         }))
                       }
-                      className="w-4 h-4 accent-slate-900"
+                      className="w-4 h-4 accent-emerald-600"
                     />
                     {t.label}
                   </label>
@@ -184,7 +184,7 @@ export default function PaymentTab() {
               </Btn>
             </div>
             {payTest.err && <div className="settings-error break-all">{payTest.err}</div>}
-            {payTest.ok && <div className="settings-error">{payTest.ok}</div>}
+            {payTest.ok && <div className="px-4 py-2.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{payTest.ok}</div>}
           </form>
         )}
         </SettingsGroup>

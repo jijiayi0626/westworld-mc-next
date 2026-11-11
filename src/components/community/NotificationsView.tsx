@@ -81,7 +81,7 @@ export default function NotificationsView({
                 }
                 onOpenPost(n.post_id);
               }}
-              className={`${CARD} flex w-full items-start gap-3 p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]`}
+              className={`${CARD} flex w-full items-start gap-3 p-4 text-left transition hover:border-emerald-400/25 hover:bg-white/[0.06]`}
             >
               <Avatar src={n.actor_avatar} name={n.actor_name} size={34} />
               <div className="min-w-0 flex-1">
@@ -94,7 +94,7 @@ export default function NotificationsView({
                 ) : null}
                 <p className="mt-1 text-[10px] text-white/25">{relTime(n.created_at)}</p>
               </div>
-              {!n.read ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-white/60" /> : null}
+              {!n.read ? <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-emerald-400" /> : null}
             </button>
           ))}
         </div>

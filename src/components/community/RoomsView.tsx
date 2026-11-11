@@ -107,7 +107,7 @@ export default function RoomsView({
                   <PresenceDot presence={room.peer_presence} />
                   <span className="shrink-0 text-[10px] text-white/30">{presenceLabel(room.peer_presence)}</span>
                   {room.unread > 0 && (
-                    <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-[#04120c]">
+                    <span className="rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-bold text-[#04120c]">
                       {room.unread > 99 ? "99+" : room.unread}
                     </span>
                   )}
@@ -219,7 +219,7 @@ function GroupsPanel({
           {groups.map((room) => (
             <button
               key={room.id}
-              className={`${CARD} flex items-start gap-3 p-4 text-left transition hover:border-white/20 hover:bg-white/[0.06]`}
+              className={`${CARD} flex items-start gap-3 p-4 text-left transition hover:border-emerald-400/25 hover:bg-white/[0.06]`}
               onClick={() => onOpenRoom(room.id, room.display_name)}
             >
               <Avatar src={room.display_avatar} name={room.display_name} size={46} />
@@ -227,10 +227,10 @@ function GroupsPanel({
                 <div className="flex items-center gap-2">
                   <span className="truncate text-sm font-bold text-white/85">{room.display_name}</span>
                   {room.my_role === "owner" && (
-                    <span className="rounded-lg border border-white/20 px-1 text-[9px] text-white/70">群主</span>
+                    <span className="rounded-lg border border-emerald-400/25 px-1 text-[9px] text-emerald-300">群主</span>
                   )}
                   {room.unread > 0 && (
-                    <span className="rounded-lg bg-white px-2 py-1 text-[10px] font-bold text-[#04120c]">
+                    <span className="rounded-lg bg-emerald-500 px-2 py-1 text-[10px] font-bold text-[#04120c]">
                       {room.unread > 99 ? "99+" : room.unread}
                     </span>
                   )}
@@ -459,7 +459,7 @@ function FriendsPanel({
                   <p className="text-[10px] text-white/30">请求加你为好友</p>
                 </div>
                 <button
-                  className="rounded-lg bg-white/10 px-3 py-2 text-[11px] font-semibold text-white/80 transition hover:bg-white/15 disabled:opacity-40"
+                  className="rounded-lg bg-emerald-500/15 px-3 py-2 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-40"
                   disabled={busy === r.user_id}
                   onClick={() => void handleRequest(r.user_id, "accept")}
                 >
@@ -533,7 +533,7 @@ function FriendsPanel({
                       <span className="text-[10px] text-white/25">已申请</span>
                     ) : status === "incoming" ? (
                       <button
-                        className="rounded-lg border border-white/20 bg-white/10 px-2 py-1 text-[10px] text-white/80 transition hover:bg-white/20 disabled:opacity-40"
+                        className="rounded-lg border border-emerald-400/25 bg-emerald-500/10 px-2 py-1 text-[10px] text-emerald-300 transition hover:bg-emerald-500/20 disabled:opacity-40"
                         disabled={busy === u.id}
                         onClick={() => void handleRequest(u.id, "accept")}
                       >
@@ -549,7 +549,7 @@ function FriendsPanel({
                       </button>
                     )}
                     <button
-                      className="rounded-lg bg-white/10 px-2 py-1 text-[10px] font-semibold text-white/80 disabled:opacity-40"
+                      className="rounded-lg bg-emerald-500/15 px-2 py-1 text-[10px] font-semibold text-emerald-300 disabled:opacity-40"
                       disabled={busy === u.id || status !== "accepted"}
                       title={status === "accepted" ? "发私信" : "对方同意好友申请后才能发私信"}
                       onClick={() => void startDm(u.id, u.username)}
@@ -587,7 +587,7 @@ function FriendsPanel({
                 </p>
               </div>
               <button
-                className="rounded-lg bg-white/10 px-3 py-2 text-[11px] font-semibold text-white/80 transition hover:bg-white/15 disabled:opacity-40"
+                className="rounded-lg bg-emerald-500/15 px-3 py-2 text-[11px] font-semibold text-emerald-300 transition hover:bg-emerald-500/25 disabled:opacity-40"
                 disabled={busy === c.user_id}
                 onClick={() => void startDm(c.user_id, c.alias || c.username)}
               >

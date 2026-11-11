@@ -71,7 +71,7 @@ export default function ServerStatus({
             failed || !server
               ? "bg-slate-400"
               : online
-                ? "bg-white"
+                ? "bg-emerald-400"
                 : "bg-slate-500"
           }`}
         />
@@ -109,13 +109,13 @@ export default function ServerStatus({
               failed
                 ? "bg-slate-100 text-slate-500"
                 : online
-                  ? "bg-slate-900 text-white"
+                  ? "bg-emerald-50 text-emerald-600"
                   : "bg-slate-100 text-slate-600"
             }`}
           >
             <span
               className={`w-1.5 h-1.5 rounded-full ${
-                failed ? "bg-slate-400" : online ? "bg-white" : "bg-slate-400"
+                failed ? "bg-slate-400" : online ? "bg-emerald-500" : "bg-red-500"
               }`}
             />
             {failed ? "状态未知" : online ? "在线" : "离线"}
@@ -164,7 +164,7 @@ export default function ServerStatus({
           failed
             ? "bg-slate-400"
             : online
-              ? "bg-white"
+              ? "bg-emerald-400"
               : "bg-slate-500"
         }`}
       />

@@ -127,7 +127,7 @@ export default function TeamCarousel() {
                 key={i}
                 className="team-card flex-[0_0_280px] w-[280px] min-w-0 bg-white/[0.06] backdrop-blur-glass border border-white/10 rounded-3xl px-8 py-8 text-center transition-all duration-300 flex flex-col items-center relative overflow-hidden hover:-translate-y-2 hover:bg-white/[0.1] hover:border-white/25 hover:shadow-[0_16px_40px_rgba(0,0,0,0.36)] group"
               >
-                <div className="relative z-[1] team-avatar w-[104px] h-[104px] rounded-full mb-6 overflow-hidden border border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:border-white/50 group-hover:scale-105">
+                <div className="relative z-[1] team-avatar w-[104px] h-[104px] rounded-full mb-6 overflow-hidden border border-emerald-400/40 shadow-[0_8px_24px_rgba(0,0,0,0.3)] transition-all duration-300 group-hover:border-emerald-400 group-hover:scale-105">
                   <img
                     src={member.avatar}
                     alt={`${member.name}头像`}
@@ -137,7 +137,7 @@ export default function TeamCarousel() {
                   />
                 </div>
                 <h3 className="relative z-[1] team-name text-[1.5rem] text-white mb-2">{member.name}</h3>
-                <p className="relative z-[1] team-role text-[0.9rem] text-slate-300 tracking-wider mb-4 font-semibold">
+                <p className="relative z-[1] team-role text-[0.9rem] text-emerald-400 tracking-wider mb-4 font-semibold">
                   {member.role}
                 </p>
                 <p className="relative z-[1] team-desc text-[0.95rem] text-white/70 leading-relaxed">

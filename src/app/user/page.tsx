@@ -101,9 +101,9 @@ export default function UserHomePage() {
           <div className="flex flex-col items-center text-center gap-3 pb-6 border-b border-slate-200">
             {user.avatar ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border border-slate-200" />
+              <img src={user.avatar} alt="头像" className="w-20 h-20 rounded-full object-cover border-2 border-emerald-500/40" />
             ) : (
-              <div className="w-20 h-20 rounded-full bg-slate-900 flex items-center justify-center text-3xl font-extrabold text-white">
+              <div className="w-20 h-20 rounded-full bg-gradient-to-br from-[#10b981] to-[#059669] flex items-center justify-center text-3xl font-extrabold text-white">
                 {user.username.slice(0, 1).toUpperCase()}
               </div>
             )}
@@ -133,16 +133,16 @@ export default function UserHomePage() {
           <Card>
             <div className="flex items-center justify-between mb-2">
               <h3 className="text-[1.05rem] font-bold text-slate-800">新人任务</h3>
-              <span className="text-[0.85rem] font-semibold text-slate-700 tabular-nums">{doneCount} / {tasks.length}</span>
+              <span className="text-[0.85rem] font-semibold text-emerald-600 tabular-nums">{doneCount} / {tasks.length}</span>
             </div>
             <p className="text-[0.8rem] text-slate-500 mb-3">完善资料后即可获得更完整的社区体验</p>
             <div className="h-2 rounded-full bg-slate-100 overflow-hidden mb-4">
-              <div className="h-full bg-slate-900 transition-all" style={{ width: `${percent}%` }} />
+              <div className="h-full bg-gradient-to-r from-[#10b981] to-[#059669] transition-all" style={{ width: `${percent}%` }} />
             </div>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-2">
               {tasks.map((t) => (
                 <li key={t.label} className="flex items-center gap-2 text-[0.85rem]">
-                  <span className={`inline-flex w-5 h-5 items-center justify-center rounded-full ${t.done ? "bg-slate-900 text-white" : "bg-slate-100 text-slate-400"}`}>
+                  <span className={`inline-flex w-5 h-5 items-center justify-center rounded-full ${t.done ? "bg-emerald-100 text-emerald-600" : "bg-slate-100 text-slate-400"}`}>
                     {t.done ? (
                       <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M20 6L9 17l-5-5" />
@@ -164,10 +164,10 @@ export default function UserHomePage() {
                 <li key={q.href} className="border-b border-slate-100 last:border-b-0">
                   <Link href={q.href} className="flex items-center justify-between gap-3 py-3 group">
                     <span className="min-w-0">
-                      <span className="block text-[0.95rem] font-semibold text-slate-800">{q.label}</span>
+                      <span className="block text-[0.95rem] font-semibold text-slate-800 group-hover:text-emerald-700 transition-colors">{q.label}</span>
                       <span className="block text-[0.82rem] text-slate-500 mt-1">{q.desc}</span>
                     </span>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400" aria-hidden="true">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 text-slate-400 group-hover:text-emerald-600 transition-colors" aria-hidden="true">
                       <path d="m9 18 6-6-6-6" />
                     </svg>
                   </Link>
@@ -200,7 +200,7 @@ export default function UserHomePage() {
                         e.target.value = "";
                       }}
                     />
-                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-slate-900 text-white text-[0.85rem] font-semibold hover:bg-slate-800 transition-colors">
+                    <span className="inline-flex items-center gap-2 px-4 py-2 rounded-[8px] bg-[#10b981] text-white text-[0.85rem] font-semibold hover:bg-[#059669] transition-colors">
                       <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                         <path d="M12 5v14M5 12h14" />
                       </svg>

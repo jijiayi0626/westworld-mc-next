@@ -127,11 +127,11 @@ export default function AiPage() {
                     type="button"
                     onClick={() => openConvo(c.id)}
                     className={`flex-1 text-left px-3 py-2 rounded-[8px] text-[0.85rem] transition-colors cursor-pointer truncate ${
-                      current === c.id ? "bg-slate-900 text-white" : "text-slate-600 hover:bg-slate-100"
+                      current === c.id ? "bg-emerald-50 text-emerald-700" : "text-slate-600 hover:bg-slate-100"
                     }`}
                   >
                     {c.title}
-                    <span className={`block text-[0.7rem] mt-1 tabular-nums ${current === c.id ? "text-slate-300" : "text-slate-500"}`}>{fmtTime(c.created_at)} · {c.messages} 条</span>
+                    <span className={`block text-[0.7rem] mt-1 tabular-nums ${current === c.id ? "text-emerald-600" : "text-slate-500"}`}>{fmtTime(c.created_at)} · {c.messages} 条</span>
                   </button>
                   <button
                     type="button"
@@ -155,7 +155,7 @@ export default function AiPage() {
             {error && <div className="px-3 py-2 text-[0.82rem] text-red-600 bg-red-50 border border-red-200 rounded-[8px]">{error}</div>}
             {!messages || messages.length === 0 ? (
               <div className="flex-1 flex flex-col items-center justify-center text-center gap-3">
-                <div className="w-16 h-16 rounded-[16px] bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
+                <div className="w-16 h-16 rounded-[16px] bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-600">
                   <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
                     <path d="M12 2a4 4 0 0 1 4 4h1a3 3 0 0 1 3 3v7a3 3 0 0 1-3 3H7a3 3 0 0 1-3-3V9a3 3 0 0 1 3-3h1a4 4 0 0 1 4-4z" />
                     <path d="M9 12v.01" />
@@ -173,7 +173,7 @@ export default function AiPage() {
                   key={m.id}
                   className={`px-4 py-3 rounded-[12px] text-[0.9rem] leading-relaxed whitespace-pre-wrap max-w-[85%] ${
                     m.role === "user"
-                      ? "self-end bg-slate-900 text-white"
+                      ? "self-end bg-emerald-50 border border-emerald-200 text-slate-800"
                       : "self-start bg-slate-50 border border-slate-200 text-slate-700"
                   }`}
                 >
@@ -195,7 +195,7 @@ export default function AiPage() {
               onChange={(e) => setInput(e.target.value)}
               placeholder="输入你的问题..."
               maxLength={4000}
-              className="flex-1 bg-white border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-slate-400"
+              className="flex-1 bg-white border border-slate-200 rounded-[12px] px-4 py-3 text-slate-800 text-[0.95rem] transition-colors duration-150 focus:outline-none focus:border-emerald-500 focus:bg-white"
             />
             <Btn type="submit" disabled={busy || !input.trim()}>{busy ? "..." : "发送"}</Btn>
           </form>

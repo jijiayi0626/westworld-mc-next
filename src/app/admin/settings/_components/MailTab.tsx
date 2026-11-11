@@ -116,7 +116,7 @@ export default function MailTab() {
           desc="用于找回密码验证码与后台批量通知的邮件投递。支持 Resend API（推荐，无需开端口）或自有 SMTP 邮箱（587 STARTTLS / 465 SSL）。"
           aside={
             mailCfg ? (
-              <Badge color="gray">
+              <Badge color={mailCfg.provider !== "none" ? "green" : "gray"}>
                 {mailCfg.provider === "none" ? "未启用" : mailCfg.provider === "resend" ? "Resend API" : "SMTP"}
               </Badge>
             ) : undefined
@@ -131,7 +131,7 @@ export default function MailTab() {
                 <select
                   value={mailForm.provider}
                   onChange={(e) => setMailForm((p) => ({ ...p, provider: e.target.value }))}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.88rem] focus:outline-none focus:border-slate-400"
+                  className="w-full bg-slate-50 border border-slate-200 rounded-[12px] px-3 py-2 text-[0.88rem] focus:outline-none focus:border-[color:var(--green,#10b981)]"
                 >
                   <option value="none">关闭（不发送邮件）</option>
                   <option value="resend">Resend API</option>
@@ -177,7 +177,7 @@ export default function MailTab() {
                     </Field>
                   </div>
                   <SettingRow label="使用 SSL 直连" hint="465 端口勾选；587 端口保持关闭">
-                    <input type="checkbox" checked={mailForm.smtp_ssl} onChange={(e) => setMailForm((p) => ({ ...p, smtp_ssl: e.target.checked }))} className="w-4 h-4 accent-slate-900" />
+                    <input type="checkbox" checked={mailForm.smtp_ssl} onChange={(e) => setMailForm((p) => ({ ...p, smtp_ssl: e.target.checked }))} className="w-4 h-4 accent-emerald-500" />
                   </SettingRow>
                 </>
               )}
@@ -207,7 +207,7 @@ export default function MailTab() {
                         type="checkbox"
                         checked={mailEvents[ev.key] !== false}
                         onChange={(e) => setMailEvents((p) => ({ ...p, [ev.key]: e.target.checked }))}
-                        className="w-4 h-4 accent-slate-900"
+                        className="w-4 h-4 accent-emerald-500"
                       />
                       {ev.label}
                     </label>
@@ -230,7 +230,7 @@ export default function MailTab() {
                   value={testTo}
                   onChange={(e) => setTestTo(e.target.value)}
                   placeholder="你的收件邮箱"
-                  className="flex-1 min-w-[220px] max-w-[320px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-slate-400"
+                  className="flex-1 min-w-[220px] max-w-[320px] bg-slate-50 border border-slate-200 rounded-[12px] px-4 py-2 text-[0.88rem] text-slate-800 focus:outline-none focus:border-[color:var(--green,#10b981)]"
                 />
                 <button
                   type="button"
@@ -242,7 +242,7 @@ export default function MailTab() {
                 </button>
               </div>
               {testMsg.err && <div className="settings-error break-all">{testMsg.err}</div>}
-              {testMsg.ok && <div className="settings-error">{testMsg.ok}</div>}
+              {testMsg.ok && <div className="mt-3 px-4 py-2.5 rounded-[12px] bg-emerald-50 border border-emerald-200 text-emerald-700 text-[0.85rem]">{testMsg.ok}</div>}
         </SettingsGroup>
       </SettingsStack>
     </>

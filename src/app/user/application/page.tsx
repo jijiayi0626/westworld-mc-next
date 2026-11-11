@@ -121,7 +121,7 @@ export default function ApplicationPage() {
                   </div>
                 )}
                 {a.status === "approved" && (
-                  <div className="mt-2 px-3 py-2 text-[0.82rem] text-slate-700 bg-slate-50 border border-slate-200 rounded-[8px]">
+                  <div className="mt-2 px-3 py-2 text-[0.82rem] text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-[8px]">
                     已通过审核（{a.reviewer || "管理员"} · {fmtTime(a.reviewed_at)}）。现在可以加入服务器了：sdcmc.chipzz.top:23400
                   </div>
                 )}
