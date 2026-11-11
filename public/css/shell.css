@@ -495,3 +495,16 @@ body.sidebar-open { overflow: hidden; }
 .sidebar-collapsed .appearance-btn span { display: none; }
 .sidebar-collapsed .appearance-row { flex-direction: row; }
 .sidebar-collapsed .appearance-block { padding: 12px 4px 4px; }
+
+/* Q-BOUNCE: 侧边栏弹性交互 */
+:root { --ease-spring: cubic-bezier(.34,1.56,.64,1); }
+.nav-item, .nav-subitem, .nav-group-toggle, .appearance-btn, .sidebar-toggle, .sidebar-bottom-link {
+  transition: transform .2s var(--ease-spring), background-color .16s ease, color .16s ease, border-color .16s ease;
+}
+.nav-item:hover .nav-item-icon, .nav-subitem:hover .nav-item-icon { transform: scale(1.12); }
+.nav-item-icon, .nav-subitem .nav-item-icon { transition: transform .2s var(--ease-spring); }
+.nav-item:active, .nav-subitem:active, .appearance-btn:active, .nav-group-toggle:active, .sidebar-toggle:active { transform: scale(.96); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--sb-accent); }
+@media (prefers-reduced-motion: reduce) {
+  .nav-item, .nav-subitem, .nav-group-toggle, .appearance-btn, .sidebar-toggle, .nav-item-icon { transition: none; }
+}

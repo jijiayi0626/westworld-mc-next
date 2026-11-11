@@ -962,7 +962,7 @@ button { cursor: pointer; }
     transition: var(--tr);
 }
 .nav-item:hover { background: var(--bg-card-hover); color: var(--text-primary); }
-.nav-item.active { background: var(--text-primary); color: var(--bg-card); font-weight: 600; }
+.nav-item.active { background: var(--green); color: #fff; font-weight: 600; }
 .nav-divider { height: 1px; background: var(--border); margin:16px 8px; }
 
 .nav-section { margin-bottom:24px; }
@@ -6534,3 +6534,16 @@ table, .stat-card, .stat-value, .mon-value, .pay-metric { font-variant-numeric: 
 /* 设置页动效：只过渡颜色与阴影，可被 prefers-reduced-motion 关闭 */
 .settings-group, .settings-row { transition: border-color var(--tr-soft), background-color var(--tr-soft); }
 
+
+/* Q-BOUNCE: 后台弹性交互 */
+:root { --ease-spring: cubic-bezier(.34,1.56,.64,1); }
+.btn, .nav-item, .nav-subitem, .user-detail-tab-btn, .img-orphan-btn, .stat-card, .table tbody tr {
+  transition: transform .2s var(--ease-spring), background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .2s ease;
+}
+.btn:hover, .user-detail-tab-btn:hover, .img-orphan-btn:hover { transform: translateY(-1px) scale(1.02); }
+.btn:active, .nav-item:active, .nav-subitem:active, .user-detail-tab-btn:active, .img-orphan-btn:active { transform: scale(.96); }
+.stat-card:hover { transform: translateY(-3px) scale(1.01); box-shadow: 0 10px 24px rgba(15, 23, 42, .12); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--green); }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .nav-item, .nav-subitem, .user-detail-tab-btn, .img-orphan-btn, .stat-card { transition: none; }
+}

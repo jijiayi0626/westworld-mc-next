@@ -5184,3 +5184,20 @@ input:focus, select:focus, textarea:focus {
 :root[data-theme="dark"] .text-blue-600,
 :root[data-theme="dark"] .text-blue-700 { color: #60a5fa !important; }
 :root[data-theme="dark"] .ring-offset-2 { --tw-ring-offset-color: #171d23; }
+
+/* Q-BOUNCE: 用户中心弹性交互 */
+:root { --ease-spring: cubic-bezier(.34,1.56,.64,1); }
+.user-card, .shop-card, .shop-filter-chip, .shop-page-btn, .shop-order-tab, .ticket-pagination button, .staff-pager button, .ai-toggle-btn, .profile-card {
+  transition: transform .2s var(--ease-spring), background-color .16s ease, border-color .16s ease, color .16s ease, box-shadow .2s ease;
+}
+.user-card:hover, .shop-card:hover, .profile-card:hover { transform: translateY(-3px) scale(1.01); }
+.shop-filter-chip:hover, .shop-page-btn:hover, .shop-order-tab:hover, .ticket-pagination button:hover:not(:disabled), .ai-toggle-btn:hover { transform: translateY(-1px) scale(1.03); }
+.shop-filter-chip:active, .shop-page-btn:active, .shop-order-tab:active, .ticket-pagination button:active, .ai-toggle-btn:active, .user-card:active { transform: scale(.96); }
+input[type="checkbox"], input[type="radio"] { accent-color: var(--green); }
+@media (prefers-reduced-motion: reduce) {
+  .user-card, .shop-card, .shop-filter-chip, .shop-page-btn, .shop-order-tab, .ticket-pagination button, .ai-toggle-btn, .profile-card { transition: none; }
+}
+
+@keyframes q-pop { 0% { opacity: 0; transform: translateY(8px) scale(.97); } 62% { opacity: 1; transform: translateY(0) scale(1.012); } 100% { transform: translateY(0) scale(1); } }
+.chat-pop { animation: q-pop .28s var(--ease-spring) both; }
+@media (prefers-reduced-motion: reduce) { .chat-pop { animation: none; } }

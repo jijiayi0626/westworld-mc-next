@@ -644,3 +644,18 @@ img {
     transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease, opacity 0.2s ease;
   }
 }
+
+/* Q-BOUNCE: 统一弹性交互 */
+:root { --ease-spring: cubic-bezier(.34,1.56,.64,1); }
+.btn, .boton-minecraft, .h-feature, .hero-badge, .glass-card, .gallery-item, .step-card {
+  transition: transform .24s var(--ease-spring), background-color .18s ease, border-color .18s ease, color .18s ease, box-shadow .24s ease;
+  will-change: transform;
+}
+.btn:hover, .boton-minecraft:hover { transform: translateY(-2px) scale(1.02); }
+.btn:active, .boton-minecraft:active, .h-feature:active, .hero-badge:active { transform: scale(.95); }
+.glass-card:hover, .step-card:hover { transform: translateY(-4px) scale(1.01); }
+.gallery-item:hover { transform: translateY(-3px) scale(1.015); }
+input[type="checkbox"], input[type="radio"] { accent-color: #10b981; }
+@media (prefers-reduced-motion: reduce) {
+  .btn, .boton-minecraft, .h-feature, .hero-badge, .glass-card, .gallery-item, .step-card { transition: none; }
+}

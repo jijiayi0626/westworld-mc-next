@@ -617,7 +617,7 @@ export default function RoomChat({
               }
               const mine = m.user_id === me.id;
               return (
-                <div key={m.id} data-mid={m.id} className={`group flex gap-3 ${mine ? "flex-row-reverse" : ""}`}>
+                <div key={m.id} data-mid={m.id} className={`chat-pop group flex gap-3 ${mine ? "flex-row-reverse" : ""}`}>
                   <Avatar src={m.avatar_url} name={m.username} size={32} />
                   <div className={`flex min-w-0 max-w-[78%] flex-col ${mine ? "items-end" : "items-start"}`}>
                     <div className={`mb-1 flex items-center gap-2 ${mine ? "flex-row-reverse" : ""}`}>
