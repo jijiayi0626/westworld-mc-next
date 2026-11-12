@@ -909,6 +909,9 @@ app.post("/rooms/:id/join", requireAuth, async (c) => {
   const room = await roomById(db, roomId);
   if (!room) return fail("会话不存在", 404);
   if (room.kind === "dm") return fail("私信会话需由对方发起", 403);
+  // 群聊为邀请制：只能由群主/管理员在成员面板邀请好友加入。凭群 ID 自助加入会绕过好友校验，
+  // 任何登录用户都能遍历群 ID 读取他人私密群聊，因此这里只放行自动加入的社区群。
+  if (room.kind === "group") return fail("群聊需由群成员邀请加入", 403);
   await db
     .prepare("INSERT OR IGNORE INTO chat_room_members (room_id, user_id, role) VALUES (?, ?, 'member')")
     .bind(roomId, user.id)
