@@ -305,7 +305,7 @@ app.get("/health", async (c) => {
     detail: upop.enabled ? "已启用" : "预留中（后台可配置，非必选）",
   });
 
-  // 6. 定时巡检（cron）
+  // 6. 维护任务（由 API 请求惰性触发，不再依赖 cron）
   try {
     const [cronRow, intervalRow] = await Promise.all([
       c.env.DB.prepare("SELECT value FROM site_settings WHERE key = 'last_cron_run'").first<{ value: string }>(),
@@ -316,14 +316,14 @@ app.get("/health", async (c) => {
     const fresh = last && Date.now() - last < (interval + 10) * 60_000;
     items.push({
       id: "cron",
-      label: "定时巡检",
-      ok: !!fresh,
+      label: "维护任务",
+      ok: true,
       detail: fresh
         ? `运行正常（间隔 ${interval} 分钟，上次 ${cronRow?.value} UTC）`
-        : "超过 1 个周期未运行，请检查 Worker Cron 触发器",
+        : `等待访问触发（上次 ${cronRow?.value || "尚未运行"} UTC），有请求后自动执行`,
     });
   } catch {
-    items.push({ id: "cron", label: "定时巡检", ok: false, detail: "状态读取失败" });
+    items.push({ id: "cron", label: "维护任务", ok: false, detail: "状态读取失败" });
   }
 
   // 7. RCON

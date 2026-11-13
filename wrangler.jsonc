@@ -7,9 +7,6 @@
   "routes": [
     { "pattern": "westworld.inumc.dpdns.org/*", "zone_name": "inumc.dpdns.org" }
   ],
-  "triggers": {
-    "crons": ["*/5 * * * *"]
-  },
   "assets": {
     "directory": "./out",
     "not_found_handling": "404-page",

@@ -22,13 +22,12 @@ import forumRoutes from "./routes/forum";
 import pointsRoutes from "./routes/points";
 import presenceRoutes from "./routes/presence";
 import monitorRoutes from "./routes/monitor";
-import { checkAllServers } from "./routes/monitor";
 import rconRoutes from "./routes/rcon";
 import uploadRoutes from "./routes/upload";
 import assetsRoutes from "./routes/assets";
 import rainyunRoutes from "./routes/rainyun";
 import backupRoutes from "./routes/backup";
-import { processDeliveryQueue, expireStaleOrders } from "./routes/shop";
+import { maybeRunMaintenance } from "./lib/maintenance";
 import { RconDO } from "./do/rcon-do";
 
 const app = new Hono<AppEnv>();
@@ -165,58 +164,14 @@ app.onError((err, c) => {
 });
 
 export default {
-  fetch: app.fetch,
-  // 定时服务器巡检：cron 每 5 分钟触发一次；实际巡检间隔由
-  // site_settings.monitor_interval_minutes 控制（后台「服务器监控」可设置，默认 15 分钟），
-  // 未到期的触发直接跳过，避免无谓的外部 API 调用。
-  async scheduled(_event, env, ctx) {
-    ctx.waitUntil(
-      (async () => {
-        try {
-          // 心跳：每次 cron 触发都记录时间（后台「系统健康」据此判断巡检是否存活）
-          await env.DB.prepare(
-            `INSERT INTO site_settings (key, value, updated_at) VALUES ('last_cron_run', datetime('now'), datetime('now'))
-             ON CONFLICT(key) DO UPDATE SET value = datetime('now'), updated_at = datetime('now')`,
-          ).run();
-
-          // 清理过期限流记录，避免 rate_limits 无限增长
-          try {
-            await env.DB.prepare("DELETE FROM rate_limits WHERE expires_at < ?")
-              .bind(Math.floor(Date.now() / 1000) - 3600)
-              .run();
-          } catch {
-            /* 表不存在时忽略 */
-          }
-
-          // 商城：补发失败订单 + 取消超时未支付订单并归还库存
-          try {
-            await processDeliveryQueue(env);
-            await expireStaleOrders(env);
-          } catch {
-            /* 表未迁移或单笔异常时忽略，等待下一轮 */
-          }
-
-          const intervalRow = await env.DB.prepare(
-            "SELECT value FROM site_settings WHERE key = 'monitor_interval_minutes'",
-          ).first<{ value: string }>();
-          const minutes = Math.max(5, Math.min(1440, Number(intervalRow?.value) || 15));
-          const { results } = await env.DB.prepare("SELECT last_check FROM game_servers").all<{
-            last_check: string | null;
-          }>();
-          const now = Date.now();
-          const isStale = (row: { last_check: string | null }) => {
-            if (!row.last_check) return true;
-            const t = new Date(row.last_check.replace(" ", "T") + "Z").getTime();
-            return Number.isNaN(t) || now - t > minutes * 60_000 - 30_000;
-          };
-          if (results.some(isStale)) {
-            await checkAllServers(env.DB);
-          }
-        } catch {
-          // 定时任务失败不影响主服务，等待下一轮
-        }
-      })(),
-    );
+  // 维护任务不再依赖 cron：有 API 请求时惰性触发，5 分钟内只跑一次，
+  // 由 site_settings.maintenance_lock 原子抢占，避免并发重复执行。
+  async fetch(request, env, ctx) {
+    const url = new URL(request.url);
+    if (url.pathname.startsWith("/api/")) {
+      ctx.waitUntil(maybeRunMaintenance(env));
+    }
+    return app.fetch(request, env, ctx);
   },
 } satisfies ExportedHandler<AppEnv["Bindings"]>;
 
